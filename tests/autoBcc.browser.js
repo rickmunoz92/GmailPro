@@ -55,10 +55,25 @@
     rows.BCC.hidden = !initial.BCC;
     const reveal = element("span", { role: "link", "aria-label": "Add Bcc recipients" });
     reveal.textContent = "Bcc";
-    reveal.addEventListener("click", () => { reveals++; rows.BCC.hidden = false; reveal.hidden = true; });
+    reveal.addEventListener("click", () => {
+      reveals++; rows.BCC.hidden = false; reveal.hidden = true; boxes.BCC.focus();
+    });
     fields.append(reveal);
-    summary.addEventListener("click", () => { expansions++; fields.hidden = false; summary.hidden = true; });
+    // Live Gmail's inline header needs focus; .click() alone does nothing.
+    // Render in a later task to catch premature focus restoration regressions.
+    summary.addEventListener("focus", () => {
+      setTimeout(() => {
+        if (!summary.isConnected || document.activeElement !== summary) return;
+        expansions++; fields.hidden = false; summary.hidden = true; boxes.To.focus();
+        // Gmail's delayed initial editor autofocus can land between expansion
+        // and BCC reveal. Returning to it after reveal collapses the addressing UI.
+        setTimeout(() => { if (editor.isConnected) editor.focus(); }, 20);
+      }, 0);
+    });
     const inline = mode !== "new";
+    editor.addEventListener("focus", () => {
+      if (inline && !rows.BCC.hidden) { fields.hidden = true; summary.hidden = false; }
+    });
     fields.hidden = inline;
     summary.hidden = !inline;
     form.append(marker, fields, summary);
@@ -86,6 +101,7 @@
       await settle();
       assert(draft.chips().length === 1, "one committed BCC");
       assert(draft.attempts === 1, "one insertion attempt");
+      if (mode !== "new") assert(draft.expansions === 1, "one focus-based header activation");
       assert(draft.editor.textContent === "Synthetic body must remain unchanged", "body preserved");
       assert(document.activeElement === (mode === "new" ? draft.boxes.To : draft.editor), "focus restored");
     });
@@ -147,7 +163,7 @@
   await test("SPA replaces main pane; reply and forward discovered without focus", async () => {
     const next = element("div", { role: "main", id: "workspace" });
     document.getElementById("workspace").replaceWith(next); await settle();
-    const reply = compose({ mode: "reply", focus: false }); const forward = compose({ mode: "forward", focus: false }); await settle();
+    const reply = compose({ mode: "reply", focus: false }); const forward = compose({ mode: "forward", focus: false }); await settle(); await settle();
     assert(reply.attempts === 1 && forward.attempts === 1, "replacement pane observed");
   });
   await test("closing before insertion cancels work", async () => {
@@ -171,6 +187,22 @@
     const draft = compose();
     for (const input of Object.values(draft.boxes)) input.setAttribute("aria-label", "Unknown locale");
     await settle(); assert(draft.attempts === 0 && draft.reveals === 0, "no guessed recipient control");
+  });
+  await test("reply expansion never restores focus into another compose", async () => {
+    const reply = compose({ mode: "reply" });
+    await new Promise(resolve => setTimeout(resolve, 110));
+    const other = compose();
+    await settle();
+    assert(reply.attempts === 1 && other.attempts === 1, "both drafts handled");
+    assert(document.activeElement === other.boxes.To, "later compose keeps focus");
+  });
+  await test("disabling during header expansion cancels and restores focus", async () => {
+    const reply = compose({ mode: "reply" });
+    await new Promise(resolve => setTimeout(resolve, 110));
+    app.autoBcc.update({ autoBccEnabled: false });
+    await settle();
+    assert(reply.attempts === 0, "pending insertion cancelled");
+    assert(document.activeElement === reply.editor, "original caret restored");
   });
   await test("late-built Gmail shell recovers on focus", async () => {
     app.autoBcc.stop();

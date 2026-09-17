@@ -85,8 +85,15 @@ editable message body. Changes coalesce into one 80 ms task. A five-second deadl
 bounds incomplete layouts; this is not a retry loop. At most one summary expansion,
 one BCC reveal, and one recipient-entry attempt occur per form. Insertion uses the
 native input setter, an input event, and Enter on the verified BCC input, then
-checks for Gmail's committed chip. Focus and the existing selection are restored
-synchronously without reading their text. No asynchronous task later steals focus.
+checks for Gmail's committed chip. Ordinary input/reveal actions restore focus
+synchronously without reading selection text. Inline reply headers require focus
+before Gmail renders their recipient fields; clicking alone is insufficient.
+Header activation is serialized so simultaneous replies cannot take focus from
+one another. Gmail can autofocus the editor after the header starts opening; BCC
+keeps focus through recipient entry so an intermediate restoration cannot collapse
+the fields. The saved caret is restored afterward only while focus remains
+in that addressing form. Any real pointer or keyboard interaction cancels that
+saved restoration. The two shared interaction listeners are removed on stop.
 
 After confirmation, observation only recognizes removal. Removal, duplicate
 presence, cancellation, selector failure, closure, and stop are terminal for that
@@ -200,16 +207,35 @@ or raw exceptions. Restore `DEBUG = false` before committing.
 
 ### Validation record
 
-Phase 2 validation on September 16, 2026: 12 Node tests and 25 real-browser
-synthetic DOM checks passed. Manifest/resource/syntax checks and `git diff --check`
-passed. The installed popup renders the new UI, saves preferences, and preserves
-those values when reopened. Test preferences were restored to off/empty.
+Phase 2 live verification completed September 17, 2026 with installed version
+`0.2.2`, confirmed in Gmail Pro's isolated content-script context. All 12 Node
+tests and 27 real-browser synthetic DOM checks passed, along with manifest,
+resource, syntax, minimal-permission, and whitespace checks.
 
-**Live Gmail insertion acceptance is still pending.** Gmail's installed content
-context reported version `0.1.0` with the inert Phase 1 module after a tab refresh.
-The unpacked extension must be reloaded through Chrome's extensions manager before
-Phase 2 can be tested against Gmail. Synthetic checks do not replace that test.
-No real email was sent. Gmail DOM discovery used disposable draft interfaces only.
+Live English Gmail checks passed for new compose, Reply, Reply All, Forward,
+three simultaneous compose windows, one BCC chip per composition, manual removal
+without reinsertion, and a subsequent new composition. Popup OFF prevented BCC in
+a new draft; restoring ON enabled it in a later draft. Preferences persisted when
+the popup was reopened. Inbox/thread/Drafts navigation worked without reloading.
+Reopening a saved draft with the configured address in To (entered in uppercase)
+or BCC skipped insertion and preserved a single recipient.
+
+Live testing exposed focus-dependent inline reply headers and Gmail's delayed
+editor autofocus. The fix retains focus through BCC entry, serializes header
+activation, and guards caret restoration against intervening user activity or
+focus in another compose. Updated fixtures reproduce those timings. The final
+0.2.2 run detected 11 compositions: eight one-time insertion attempts, two existing
+recipient skips, and one disabled composition; one manual removal stayed removed.
+No selector failures, repeated insertion attempts, or Gmail Pro runtime errors
+were observed. Unrelated Gmail/other-extension console warnings were present.
+
+Dedicated QA should still exercise CC duplicates directly in Gmail, rapid typing
+and focus changes during insertion, more thread layouts, and longer sessions.
+These edge cases have synthetic coverage where applicable; a finite live run is
+not a guarantee against future Gmail DOM changes or observer leaks. No real email
+was sent. The disposable drafts used in the final run were discarded, temporary
+runtime diagnostics were restored, and the original enabled setting and configured
+address were retained. Newest Email First remains inert.
 
 ## Gmail DOM maintenance
 
@@ -219,8 +245,9 @@ have an addressing `form` with `input[name="composeid"]`; message editors are ou
 that form. Recipient inputs have role `combobox` and accessible labels `To recipients`,
 `CC recipients`, or `BCC recipients`. Their enclosing listboxes contain committed
 `role="option"` chips with `data-hovercard-id`. Collapsed reply summaries contain
-recipient spans and a focusable ancestor. BCC reveal links have an accessible
-name beginning with `Add Bcc recipients`. These are observed DOM conventions,
+recipient spans and a focusable ancestor which must be focused to activate the
+recipient editor (a programmatic click alone does not activate it). BCC reveal links
+have an accessible name beginning with `Add Bcc recipients`. These are observed DOM conventions,
 **not Gmail API contracts**. No generated class names are used.
 
 English labels are a deliberate current limitation; other locales and redesigned

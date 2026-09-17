@@ -9,6 +9,7 @@
   let settings = { ...app.settings.defaults };
   let discovery;
   let main;
+  let headerOwner = null;
 
   // Keep plus tags and dots: different providers assign different meanings.
   function normalizeAddress(value) {
@@ -51,6 +52,7 @@
     state.observer?.disconnect();
     state.form.removeEventListener("input", state.onInput);
     active.delete(state.form);
+    restoreHeaderFocus(state);
   }
 
   function finish(state, status) {
@@ -58,22 +60,47 @@
     release(state);
   }
 
-  function preserveFocus(action) {
+  function captureFocus() {
     const previous = document.activeElement;
     const selection = document.getSelection();
     const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-    try { action(); }
-    finally {
-      // All UI actions here are synchronous. Restore the existing caret without
-      // reading its text, and never steal focus later from asynchronous user input.
-      if (previous?.isConnected && document.activeElement !== previous) {
-        previous.focus({ preventScroll: true });
-        if (range?.startContainer.isConnected && range.endContainer.isConnected) {
-          selection.removeAllRanges();
-          selection.addRange(range);
+    return {
+      restore() {
+        if (previous?.isConnected && document.activeElement !== previous) {
+          previous.focus({ preventScroll: true });
+          if (range?.startContainer.isConnected && range.endContainer.isConnected) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
         }
       }
+    };
+  }
+
+  function preserveFocus(action) {
+    const focus = captureFocus();
+    try { action(); } finally { focus.restore(); }
+  }
+
+  function restoreHeaderFocus(state) {
+    const focus = state.headerFocus;
+    state.headerFocus = null;
+    const ownedHeader = headerOwner === state;
+    if (ownedHeader) headerOwner = null;
+    // A reply header activates on focus, with recipient rendering deferred by
+    // Gmail. Restore only while focus is still in our addressing form, and only
+    // if no real keyboard/pointer interaction has superseded this saved caret.
+    if (focus && state.form.contains(document.activeElement)) focus.restore();
+    if (ownedHeader) {
+      // Two inline forms can arrive in one mutation batch. Focus-dependent
+      // expansion must finish before another header takes that focus away.
+      for (const pending of active.values()) if (pending.status === "pending") schedule(pending);
     }
+  }
+
+  function onUserInteraction(event) {
+    if (!event.isTrusted) return;
+    for (const state of active.values()) state.headerFocus = null;
   }
 
   function step(state) {
@@ -88,6 +115,11 @@
     }
     if (!settings.autoBccEnabled || normalizeAddress(settings.bccAddress) !== state.address) {
       return finish(state, "cancelled");
+    }
+    // Programmatic focus in a different compose can supersede this operation
+    // too (without a trusted pointer/key event). Check before taking BCC focus.
+    if (state.headerFocus && !state.form.closest(S.region)?.contains(document.activeElement)) {
+      state.headerFocus = null;
     }
     try {
       if (state.attempted) {
@@ -123,21 +155,37 @@
             }));
           }
         });
+        restoreHeaderFocus(state);
         schedule(state);
         return;
       }
       const reveal = [...state.form.querySelectorAll(S.addBcc)].filter(visible);
       if (reveal.length === 1 && !state.revealed) {
         state.revealed = true;
-        preserveFocus(() => reveal[0].click());
+        if (state.headerFocus) {
+          // Gmail may finish its initial editor autofocus after we activate the
+          // header. Keep that editor as the return target, then retain BCC focus
+          // through insertion: restoring the editor between these steps hides BCC.
+          const focused = document.activeElement;
+          if (focused.matches(S.editor) && state.form.closest(S.region)?.contains(focused)) {
+            state.headerFocus = captureFocus();
+          }
+          reveal[0].click();
+        } else {
+          preserveFocus(() => reveal[0].click());
+        }
         schedule(state);
         return;
       }
       const summaries = [...state.form.querySelectorAll(S.summary)]
         .filter(node => visible(node) && node.querySelector(S.summaryRecipient));
       if (summaries.length === 1 && !state.expanded) {
+        if (headerOwner && headerOwner !== state) return;
+        headerOwner = state;
         state.expanded = true;
-        preserveFocus(() => summaries[0].click());
+        state.headerFocus = captureFocus();
+        summaries[0].focus({ preventScroll: true });
+        summaries[0].click();
         schedule(state);
       }
     } catch {
@@ -246,6 +294,8 @@
     });
     observeMain(document.querySelector(S.main));
     document.addEventListener("focusin", onFocus, true);
+    document.addEventListener("pointerdown", onUserInteraction, true);
+    document.addEventListener("keydown", onUserInteraction, true);
     scan(document.body); // One initial scan; subsequent scans use added subtrees.
   }
 
@@ -254,6 +304,8 @@
     running = false;
     discovery.disconnect();
     document.removeEventListener("focusin", onFocus, true);
+    document.removeEventListener("pointerdown", onUserInteraction, true);
+    document.removeEventListener("keydown", onUserInteraction, true);
     for (const state of active.values()) finish(state, "stopped");
   }
 
