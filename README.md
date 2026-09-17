@@ -2,26 +2,37 @@
 
 **Power-user enhancements for Gmail**
 
-A private, lightweight Manifest V3 Chrome extension for `https://mail.google.com/*`.
+A private Manifest V3 Chrome extension for `https://mail.google.com/*`.
 Plain HTML, CSS, and JavaScript. No build step, runtime dependencies, or backend.
 
-## Phase 1 status
+## Phase 2: Auto BCC
 
-The branded popup, preference storage, and extension skeleton are ready. You can
-save an Auto BCC preference, one BCC address, and a Newest Email First preference.
-Both toggles default to off. **Neither feature modifies Gmail yet**, even when a
-saved toggle is on. The popup explicitly identifies this as a preferences preview.
+Enable **Auto BCC**, enter one email address, and choose **Save preferences**.
+New compose, inline reply, reply all, and forward interfaces receive that BCC
+recipient. Multiple drafts have independent state. **Newest Email First remains
+an inert placeholder** and its popup switch is disabled.
 
-The content entry point runs once in the top-level Gmail page but does not inspect
-messages or recipients, read or write the DOM, access storage, create observers,
-register event listeners, or start timers. Feature modules are inert placeholders.
-Feature correctness on Gmail will be tested when those features are implemented.
+- A draft captures the settings when Gmail Pro first detects it. Changes apply
+  to future compositions; existing recipients are never rewritten or removed.
+- The address is not added if it already appears in To, CC, or BCC, including
+  contact chips or unfinished recipient text. Matching ignores case and surrounding
+  whitespace. Dots and plus tags are preserved; provider aliases are not guessed.
+- Removing an automatically added recipient keeps it removed for that compose
+  instance. The extension never retries an insertion that Gmail has already received.
+- Turning Auto BCC off cancels pending additions and leaves existing recipients
+  alone. Turning it on again affects future compose instances. Changing the address
+  also cancels pending work for the old address.
+- Closing and reopening a draft creates a new compose instance. Existing recipients
+  still prevent duplicates. Removal decisions are in-memory, not persisted across
+  a page refresh, reopened draft, or another Gmail tab.
+- An unknown or ambiguous layout is left alone. Auto BCC is a convenience, not a
+  send-time guarantee: confirm BCC before sending a message that requires a copy.
+  Gmail Pro does not intercept, delay, or trigger Send.
 
 ## Project structure
 
 ```text
 GmailPro/
-├── .gitignore
 ├── manifest.json
 ├── content/
 │   ├── content.js
@@ -37,199 +48,197 @@ GmailPro/
 │   └── settings.js
 ├── icons/
 │   ├── icon.svg
-│   ├── icon16.png
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
-├── scripts/
-│   └── validate.cjs
+│   └── icon{16,32,48,128}.png
+├── scripts/validate.cjs
 ├── tests/
-│   └── settings.test.cjs
+│   ├── settings.test.cjs
+│   ├── autoBcc.html
+│   └── autoBcc.browser.js
+├── .gitignore
 └── README.md
 ```
 
 ## Architecture
 
-- **Content:** declarative scripts restricted to Gmail, loaded at `document_idle`
-  in Chrome's default isolated world, in the order listed in the manifest. Gmail
-  cannot access the extension's JavaScript namespace through its page scripts.
-- **Modules:** small, guarded closures share one `globalThis.GmailPro` namespace
-  per extension context. This works in both classic content scripts and the popup
-  without a bundler, dynamic imports, page-script injection, or web-accessible
-  resources. Guards make repeated initialization safe. It is not a data store.
-- **Settings:** `shared/settings.js` is the only preference owner and Chrome
-  storage adapter. There is no background worker, message relay, localStorage
-  mirror, persistent cache, or second store.
-- **Popup:** an accessible form with keyboard-operable switches, email validation,
-  visible preview status, explicit Save, and retryable load/save errors. Closing
-  it discards unsaved edits. Writes occur on Save, never on every keystroke.
-- **Features:** each placeholder exposes `implemented: false`, `start()`, and
-  `stop()`. The entry point deliberately does not activate them in Phase 1.
-- **Debug:** `shared/debug.js` has a local `DEBUG = false` flag and an allowlist of
-  lifecycle messages. It never accepts settings, addresses, Gmail content, DOM
-  nodes, or raw exception objects. Do not add sensitive data to logs.
+Declarative content scripts run at `document_idle`, in Chrome's default isolated
+world, in manifest order. Guarded closures share one `globalThis.GmailPro`
+namespace per extension context. There is no bundler, page-script injection,
+background worker, message relay, or web-accessible resource.
 
-The proposed structure is retained. The only additions are shared debug logging,
-local icon assets (with an editable SVG source), and dependency-free validation.
-The popup uses system fonts and bundled assets. No framework or package manifest
-is necessary.
+`content.js` subscribes before loading preferences and merges changes received
+while that read is pending. It starts Auto BCC once, delivers subsequent settings
+patches, and tears down on page exit. A failed initial settings read leaves Gmail
+untouched; refresh Gmail after resolving the storage error.
+
+`autoBcc.js` owns discovery, insertion, and cleanup. A WeakMap remembers each
+addressing form's decision. A Map holds only forms with pending work or recipient
+removal monitoring. The main Gmail pane has a child-list observer for inline
+compositions. Its ancestor spine is observed **shallowly** for SPA replacement.
+A single capturing `focusin` listener discovers floating compose windows. Verified
+compose ancestor paths are also watched shallowly to detect closure and additional
+windows. There is no permanent whole-document subtree observer, polling interval,
+or repeated full-document scan. One initial scan finds already-open compositions;
+later discovery only examines newly added subtrees or the focused compose region.
+
+Each active form has a narrow observer on its addressing UI, which excludes the
+editable message body. Changes coalesce into one 80 ms task. A five-second deadline
+bounds incomplete layouts; this is not a retry loop. At most one summary expansion,
+one BCC reveal, and one recipient-entry attempt occur per form. Insertion uses the
+native input setter, an input event, and Enter on the verified BCC input, then
+checks for Gmail's committed chip. Focus and the existing selection are restored
+synchronously without reading their text. No asynchronous task later steals focus.
+
+After confirmation, observation only recognizes removal. Removal, duplicate
+presence, cancellation, selector failure, closure, and stop are terminal for that
+compose instance. Observers, timers, and input listeners are released on completion
+or detachment. Repeated script injection/start/stop cannot create extra owners.
+
+`shared/settings.js` remains the only preference/storage adapter. The popup uses
+explicit Save, accessible controls, email validation, and retryable storage errors.
+Unsaved edits survive incoming settings changes. Popup-only changes require closing
+and reopening it; content or manifest changes require extension reload and Gmail refresh.
 
 ### Settings contract
 
-| Public property | Default | Chrome Sync key |
+| Property | Default | Chrome Sync key |
 | --- | --- | --- |
 | `autoBccEnabled` | `false` | `gmailPro.v1.autoBccEnabled` |
 | `bccAddress` | `""` | `gmailPro.v1.bccAddress` |
 | `newestEmailFirstEnabled` | `false` | `gmailPro.v1.newestEmailFirstEnabled` |
 
-`load()` returns normalized preferences. Missing/deleted or malformed values
-fall back to defaults without overwriting storage. `save(patch)` validates and
-writes only supplied properties; unknown properties are rejected. Addresses are
-trimmed, keep their case, and accept one plain email address (not a display name
-or a recipient list). An empty address is allowed while Auto BCC is off. The
-popup requires an address before saving Auto BCC as enabled. Future feature code
-must independently require both an enabled toggle and a valid nonempty address.
+`load()` normalizes missing/malformed values without overwriting storage.
+`save(patch)` validates and writes only supplied properties. One plain email
+address is accepted; display names and recipient lists are rejected. The popup
+requires a nonempty valid address when enabling Auto BCC. The content module also
+checks validity independently. Preferences apply across Gmail accounts in the
+Chrome profile. The existing schema and stored Newest Email First choice are preserved.
 
-`subscribe(listener)` supplies normalized **patches** for relevant Sync events,
-deduplicates callbacks, and returns an idempotent unsubscribe function. There is
-at most one underlying Chrome storage listener per context. Subscribe before
-loading and merge intervening events, as the popup does, to avoid a stale initial
-read. The popup preserves unsaved edits when remote preferences change and saves
-only edited fields. Concurrent edits to the same key use Chrome's last-write-wins
-behavior; this is not a cross-device transactional database.
+`subscribe(listener)` emits normalized patches for relevant Sync changes,
+deduplicates callbacks, and provides idempotent cleanup. There is at most one
+Chrome storage listener per context. Same-key concurrent updates use Chrome's
+last-write-wins behavior. There is no localStorage mirror or parallel cache.
 
-The `v1` key prefix is the initial schema boundary. If contracts change later,
-add an explicit migration and preserve existing users' choices. Do not reset
-preferences during startup. Preferences currently apply across all Gmail accounts
-in a Chrome profile; per-account preferences are not part of Phase 1.
+## Privacy and permissions
 
-## Privacy
+Gmail Pro has no backend, analytics, tracking, OAuth, Gmail API, remote logging,
+remote code/fonts, or extension-initiated network requests. It does not intercept
+Gmail requests or call undocumented Gmail APIs. It inspects only recipient metadata,
+address inputs, and structural attributes. It does not read subjects, message bodies,
+or attachments. Gmail saves recipient edits as part of its normal draft behavior;
+Gmail Pro does not submit or send messages. Only your configured BCC address and
+two preferences are persisted by the extension.
 
-Gmail Pro has no backend, analytics, tracking, OAuth, Gmail API integration,
-remote code, remote fonts, telemetry, or extension-initiated network requests.
-It does not intercept Gmail requests or call undocumented Gmail APIs. No email
-messages, recipients from Gmail, message identifiers, or attachments are stored.
-Only the two toggles and the BCC address you explicitly enter are persisted.
+**Chrome Sync remains the requested exception to strictly device-only storage.**
+`chrome.storage.sync` stores preferences locally and can synchronize them, including
+the configured BCC address, through Google's Chrome Sync service when enabled.
+With syncing disabled it behaves locally; offline edits can sync later. Gmail Pro
+does not operate that service. If strictly device-only preferences are required,
+migrate the single adapter to `chrome.storage.local` instead of adding another store.
 
-**Chrome Sync is the requested exception to strictly device-only storage.**
-`chrome.storage.sync` stores preferences locally and may transmit them, including
-the configured BCC address, through Google's Chrome Sync service when you enable
-syncing. With syncing disabled, it behaves locally; offline changes can sync later.
-Gmail Pro does not run a server or initiate that synchronization itself. Therefore,
-“no external transmission of any kind” and enabled Chrome Sync cannot both be
-promised. This distinction is also disclosed in the popup. If strict device-only
-storage is required later, change the single adapter to `chrome.storage.local` and
-explicitly migrate settings; do not introduce a parallel store. Do not store
-secrets or message contents in extension preference storage.
-
-The popup's content security policy restricts scripts, styles, and images to
-bundled assets and disables network connections, objects, and form navigation.
-That policy covers extension pages; it does not change Gmail's own policy or
-guarantee that future content-script code cannot make requests. Code review and
-validation must continue to enforce the no-network architecture.
-
-## Permissions
-
-| Capability | Why it exists |
+| Capability | Purpose |
 | --- | --- |
-| `storage` | Save and read the three user preferences using Chrome Sync. |
-| `content_scripts.matches: https://mail.google.com/*` | Limit automatic content-script execution to Gmail over HTTPS, top-level frames only. This grants DOM access on Gmail; Chrome may describe it as reading/changing site data. Phase 1 uses neither capability. |
+| `storage` | Read and save preferences. |
+| `content_scripts.matches: https://mail.google.com/*` | Automatic DOM access on Gmail over HTTPS, top-level frames only. |
 
-No `tabs`, `activeTab`, `scripting`, cookies, history, webRequest, Gmail OAuth
-scopes, broad URL patterns, or duplicate `host_permissions` are requested.
-There is no service worker because the popup and content script can access the
-storage API directly. No CSS is injected into Gmail in Phase 1.
+No permissions were added for Phase 2. There are no `tabs`, `activeTab`, `scripting`,
+cookies, history, webRequest, OAuth scopes, broad URL patterns, or redundant host
+permissions. The popup CSP permits bundled resources and disallows connections,
+objects, and form navigation. It does not change Gmail's CSP; code review must
+continue enforcing the no-network architecture. No CSS is injected into Gmail.
 
-## Local Chrome installation
+## Install and develop locally
 
-1. Open `chrome://extensions` in Chrome.
-2. Turn on **Developer mode**.
-3. Select **Load unpacked** and choose `~/Documents/GmailPro`.
-4. Optionally pin Gmail Pro in Chrome's Extensions menu, then open its popup.
-5. Set your preferences and select **Save preferences**. Reopen the popup to
-   confirm persistence. Gmail itself will remain unchanged in Phase 1.
+1. Open `chrome://extensions` in the intended Chrome profile and enable Developer mode.
+2. Choose **Load unpacked** and select `~/Documents/GmailPro`.
+3. Open Gmail Pro from Chrome's Extensions menu. Configure Auto BCC and Save.
+4. For an update, click Gmail Pro's **Reload** button in the extensions manager,
+   then refresh Gmail tabs. Close any test drafts first.
 
-There is no Web Store upload, account connection, OAuth consent, build command,
-or server to start. Managed Chrome policies can restrict unpacked extensions;
-if Chrome blocks loading, the browser administrator must permit it.
-
-## Development workflow
-
-Edit the source files directly. Run the local checks with Node.js 18 or newer:
+There is no build or Web Store publication step. Managed Chrome policies may
+restrict unpacked extensions. Edit the source directly and run Node.js 18+ checks:
 
 ```sh
 cd ~/Documents/GmailPro
 node scripts/validate.cjs
 ```
 
-This checks the MV3 manifest's expected capabilities, all manifest/popup resource
-paths, PNG icon dimensions, JavaScript syntax, and obvious prohibited runtime
-calls. It runs focused tests for defaults, malformed data, partial writes,
-validation, storage failures, change subscriptions/cleanup, duplicate injection,
-and inert Gmail placeholders. It uses only Node's built-in libraries. Static
-checks are guardrails, not a comprehensive security audit or Chrome validator.
+These validate manifest capabilities, resource paths, icons, runtime JavaScript
+syntax, prohibited runtime calls, settings normalization/writes/subscriptions,
+initial-read races, lifecycle cleanup, and address normalization. They use Node's
+built-in libraries. They are guardrails, not a comprehensive Chrome/security audit.
 
-For a manual popup smoke test:
+For browser DOM regression checks, serve the project locally:
 
-- Open the popup with empty settings: both switches are off, the email is empty,
-  and Save is disabled until an edit.
-- Enable Auto BCC with no address, then Save: a friendly error should focus the
-  email field. Invalid addresses and recipient lists must not be stored.
-- Enter a sample address, change either switch, save, close, and reopen. Verify
-  persisted preferences and the coming-soon notice. Clear the address with Auto
-  BCC off and save; it should remain cleared on reopen.
-- Check keyboard Tab/Space/Enter behavior, focus rings, and save/load errors.
-- Check `chrome://extensions` for manifest/runtime errors. Reload the extension
-  after manifest or content changes, then refresh Gmail tabs. Popup-only changes
-  appear when you close and reopen it.
+```sh
+python3 -m http.server 8765 --bind 127.0.0.1
+```
 
-Inspect the popup by right-clicking it and selecting Inspect. For content logs,
-select the Gmail Pro execution context in Gmail DevTools. To enable lifecycle
-logging during development, change `DEBUG` in `shared/debug.js` to `true`, reload
-the extension and Gmail, then restore `false` before committing or distributing.
-The PNGs are bundled Chrome icons; `icons/icon.svg` is their editable design source.
+Open `http://127.0.0.1:8765/tests/autoBcc.html` in Chrome. This development-only page
+runs the actual Auto BCC module against synthetic forms using native DOM events,
+MutationObservers, focus, and timers. It cannot send email and requires no test
+packages. Stop the server afterward. No server is needed to use the extension.
 
-## Future Gmail interaction and DOM maintenance
+Coverage includes new/reply/reply-all/forward structures; 2/3 simultaneous drafts;
+enabled/disabled/missing/invalid settings; duplicate To/CC/BCC contact chips and
+case differences; unfinished recipient text; manual removal and reopening; live
+settings changes and stale-work cancellation; delayed/rejected commits; mutation
+bursts; SPA pane replacement; detached drafts; repeated start/stop; focus preservation;
+and unknown labels. Synthetic success alone does not prove live Gmail compatibility.
 
-Gmail is a dynamic SPA. Its DOM is not a stable public API. The candidate selectors
-in `content/gmailSelectors.js` are **unverified and unused**: role landmarks and
-editable textboxes are starting points, not reliable compose/thread identifiers.
-There is no live Gmail account or message inspection required for Phase 1.
+For live smoke tests, use a test address and drafts only. Never send test mail.
+Confirm one BCC chip for each mode, remove it and keep typing, change settings with
+Gmail open, and create three simultaneous drafts. Check duplicate cases, navigation,
+and popup persistence. Discard test-created drafts and restore your preferences.
+Avoid concurrently enabling another Auto BCC extension: it can modify the same fields.
 
-Before implementing either feature:
+Inspect the popup through its context-menu **Inspect** action. For content checks,
+select **Gmail Pro** in Gmail DevTools' execution-context menu. Set `DEBUG = true`
+in `shared/debug.js` temporarily for lifecycle codes such as `compose-detected`,
+`bcc-insertion-attempted`, `bcc-already-present`, `bcc-user-removal`, and
+`bcc-selector-failure`. Never log addresses, recipients, subjects, bodies, nodes,
+or raw exceptions. Restore `DEBUG = false` before committing.
 
-- Keep every Gmail selector in `gmailSelectors.js`. Prefer accessibility roles,
-  semantic attributes, and verified parent/child relationships. Accessible names
-  can be localized; generated CSS class names and English labels alone are brittle.
-- Inspect new compose, inline reply, reply all, forward, multiple compose windows,
-  expanded/minimized drafts, pop-out compose pages, and account switching. A role
-  of `dialog` does not establish that a node is a compose window. A `textbox` does
-  not establish that it is a recipient field or a message editor.
-- Scope observers to verified active compose/conversation roots. If discovery
-  needs an outer observer, choose the smallest verified stable container, watch
-  only relevant changes, filter callbacks early, and disconnect promptly. Avoid
-  persistent whole-document subtree observation and polling.
-- Track owned roots with weak references where suitable. Make start/stop and DOM
-  operations idempotent; prevent repeated listeners/observers. Stop on disable,
-  detach, navigation, or extension invalidation. Ignore stale asynchronous work.
-- Add BCC recipients only through verified Gmail UI behavior. Check existing
-  recipients to avoid duplicates, preserve user edits, and never alter Send,
-  recipients, focus, or message text unexpectedly. No network interception or
-  internal Gmail calls. Test drafts and every requested compose mode explicitly.
-- Validate thread structure and chronological order before rearranging anything.
-  Preserve expanded/collapsed messages, keyboard/screen-reader order, reply areas,
-  focus, and Gmail's rendering ownership. Gmail can recycle/replace nodes; moving
-  them may break its state. Test feasibility before choosing a reordering method.
-- If a root is missing, ambiguous, or incompatible, leave Gmail untouched. Scope
-  failures to that feature/root, retain a working popup, and use only safe debug
-  lifecycle codes. Never guess at recipients or message order.
-- Document verified structures, Gmail views/locales, assumptions, and fallback
-  behavior beside selectors. Use synthetic/redacted DOM fixtures for regression
-  tests; never commit real messages, addresses, account IDs, or session data.
+### Validation record
 
-## Chrome documentation
+Phase 2 validation on September 16, 2026: 12 Node tests and 25 real-browser
+synthetic DOM checks passed. Manifest/resource/syntax checks and `git diff --check`
+passed. The installed popup renders the new UI, saves preferences, and preserves
+those values when reopened. Test preferences were restored to off/empty.
 
-- [Storage and Chrome Sync behavior](https://developer.chrome.com/docs/extensions/reference/api/storage)
-- [Content scripts, ordering, and isolated worlds](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
-- [Manifest V3 content security policy](https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy)
-- [Load and reload an unpacked extension](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world)
+**Live Gmail insertion acceptance is still pending.** Gmail's installed content
+context reported version `0.1.0` with the inert Phase 1 module after a tab refresh.
+The unpacked extension must be reloaded through Chrome's extensions manager before
+Phase 2 can be tested against Gmail. Synthetic checks do not replace that test.
+No real email was sent. Gmail DOM discovery used disposable draft interfaces only.
+
+## Gmail DOM maintenance
+
+Selectors are centralized in `content/gmailSelectors.js`. The September 2026 English
+Gmail desktop UI was inspected directly: both floating compose and inline reply
+have an addressing `form` with `input[name="composeid"]`; message editors are outside
+that form. Recipient inputs have role `combobox` and accessible labels `To recipients`,
+`CC recipients`, or `BCC recipients`. Their enclosing listboxes contain committed
+`role="option"` chips with `data-hovercard-id`. Collapsed reply summaries contain
+recipient spans and a focusable ancestor. BCC reveal links have an accessible
+name beginning with `Add Bcc recipients`. These are observed DOM conventions,
+**not Gmail API contracts**. No generated class names are used.
+
+English labels are a deliberate current limitation; other locales and redesigned
+recipient UIs fail closed. Gmail can also change when fields appear, where focus
+lands, which events commit chips, or whether compose nodes are reused. Recheck
+these behaviors after Gmail changes, especially inline replies and form replacement.
+A floating compose which neither focuses nor attaches beneath an already-observed
+compose host may remain undetected until it receives focus. A minimized/unfinished
+layout may time out without an insertion. No attempt is made to enforce BCC at Send.
+
+Keep observations scoped and bounded, preserve per-compose decisions, and never
+fall back to reading body text, broadly scraping Gmail, or calling private APIs.
+Use synthetic fixtures only; do not commit real mailbox data or session artifacts.
+Thread ordering has not been implemented or altered.
+
+## Chrome references
+
+- [Storage and Chrome Sync](https://developer.chrome.com/docs/extensions/reference/api/storage)
+- [Content scripts and isolated worlds](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
+- [Manifest V3 CSP](https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy)
+- [Load and reload unpacked extensions](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world)

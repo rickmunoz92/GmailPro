@@ -1,15 +1,25 @@
 (() => {
   "use strict";
-
   const app = (globalThis.GmailPro ??= {});
   if (app.selectors) return;
 
-  // Candidate landmarks only: NOT verified against live Gmail and unused in Phase 1.
-  // These broad selectors cannot identify a compose window or message on their own.
-  // Validate scoped structure before adding any feature-specific selectors here.
+  // Verified with Gmail's English desktop UI, September 2026. No generated
+  // classes. The form owns addressing but NOT the editable message body.
+  // Accessible names are localized; unknown layouts/locales fail closed.
   app.selectors = Object.freeze({
-    mainLandmark: '[role="main"]',
-    dialogLandmark: '[role="dialog"]',
-    editableTextbox: '[role="textbox"][contenteditable="true"]'
+    main: '[role="main"]',
+    form: 'form',
+    composeMarker: 'input[name="composeid"]',
+    region: '[role="region"], [role="dialog"]',
+    editor: '[contenteditable="true"]',
+    recipientInput: 'input[role="combobox"][aria-label="To recipients" i], input[role="combobox"][aria-label="CC recipients" i], input[role="combobox"][aria-label="BCC recipients" i]',
+    bccInput: 'input[role="combobox"][aria-label="BCC recipients" i]',
+    recipientList: '[role="listbox"]',
+    chip: '[role="option"][data-hovercard-id]',
+    summaryRecipient: 'span[email], span[data-hovercard-id]',
+    // Inline replies initially hide their addressing UI behind this focusable
+    // summary. Require recipient metadata; never click a generic tabindex node.
+    summary: '[tabindex]:not([role])',
+    addBcc: '[role="link"][aria-label^="Add Bcc recipients"]'
   });
 })();

@@ -46,7 +46,7 @@ for (const [size, relative] of Object.entries(manifest.icons)) {
   assert.equal(png.readUInt32BE(16), Number(size));
   assert.equal(png.readUInt32BE(20), Number(size));
 }
-for (const directory of ["shared", "content", "popup"]) {
+for (const directory of ["shared", "content", "popup", "tests"]) {
   for (const file of fs.readdirSync(path.join(root, directory)).filter((file) => file.endsWith(".js"))) {
     const filename = path.join(root, directory, file);
     const source = fs.readFileSync(filename, "utf8");
@@ -54,6 +54,6 @@ for (const directory of ["shared", "content", "popup"]) {
     assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source), `Unexpected networking, polling, or eval in ${file}`);
   }
 }
-console.log("Manifest, resource paths, icon dimensions, JavaScript syntax, and Phase 1 capability checks passed.");
+console.log("Manifest, resource paths, icon dimensions, JavaScript syntax, and minimal-permission checks passed.");
 const result = spawnSync(process.execPath, ["--test", "tests/settings.test.cjs"], { cwd: root, stdio: "inherit" });
 process.exitCode = result.status ?? 1;

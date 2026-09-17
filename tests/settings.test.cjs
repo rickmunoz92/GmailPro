@@ -127,22 +127,65 @@ test("reloading shared scripts preserves the single settings owner", () => {
   stop();
 });
 
-test("content and placeholders remain inert even with enabled preferences and repeated injection", () => {
-  const f = fixture({ [prefix + "autoBccEnabled"]: true, [prefix + "newestEmailFirstEnabled"]: true });
-  const forbidden = () => { throw new Error("Unexpected Phase 1 side effect"); };
-  Object.assign(f.context, { console: { debug: forbidden }, MutationObserver: forbidden, setInterval: forbidden, setTimeout: forbidden, fetch: forbidden });
-  Object.defineProperty(f.context, "document", { get: forbidden });
-  Object.defineProperty(f.context, "window", { get: forbidden });
-  const files = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"))).content_scripts[0].js;
-  for (let pass = 0; pass < 2; pass += 1) for (const file of files) f.run(file);
-  for (const feature of [f.context.GmailPro.autoBcc, f.context.GmailPro.reverseThreads]) {
-    assert.equal(feature.implemented, false);
-    feature.start({ autoBccEnabled: true, bccAddress: "test@example.com", newestEmailFirstEnabled: true });
-    feature.start();
-    feature.stop();
-    feature.stop();
-  }
-  assert.equal(f.context.GmailPro.contentInitialized, true);
-  assert.equal(f.writes, 0);
+test("thread reversal remains inert and Auto BCC normalizes addresses without alias guessing", () => {
+  const f = fixture();
+  f.run("content/gmailSelectors.js");
+  f.run("content/autoBcc.js");
+  f.run("content/reverseThreads.js");
+  const normalize = f.context.GmailPro.autoBcc.normalizeAddress;
+  assert.equal(normalize(" Person <Archive+tag@EXAMPLE.com> "), "archive+tag@example.com");
+  assert.equal(normalize("first.last@example.com"), "first.last@example.com");
+  assert.equal(normalize("bad"), "");
+  assert.equal(normalize("a@example.com,b@example.com"), "");
+  assert.equal(f.context.GmailPro.reverseThreads.implemented, false);
+  f.context.GmailPro.reverseThreads.start();
+  f.context.GmailPro.reverseThreads.stop();
   assert.equal(f.listeners.size, 0);
+});
+
+test("content startup merges concurrent settings, starts once, and cleans up", async () => {
+  const f = fixture();
+  let resolveLoad;
+  let started;
+  let stops = 0;
+  let pagehide;
+  const patches = [];
+  f.context.GmailPro.settings = { ...f.settings, load: () => new Promise(resolve => { resolveLoad = resolve; }) };
+  f.context.GmailPro.autoBcc = { start: value => { started = value; }, update: patch => patches.push(plain(patch)), stop: () => stops++ };
+  f.context.GmailPro.debug = { log() {} };
+  f.context.window = { addEventListener: (event, callback) => { assert.equal(event, "pagehide"); pagehide = callback; } };
+  f.run("content/content.js"); f.run("content/content.js");
+  [...f.listeners][0]({ [prefix + "autoBccEnabled"]: { newValue: true } }, "sync");
+  resolveLoad({ ...f.settings.defaults });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(started.autoBccEnabled, true);
+  assert.equal(f.listeners.size, 1);
+  [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
+  assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
+  pagehide(); assert.equal(f.listeners.size, 0); assert.equal(stops, 1);
+});
+
+test("late initial read after navigation cannot activate Auto BCC", async () => {
+  const f = fixture();
+  let resolveLoad;
+  let pagehide;
+  let starts = 0;
+  f.context.GmailPro.settings = { ...f.settings, load: () => new Promise(resolve => { resolveLoad = resolve; }) };
+  f.context.GmailPro.autoBcc = { start: () => starts++, stop() {} };
+  f.context.GmailPro.debug = { log() {} };
+  f.context.window = { addEventListener: (_event, callback) => { pagehide = callback; } };
+  f.run("content/content.js"); pagehide(); resolveLoad({ ...f.settings.defaults, autoBccEnabled: true });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(starts, 0); assert.equal(f.listeners.size, 0);
+});
+
+test("failed settings read leaves Gmail untouched and releases subscription", async () => {
+  const f = fixture();
+  f.fail(new Error("storage unavailable"));
+  let starts = 0;
+  f.context.GmailPro.autoBcc = { start: () => starts++, stop() {} };
+  f.context.GmailPro.debug = { log() {} };
+  f.context.window = { addEventListener() {} };
+  f.run("content/content.js"); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(starts, 0); assert.equal(f.listeners.size, 0);
 });

@@ -1,9 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "0.1.0",
-  "description": "Power-user enhancements for Gmail. Phase 1: preferences preview; Gmail features are not active yet.",
-  "permissions": ["storage"],
+  "version": "0.2.0",
+  "description": "Power-user enhancements for Gmail. Automatically add your preferred BCC recipient to new compositions.",
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_title": "Gmail Pro",
     "default_popup": "popup/popup.html",
@@ -20,7 +22,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://mail.google.com/*"],
+      "matches": [
+        "https://mail.google.com/*"
+      ],
       "js": [
         "shared/debug.js",
         "shared/settings.js",

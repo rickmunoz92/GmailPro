@@ -1,15 +1,261 @@
 (() => {
   "use strict";
-
   const app = (globalThis.GmailPro ??= {});
   if (app.autoBcc) return;
+  const S = app.selectors;
+  const seen = new WeakMap();
+  const active = new Map();
+  let running = false;
+  let settings = { ...app.settings.defaults };
+  let discovery;
+  let main;
 
-  // Phase 2: compose/reply/reply-all/forward support. Before activation, verify
-  // one valid configured address, recipient identity, and each compose root.
-  // Own scoped observers here; start/stop must remain safe to call repeatedly.
-  app.autoBcc = Object.freeze({
-    implemented: false,
-    start() {},
-    stop() {}
-  });
+  // Keep plus tags and dots: different providers assign different meanings.
+  function normalizeAddress(value) {
+    if (typeof value !== "string") return "";
+    const match = value.trim().match(/<([^<>]+)>$/);
+    const address = (match ? match[1] : value).trim();
+    return app.settings.isValidEmail(address) ? address.toLowerCase() : "";
+  }
+
+  function visible(element) {
+    return !!element && element.isConnected && element.getClientRects().length > 0;
+  }
+
+  function inputs(form) {
+    return [...form.querySelectorAll(S.recipientInput)];
+  }
+
+  function chipAddresses(input) {
+    return [...(input.closest(S.recipientList)?.querySelectorAll(S.chip) || [])]
+      .map(chip => normalizeAddress(chip.getAttribute("data-hovercard-id")));
+  }
+
+  function hasRecipient(form, address) {
+    for (const input of inputs(form)) {
+      if (chipAddresses(input).includes(address)) return true;
+      // Pending text also counts, so we do not race a user entering a recipient.
+      if (input.value.split(/[;,]/).some(value => normalizeAddress(value) === address)) return true;
+    }
+    return [...form.querySelectorAll(S.summaryRecipient)].some(chip =>
+      normalizeAddress(chip.getAttribute("email") || chip.getAttribute("data-hovercard-id")) === address);
+  }
+
+  function bccCommitted(state) {
+    return [...state.form.querySelectorAll(S.bccInput)].some(input => chipAddresses(input).includes(state.address));
+  }
+
+  function release(state) {
+    clearTimeout(state.timer);
+    clearTimeout(state.deadline);
+    state.observer?.disconnect();
+    state.form.removeEventListener("input", state.onInput);
+    active.delete(state.form);
+  }
+
+  function finish(state, status) {
+    state.status = status;
+    release(state);
+  }
+
+  function preserveFocus(action) {
+    const previous = document.activeElement;
+    const selection = document.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    try { action(); }
+    finally {
+      // All UI actions here are synchronous. Restore the existing caret without
+      // reading its text, and never steal focus later from asynchronous user input.
+      if (previous?.isConnected && document.activeElement !== previous) {
+        previous.focus({ preventScroll: true });
+        if (range?.startContainer.isConnected && range.endContainer.isConnected) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+    }
+  }
+
+  function step(state) {
+    state.timer = null;
+    if (!running || !state.form.isConnected) return finish(state, "closed");
+    if (state.status === "inserted") {
+      if (!bccCommitted(state)) {
+        app.debug.log("bcc-user-removal");
+        finish(state, "removed");
+      }
+      return;
+    }
+    if (!settings.autoBccEnabled || normalizeAddress(settings.bccAddress) !== state.address) {
+      return finish(state, "cancelled");
+    }
+    try {
+      if (state.attempted) {
+        if (bccCommitted(state)) {
+          state.status = "inserted";
+          clearTimeout(state.deadline);
+          state.observer.disconnect();
+          state.observer.observe(state.form, { childList: true, subtree: true, attributes: true,
+            attributeFilter: ["data-hovercard-id", "email"] });
+          // Only recipient changes remain observed, solely to recognize removal.
+        }
+        return; // Never retry an attempted insertion, even if Gmail rejects it.
+      }
+      if (!inputs(state.form).length) return;
+      if (hasRecipient(state.form, state.address)) {
+        app.debug.log("bcc-already-present");
+        return finish(state, "present");
+      }
+      const bcc = [...state.form.querySelectorAll(S.bccInput)].filter(visible);
+      if (bcc.length > 1) return finish(state, "ambiguous");
+      if (bcc.length === 1) {
+        if (bcc[0].value.trim()) return; // Do not overwrite uncommitted user text.
+        state.attempted = true; // Set BEFORE Gmail can synchronously mutate the DOM.
+        app.debug.log("bcc-insertion-attempted");
+        preserveFocus(() => {
+          bcc[0].focus({ preventScroll: true });
+          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+          setter.call(bcc[0], state.address);
+          bcc[0].dispatchEvent(new Event("input", { bubbles: true }));
+          for (const type of ["keydown", "keyup"]) {
+            bcc[0].dispatchEvent(new KeyboardEvent(type, {
+              key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true
+            }));
+          }
+        });
+        schedule(state);
+        return;
+      }
+      const reveal = [...state.form.querySelectorAll(S.addBcc)].filter(visible);
+      if (reveal.length === 1 && !state.revealed) {
+        state.revealed = true;
+        preserveFocus(() => reveal[0].click());
+        schedule(state);
+        return;
+      }
+      const summaries = [...state.form.querySelectorAll(S.summary)]
+        .filter(node => visible(node) && node.querySelector(S.summaryRecipient));
+      if (summaries.length === 1 && !state.expanded) {
+        state.expanded = true;
+        preserveFocus(() => summaries[0].click());
+        schedule(state);
+      }
+    } catch {
+      app.debug.log("bcc-selector-failure");
+      finish(state, "failed");
+    }
+  }
+
+  function schedule(state) {
+    if (state.timer || !active.has(state.form)) return;
+    // One coalesced reaction to DOM changes, not a polling loop. The independent
+    // deadline bounds incomplete layouts, hidden drafts, and failed commits.
+    state.timer = setTimeout(() => step(state), 80);
+  }
+
+  function discover(form) {
+    if (!running || !form?.matches(S.form) || !form.isConnected || seen.has(form) ||
+        !form.querySelector(S.composeMarker)) return;
+    const state = { form, address: normalizeAddress(settings.bccAddress), status: "pending" };
+    seen.set(form, state);
+    watchSpine(form.parentElement);
+    // Disabled drafts are remembered too: future means future.
+    app.debug.log("compose-detected");
+    if (!settings.autoBccEnabled || !state.address) { state.status = "disabled"; return; }
+    active.set(form, state);
+    state.onInput = event => { if (event.target.matches(S.recipientInput)) schedule(state); };
+    form.addEventListener("input", state.onInput);
+    state.observer = new MutationObserver(() => schedule(state));
+    state.observer.observe(form, { childList: true, subtree: true, attributes: true,
+      attributeFilter: ["style", "class", "aria-label", "data-hovercard-id", "email"] });
+    state.deadline = setTimeout(() => {
+      if (state.status !== "inserted") {
+        app.debug.log("bcc-selector-failure");
+        finish(state, "failed");
+      }
+    }, 5000);
+    schedule(state);
+  }
+
+  function scan(node) {
+    if (node.nodeType !== 1 || node.closest(S.editor)) return;
+    // Mutations within a known form are handled by its own narrow observer.
+    const owner = node.closest(S.form);
+    if (owner) { discover(owner); return; }
+    for (const marker of node.querySelectorAll(S.composeMarker)) discover(marker.closest(S.form));
+  }
+
+  function cleanupDetached() {
+    for (const state of active.values()) if (!state.form.isConnected) finish(state, "closed");
+  }
+
+  function watchSpine(node) {
+    for (; node; node = node.parentElement) {
+      discovery.observe(node, { childList: true, subtree: node === main });
+    }
+  }
+
+  function observeMain(nextMain) {
+    main = nextMain;
+    discovery.disconnect();
+    // Inline compose discovery is confined to the main Gmail pane. Its ancestor
+    // spine is watched SHALLOWLY for SPA replacements. Floating compose windows
+    // are discovered on focus; no permanent body-subtree observer is necessary.
+    if (main) discovery.observe(main, { childList: true, subtree: true });
+    watchSpine(main?.parentElement || document.body);
+    for (const state of active.values()) watchSpine(state.form.parentElement);
+  }
+
+  function onFocus(event) {
+    cleanupDetached();
+    // Gmail may finish building its shell after document_idle. Recover the main
+    // pane on the next focus event without a broad startup observer or polling.
+    if (!main?.isConnected) {
+      const nextMain = document.querySelector(S.main);
+      if (nextMain) observeMain(nextMain);
+    }
+    const form = event.target.closest(S.form);
+    if (form) discover(form);
+    else {
+      const region = event.target.closest(S.region);
+      if (region) scan(region);
+    }
+  }
+
+  function update(next) {
+    settings = { ...settings, ...next };
+    for (const state of active.values()) {
+      if (state.status !== "inserted" && (!settings.autoBccEnabled ||
+          normalizeAddress(settings.bccAddress) !== state.address)) finish(state, "cancelled");
+    }
+  }
+
+  function start(initial) {
+    update(initial);
+    if (running) return;
+    running = true;
+    discovery = new MutationObserver(records => {
+      cleanupDetached();
+      let replacement;
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node.nodeType !== 1 || node.closest(S.editor)) continue;
+        if (!main?.isConnected) replacement ||= node.matches(S.main) ? node : node.querySelector(S.main);
+        scan(node);
+      }
+      if (replacement) observeMain(replacement);
+    });
+    observeMain(document.querySelector(S.main));
+    document.addEventListener("focusin", onFocus, true);
+    scan(document.body); // One initial scan; subsequent scans use added subtrees.
+  }
+
+  function stop() {
+    if (!running) return;
+    running = false;
+    discovery.disconnect();
+    document.removeEventListener("focusin", onFocus, true);
+    for (const state of active.values()) finish(state, "stopped");
+  }
+
+  app.autoBcc = Object.freeze({ implemented: true, start, update, stop, normalizeAddress });
 })();
