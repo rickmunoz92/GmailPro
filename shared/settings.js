@@ -75,6 +75,9 @@
     if (subscribers.has(listener)) return subscribers.get(listener);
     if (subscribers.size === 0) chrome.storage.onChanged.addListener(onChanged);
     const unsubscribe = () => {
+      // An old cleanup must not remove a newer subscription of the same callback.
+      if (subscribers.get(listener) !== unsubscribe) return;
+
       if (subscribers.delete(listener) && subscribers.size === 0) {
         chrome.storage.onChanged.removeListener(onChanged);
       }

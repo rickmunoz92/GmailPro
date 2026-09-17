@@ -101,6 +101,23 @@ test("subscriptions deduplicate, ignore unrelated changes, normalize deletion, a
   assert.equal(f.listeners.size, 0);
 });
 
+test("old cleanup cannot remove a newer subscription of the same callback", () => {
+  const f = fixture();
+  const patches = [];
+  const listener = (patch) => patches.push(plain(patch));
+  const oldStop = f.settings.subscribe(listener);
+  oldStop();
+  const newStop = f.settings.subscribe(listener);
+  oldStop();
+  assert.equal(f.listeners.size, 1);
+  const emit = [...f.listeners][0];
+  emit({ [prefix + "autoBccEnabled"]: { newValue: true } }, "sync");
+  assert.deepEqual(patches, [{ autoBccEnabled: true }]);
+  newStop();
+  newStop();
+  assert.equal(f.listeners.size, 0);
+});
+
 test("reloading shared scripts preserves the single settings owner", () => {
   const f = fixture();
   const stop = f.settings.subscribe(() => {});
