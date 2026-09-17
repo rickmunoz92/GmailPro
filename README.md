@@ -372,8 +372,35 @@ Manifest, resource, JavaScript syntax, minimal-permission, and whitespace checks
 passed. `content/autoBcc.js`, its browser fixtures, and the settings adapter remain
 unchanged from the live-verified Phase 2 baseline.
 
-Live Phase 3 acceptance is pending the installed-extension reload and checks above;
-synthetic success does not establish live Gmail compatibility.
+### Phase 3 live results (September 17, 2026)
+
+The user reloaded the installed `0.3.0` build. In the logged-in Gmail app's split
+reading pane, a ten-message thread displayed visible message slots in newest-first
+order. All ten original DOM anchors remained in the same native sequence, with
+CSS orders 9 through 0; the subject heading was not styled. The collapsed older
+message group remained between newer and older messages. Expand All produced ten
+expanded messages in descending visual order; Collapse All retained that ordering.
+The popup saved the setting and preserved it when reopened. OFF restored block
+layout, removed every owned order value, and returned native oldest-first display;
+ON reversed it again.
+
+With both features enabled, a live Reply received one committed BCC. A synthetic
+sentence entered into that disposable draft and the editor focus both survived
+switching thread ordering OFF. Reply All and Forward subsequently each received
+one committed BCC with ordering off. All three test drafts were discarded. No
+Gmail Pro runtime errors appeared in captured console output; unrelated Gmail and
+other-extension warnings/errors were present. No email was sent, no attachment
+was downloaded, and source DEBUG remains off.
+
+Further live acceptance remains necessary for navigation/real Chrome Back and
+Forward, Reply All/Forward while ordering is ON, full-thread view, attachment
+preview/download controls, and keyboard workflows. Automated fixtures cover the
+underlying cases, but do not replace those live interactions. The browser security
+policy blocked opening the extension settings page during the final integration
+checks. The user was asked to re-enable Newest email first manually; ordering was
+left OFF after the restoration test, and Auto BCC remains enabled with its original
+configured address. No further extension reload is needed for that preference
+change.
 
 ## Chrome references
 
