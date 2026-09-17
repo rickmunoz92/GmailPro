@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Pro",
+  "version": "0.1.0",
+  "description": "Power-user enhancements for Gmail. Phase 1: preferences preview; Gmail features are not active yet.",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "Gmail Pro",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": [
+        "shared/debug.js",
+        "shared/settings.js",
+        "content/gmailSelectors.js",
+        "content/autoBcc.js",
+        "content/reverseThreads.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  }
+}

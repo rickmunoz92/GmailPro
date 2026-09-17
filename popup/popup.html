@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Gmail Pro</title>
+    <link rel="stylesheet" href="popup.css">
+    <script src="../shared/debug.js" defer></script>
+    <script src="../shared/settings.js" defer></script>
+    <script src="popup.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header class="brand">
+        <img class="brand-mark" src="../icons/icon128.png" width="44" height="44" alt="">
+        <div>
+          <div class="brand-heading"><h1>Gmail <span>Pro</span></h1><span class="edition">PRIVATE EDITION</span></div>
+          <p class="tagline">Power-user enhancements for Gmail</p>
+        </div>
+      </header>
+
+      <aside class="preview-note" aria-labelledby="preview-title">
+        <span class="preview-dot" aria-hidden="true"></span>
+        <div><h2 id="preview-title">A little more control. Coming soon.</h2>
+          <p>Save your preferences now. These features don’t change Gmail yet.</p></div>
+      </aside>
+
+      <form id="settings-form" novalidate>
+        <fieldset id="settings-fields" disabled>
+          <legend class="sr-only">Gmail Pro preferences</legend>
+
+          <section class="feature-card" aria-labelledby="bcc-title">
+            <div class="feature-heading">
+              <div class="feature-copy"><span class="eyebrow">COMPOSE</span><h2 id="bcc-title">Auto BCC</h2></div>
+              <label class="switch">
+                <input id="auto-bcc" type="checkbox" role="switch" aria-labelledby="bcc-title" aria-describedby="bcc-description">
+                <span class="switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <p class="feature-description" id="bcc-description">Keep a copy of every conversation.</p>
+            <div class="address-field">
+              <label for="bcc-address">BCC address</label>
+              <input id="bcc-address" name="bccAddress" type="email" placeholder="you@example.com" maxlength="254" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="address-hint address-error">
+              <p class="field-hint" id="address-hint">For new emails, replies, reply all, and forwards.</p>
+              <p class="field-error" id="address-error" aria-live="polite" hidden></p>
+            </div>
+          </section>
+
+          <section class="feature-card thread-card" aria-labelledby="thread-title">
+            <div class="feature-heading">
+              <div class="feature-copy"><span class="eyebrow">READ</span><h2 id="thread-title">Newest Email First</h2></div>
+              <label class="switch">
+                <input id="newest-first" type="checkbox" role="switch" aria-labelledby="thread-title" aria-describedby="thread-description">
+                <span class="switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <p class="feature-description" id="thread-description">The latest message, right at the top.</p>
+          </section>
+        </fieldset>
+
+        <div class="save-row">
+          <p id="save-status" role="status" aria-live="polite">Loading preferences…</p>
+          <button id="save-button" type="submit" disabled>Save preferences</button>
+          <button id="retry-button" type="button" hidden>Try again</button>
+        </div>
+      </form>
+
+      <footer>
+        <p class="privacy-title"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" aria-hidden="true"><path d="M8 1.5 13 3.5v4c0 3-2.1 5.3-5 7-2.9-1.7-5-4-5-7v-4l5-2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="m5.8 7.7 1.5 1.5 3-3.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Only Gmail. No tracking.</p>
+        <p>Preferences use Chrome Sync when enabled.</p>
+      </footer>
+    </main>
+  </body>
+</html>

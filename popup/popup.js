@@ -1,0 +1,144 @@
+(() => {
+  "use strict";
+
+  const app = globalThis.GmailPro;
+  if (app.popupInitialized) return;
+  app.popupInitialized = true;
+
+  const form = document.getElementById("settings-form");
+  const fields = document.getElementById("settings-fields");
+  const address = document.getElementById("bcc-address");
+  const error = document.getElementById("address-error");
+  const status = document.getElementById("save-status");
+  const saveButton = document.getElementById("save-button");
+  const retryButton = document.getElementById("retry-button");
+  const controls = {
+    autoBccEnabled: document.getElementById("auto-bcc"),
+    bccAddress: address,
+    newestEmailFirstEnabled: document.getElementById("newest-first")
+  };
+  let saved = { ...app.settings.defaults };
+  let loadingChanges = {};
+  let loaded = false;
+  let saving = false;
+  const dirty = new Set();
+
+  function values() {
+    return {
+      autoBccEnabled: controls.autoBccEnabled.checked,
+      bccAddress: address.value.trim(),
+      newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked
+    };
+  }
+
+  function render(names = Object.keys(controls)) {
+    for (const name of names) {
+      if (name === "bccAddress") address.value = saved[name];
+      else controls[name].checked = saved[name];
+    }
+    address.required = controls.autoBccEnabled.checked;
+  }
+
+  function setStatus(message, state = "ready") {
+    status.textContent = message;
+    status.dataset.state = state;
+  }
+
+  function updateDirty() {
+    dirty.clear();
+    for (const [name, value] of Object.entries(values())) {
+      if (value !== saved[name]) dirty.add(name);
+    }
+    saveButton.disabled = !loaded || saving || dirty.size === 0;
+  }
+
+  function clearError() {
+    error.hidden = true;
+    error.textContent = "";
+    address.removeAttribute("aria-invalid");
+  }
+
+  function validate() {
+    const current = values();
+    const invalid = (current.autoBccEnabled && !current.bccAddress) ||
+      (current.bccAddress !== "" && !app.settings.isValidEmail(current.bccAddress));
+    if (!invalid) return true;
+    error.textContent = current.bccAddress ? "Enter one valid email address." : "Add a BCC address to save Auto BCC as enabled.";
+    error.hidden = false;
+    address.setAttribute("aria-invalid", "true");
+    address.focus();
+    return false;
+  }
+
+  // Keep local edits when Chrome Sync changes another preference. Merge any
+  // events received during the initial read, so an older read cannot win.
+  const unsubscribe = app.settings.subscribe((patch) => {
+    if (!loaded) {
+      Object.assign(loadingChanges, patch);
+      return;
+    }
+    Object.assign(saved, patch);
+    render(Object.keys(patch).filter((name) => !dirty.has(name)));
+    updateDirty();
+    if (!saving) setStatus(dirty.size ? "Unsaved preferences" : "Preferences up to date");
+  });
+
+  async function load() {
+    retryButton.hidden = true;
+    saveButton.hidden = false;
+    setStatus("Loading preferences…");
+    try {
+      saved = { ...await app.settings.load(), ...loadingChanges };
+      loadingChanges = {};
+      render();
+      loaded = true;
+      fields.disabled = false;
+      updateDirty();
+      setStatus("Preferences ready");
+    } catch {
+      app.debug.log("settings-load-failed");
+      setStatus("Couldn’t load preferences.", "error");
+      saveButton.hidden = true;
+      retryButton.hidden = false;
+    }
+  }
+
+  form.addEventListener("input", () => {
+    clearError();
+    address.required = controls.autoBccEnabled.checked;
+    updateDirty();
+    setStatus(dirty.size ? "Unsaved preferences" : "Preferences up to date");
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!loaded || saving || dirty.size === 0) return;
+    clearError();
+    if (!validate()) return;
+    const current = values();
+    const patch = Object.fromEntries([...dirty].map((name) => [name, current[name]]));
+    saving = true;
+    fields.disabled = true;
+    updateDirty();
+    saveButton.textContent = "Saving…";
+    setStatus("Saving preferences…");
+    try {
+      await app.settings.save(patch);
+      Object.assign(saved, patch);
+      render();
+      setStatus("Preferences saved");
+    } catch {
+      app.debug.log("settings-save-failed");
+      setStatus("Couldn’t save. Please try again.", "error");
+    } finally {
+      saving = false;
+      fields.disabled = false;
+      saveButton.textContent = "Save preferences";
+      updateDirty();
+    }
+  });
+
+  retryButton.addEventListener("click", load);
+  window.addEventListener("pagehide", unsubscribe, { once: true });
+  void load();
+})();
