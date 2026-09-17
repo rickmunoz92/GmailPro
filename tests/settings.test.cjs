@@ -127,7 +127,7 @@ test("reloading shared scripts preserves the single settings owner", () => {
   stop();
 });
 
-test("thread reversal remains inert and Auto BCC normalizes addresses without alias guessing", () => {
+test("Auto BCC normalizes addresses and thread ordering is inert until enabled", () => {
   const f = fixture();
   f.run("content/gmailSelectors.js");
   f.run("content/autoBcc.js");
@@ -137,9 +137,8 @@ test("thread reversal remains inert and Auto BCC normalizes addresses without al
   assert.equal(normalize("first.last@example.com"), "first.last@example.com");
   assert.equal(normalize("bad"), "");
   assert.equal(normalize("a@example.com,b@example.com"), "");
-  assert.equal(f.context.GmailPro.reverseThreads.implemented, false);
-  f.context.GmailPro.reverseThreads.start();
-  f.context.GmailPro.reverseThreads.stop();
+  assert.equal(f.context.GmailPro.reverseThreads.implemented, true);
+  f.context.GmailPro.reverseThreads.start({ newestEmailFirstEnabled: false });
   assert.equal(f.listeners.size, 0);
 });
 
@@ -150,6 +149,10 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let reverseStarted;
+  let reverseStops = 0;
+  const reversePatches = [];
+  f.context.GmailPro.reverseThreads = { start: value => { reverseStarted = value; }, update: patch => reversePatches.push(plain(patch)), stop: () => reverseStops++ };
   f.context.GmailPro.settings = { ...f.settings, load: () => new Promise(resolve => { resolveLoad = resolve; }) };
   f.context.GmailPro.autoBcc = { start: value => { started = value; }, update: patch => patches.push(plain(patch)), stop: () => stops++ };
   f.context.GmailPro.debug = { log() {} };
@@ -159,10 +162,13 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   resolveLoad({ ...f.settings.defaults });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(started.autoBccEnabled, true);
+  assert.deepEqual(plain(reverseStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
-  pagehide(); assert.equal(f.listeners.size, 0); assert.equal(stops, 1);
+  [...f.listeners][0]({ [prefix + "newestEmailFirstEnabled"]: { newValue: true } }, "sync");
+  assert.deepEqual(reversePatches, [{ bccAddress: "next@example.com" }, { newestEmailFirstEnabled: true }]);
+  pagehide(); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {
@@ -170,6 +176,7 @@ test("late initial read after navigation cannot activate Auto BCC", async () => 
   let resolveLoad;
   let pagehide;
   let starts = 0;
+  f.context.GmailPro.reverseThreads = { start: () => starts++, stop() {} };
   f.context.GmailPro.settings = { ...f.settings, load: () => new Promise(resolve => { resolveLoad = resolve; }) };
   f.context.GmailPro.autoBcc = { start: () => starts++, stop() {} };
   f.context.GmailPro.debug = { log() {} };
@@ -183,6 +190,7 @@ test("failed settings read leaves Gmail untouched and releases subscription", as
   const f = fixture();
   f.fail(new Error("storage unavailable"));
   let starts = 0;
+  f.context.GmailPro.reverseThreads = { start: () => starts++, stop() {} };
   f.context.GmailPro.autoBcc = { start: () => starts++, stop() {} };
   f.context.GmailPro.debug = { log() {} };
   f.context.window = { addEventListener() {} };

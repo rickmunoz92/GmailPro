@@ -20,6 +20,16 @@
     // Inline replies initially hide their addressing UI behind this focusable
     // summary. Require recipient metadata; never click a generic tabindex node.
     summary: '[tabindex]:not([role])',
-    addBcc: '[role="link"][aria-label^="Add Bcc recipients"]'
+    addBcc: '[role="link"][aria-label^="Add Bcc recipients"]',
+    // Live Gmail: complete message envelopes, not the nested body divs. Older
+    // grouped messages temporarily lose role/aria-expanded but keep the same
+    // action attribute and one-div wrapper as their neighboring message slots.
+    threadHeading: 'h2[data-thread-perm-id][data-legacy-thread-id]',
+    threadList: '[role="list"]',
+    threadMessage: '[data-message-id][data-legacy-message-id]',
+    threadItem: 'div[role="listitem"][tabindex="-1"][jsaction][aria-expanded]',
+    threadPlaceholder: 'div[tabindex="-1"][jsaction]:not([role]):not([aria-expanded])',
+    threadRow: '[role="row"]',
+    threadFixed: 'button, [role="button"], [role="toolbar"], [role="region"], h1, h2, h3'
   });
 })();

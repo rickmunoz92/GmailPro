@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "0.2.2",
-  "description": "Power-user enhancements for Gmail. Automatically add your preferred BCC recipient to new compositions.",
+  "version": "0.3.0",
+  "description": "Power-user enhancements for Gmail. Auto BCC for new compositions and newest-first conversation display.",
   "permissions": [
     "storage"
   ],
