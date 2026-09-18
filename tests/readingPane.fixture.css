@@ -14,3 +14,7 @@
 .ii { margin-top: 8px; }
 .a3s { font: 14px Arial; color: black; }
 [hidden] { display: none !important; }
+
+/* Gmail paints a positioned background ahead of unpositioned controls. */
+[gh="tm"] { position: relative; }
+[gh="tm"]::before { content: ""; position: absolute; inset: 0; }

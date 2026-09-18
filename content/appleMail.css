@@ -311,6 +311,8 @@ html.gmail-pro-apple-mail-mode [role="main"] .iY [role="listitem"][aria-expanded
   overflow-x: auto;
 }
 html.gmail-pro-apple-mail-mode .gmail-pro-message-actions {
+  /* Match native controls above Gmail's positioned toolbar background. */
+  position: relative; z-index: 0;
   display: inline-flex; align-items: center; vertical-align: middle;
   gap: 2px; margin-inline: 6px 4px; padding-inline-start: 8px;
   border-inline-start: 1px solid var(--gp-border);

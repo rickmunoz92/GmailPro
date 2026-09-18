@@ -42,6 +42,16 @@
     assert(clicks.map(x=>x.key).join(',')==='replyAll,reply,forward,reaction', 'all actions delegated exactly once');
     assert(f.footer.hasAttribute('data-gp-native-actions') && css(f.footer.closest('.btDi4d')).display==='none','replacement hides bottom');
   });
+  await test('all top actions receive pointer hits above the native toolbar background', async () => {
+    fixture(); start(); await settle();
+    for (const key of ['replyAll','reply','forward','reaction']) {
+      const control=button(key), bounds=control.getBoundingClientRect();
+      const hit=document.elementFromPoint(bounds.left+bounds.width/2, bounds.top+bounds.height/2);
+      assert(hit && control.contains(hit), key+' is directly clickable');
+      hit.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+      assert(clicks.at(-1)?.key===key, key+' invokes the native control from its icon');
+    }
+  });
   await test('no phishing hook required; native controls remain in original DOM', async () => {
     const f=fixture('one',{hook:false}), parent=f.footer.parentElement; start(); await settle();
     assert(button('reply') && f.footer.parentElement===parent, 'fallback insertion without moving native controls');
