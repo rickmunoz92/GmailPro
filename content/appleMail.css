@@ -248,3 +248,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
 @media (forced-colors: active) {
   html.gmail-pro-apple-mail-mode { --gp-accent: Highlight; --gp-accent-contrast: HighlightText; --gp-accent-ui: LinkText; --gp-selection-sidebar-bg: ButtonFace; }
 }
+/* Gmail's transient top-center loading banner, separate from alert/Undo toasts. */
+html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
+  display: none !important;
+}

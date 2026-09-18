@@ -23,6 +23,28 @@
     const box = checkbox(row);
     if (box && (box.getAttribute("aria-checked") === "true") !== selected) box.click();
   }
+  function clearFromBlankArea(event) {
+    if (event.type !== "click" || event.shiftKey || event.ctrlKey || event.metaKey) return;
+    const pane = event.target.closest('[role="main"] .Nu.tf');
+    if (!pane || event.target.closest('[role="contentinfo"], [role="toolbar"], [role="link"], .ii, .a3s, [data-message-id]')) return;
+    const rows = [...pane.querySelectorAll(rowSelector)].filter(node => node.getClientRects().length);
+    if (!rows.length || event.clientY < Math.max(...rows.map(node => node.getBoundingClientRect().bottom))) return;
+    const bounds = pane.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX >= bounds.right || event.clientY >= bounds.bottom) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    rows.forEach(node => selectRow(node, false));
+    // Gmail keeps its open preview after clearing checkboxes. Its native
+    // back-to-list command clears that preview and its toolbar state together.
+    const opened = rows.find(node => node.classList.contains("aps"));
+    if (opened) {
+      opened.focus({ preventScroll: true });
+      for (const type of ["keydown", "keyup"]) opened.dispatchEvent(new KeyboardEvent(type, {
+        key: "u", code: "KeyU", keyCode: 85, which: 85, bubbles: true, cancelable: true
+      }));
+    }
+    anchor = undefined;
+  }
   function onRowGesture(event) {
     if (event.type === "pointerdown") handledPointer = false;
     // macOS also emits contextmenu for Control-click. Suppress that companion
@@ -31,7 +53,7 @@
     if (!current.appleMailModeEnabled || (event.type === "contextmenu" && !controlMenu) || (!controlMenu && event.button !== 0) || event.altKey || !(event.target instanceof Element)) return;
     if (event.target.closest(excluded)) return;
     const row = event.target.closest(rowSelector);
-    if (!row) return;
+    if (!row) return clearFromBlankArea(event);
     const modified = event.shiftKey || event.ctrlKey || event.metaKey;
     if (!modified) {
       if (event.type === "click") remember(row);

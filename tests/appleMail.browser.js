@@ -221,6 +221,53 @@
     assert(bodyClicks === 1, "email content untouched");
     feature.stop(); gesture(nodes[0], {ctrlKey:true}); assert(selectedIndices(nodes) === "", "disabled mode has no gesture handlers");
   });
+  await test("blank list space clears native bulk selection, preview and range anchor", () => {
+    const nodes = selectableRows(), pane = document.createElement("div");
+    pane.className = "Nu tf"; pane.style.height = "650px";
+    nodes[0].closest("table").before(pane); pane.append(nodes[0].closest("table"));
+    let closed = 0;
+    pane.addEventListener("keydown", event => {
+      if (event.key === "u" && event.keyCode === 85) {
+        closed++; nodes.forEach(node => node.classList.remove("aps"));
+      }
+    });
+    enable(); nodes[1].classList.add("aps");
+    gesture(nodes[1]); gesture(nodes[3], {metaKey:true});
+    const blank = () => gesture(pane, {clientX:rect(pane).left + 10,clientY:rect(nodes[4]).bottom + 20});
+    blank();
+    assert(selectedIndices(nodes) === "" && closed === 1 && !nodes[1].classList.contains("aps"), "native deselection and back-to-list command");
+    gesture(nodes[4], {shiftKey:true});
+    assert(selectedIndices(nodes) === "4", "old range anchor cleared");
+    blank(); blank(); assert(closed === 1 && selectedIndices(nodes) === "", "empty selection is idempotent");
+  });
+  await test("blank deselection ignores row-height gaps, controls, footer, reading pane and OFF", () => {
+    const nodes = selectableRows(), pane = document.createElement("div");
+    pane.className = "Nu tf"; pane.style.height = "650px";
+    nodes[0].closest("table").before(pane); pane.append(nodes[0].closest("table"));
+    enable(); gesture(nodes[0], {metaKey:true});
+    const position = {clientX:rect(pane).left + 10,clientY:rect(nodes[4]).bottom + 20};
+    gesture(pane, {...position,clientY:rect(nodes[0]).top});
+    for (const html of ['<button>Control</button>', '<div role="contentinfo">Footer</div>', '<div class="Nu S3">Reading pane</div>']) {
+      const holder = document.createElement("div"); holder.innerHTML = html;
+      const child = holder.firstElementChild;
+      (child.classList.contains("S3") ? workspace : pane).append(child);
+      gesture(child, position); child.remove();
+    }
+    gesture(pane, {...position,shiftKey:true});
+    assert(selectedIndices(nodes) === "0", "only ordinary blank-list clicks clear");
+    feature.stop(); gesture(pane, position);
+    assert(selectedIndices(nodes) === "0", "OFF restores native behavior");
+  });
+  await test("only Gmail's dedicated loading popup hides; alert and undo notifications remain", () => {
+    const holder = document.createElement("div");
+    holder.innerHTML = '<div class="vY"><div class="vX"><div class="vh"><div class="vZ L4XNt"><span class="v1">Loading...</span></div></div></div></div><div class="b8" role="alert"><div class="vh">Connection error <a>Retry</a></div></div><div class="bAp b8"><div class="vh">Archived <a>Undo</a></div></div>';
+    document.body.append(holder);
+    try {
+      enable(); assert(css(holder.querySelector(".vX")).display === "none", "loading hidden");
+      assert([...holder.querySelectorAll(".b8")].every(node => css(node).display !== "none"), "alerts and undo intact");
+      feature.stop(); assert(css(holder.querySelector(".vX")).display !== "none", "loading restored OFF");
+    } finally { holder.remove(); }
+  });
   await test("SPA replacement receives styles without per-row discovery or listeners", () => {
     enable(); row().closest("table").remove(); const next = row({unread:true}); next.classList.add("aps");
     assert(css(next).display === "grid" && css(next).backgroundColor === token("--gp-accent"), "replacement styled immediately");
