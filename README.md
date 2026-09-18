@@ -76,7 +76,7 @@ so Gmail's measured scrolling regions remain correct.
   disclosure controls retain Gmail's hierarchy and behavior.
 
 JavaScript in `content/appearance.js` applies one root class,
-`gmail-pro-apple-mail-mode`, and two preference attributes. Three delegated capture
+`gmail-pro-apple-mail-mode`, and two preference attributes. Four delegated capture
 listeners implement modifier-click selection by clicking Gmail's own checkbox
 controls; the extension never writes Gmail's selection attributes or stores a
 parallel selected-message list. Range discovery is limited to visible rows in the

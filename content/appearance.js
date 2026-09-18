@@ -9,6 +9,7 @@
   let media;
   let listening = false;
   let anchor;
+  const gestureEvents = ["pointerdown", "mousedown", "click", "contextmenu"];
   // Same fail-closed structure as the CSS row gate. Only discover rendered rows
   // on a user gesture; Gmail's checkbox remains the selection source of truth.
   const rowSelector = '[role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)';
@@ -22,7 +23,10 @@
     if (box && (box.getAttribute("aria-checked") === "true") !== selected) box.click();
   }
   function onRowGesture(event) {
-    if (!current.appleMailModeEnabled || event.button !== 0 || event.altKey || !(event.target instanceof Element)) return;
+    // macOS also emits contextmenu for Control-click. Suppress that companion
+    // event without toggling twice; ordinary right-click stays Gmail's.
+    const controlMenu = event.type === "contextmenu" && event.ctrlKey;
+    if (!current.appleMailModeEnabled || (event.type === "contextmenu" && !controlMenu) || (!controlMenu && event.button !== 0) || event.altKey || !(event.target instanceof Element)) return;
     if (event.target.closest(excluded)) return;
     const row = event.target.closest(rowSelector);
     if (!row) return;
@@ -71,7 +75,7 @@
     bootstrap = undefined;
     media?.removeEventListener("change", apply);
     media = undefined;
-    for (const type of ["pointerdown", "mousedown", "click"]) document.removeEventListener(type, onRowGesture, true);
+    for (const type of gestureEvents) document.removeEventListener(type, onRowGesture, true);
     listening = false;
     anchor = undefined;
     const root = document.documentElement;
@@ -87,7 +91,7 @@
     }
     if (!current.appleMailModeEnabled) return stop();
     if (!listening) {
-      for (const type of ["pointerdown", "mousedown", "click"]) document.addEventListener(type, onRowGesture, true);
+      for (const type of gestureEvents) document.addEventListener(type, onRowGesture, true);
       listening = true;
     }
     // No per-row listeners or ongoing DOM observers. Follow OS changes only

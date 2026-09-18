@@ -205,3 +205,25 @@ list checks passed. Regression coverage includes steady opacity, hidden toolbar,
 metadata visibility at four widths, checkbox selection/focus, and mode-OFF
 restoration. Updated styles require an extension/Gmail reload; live gestures were
 not replayed after installation.
+
+## Checkbox-free selection — 0.8.0, 2026-09-18
+
+The native conversation checkbox column is hidden and its grid space reclaimed.
+Ctrl/Command-click toggles a conversation through Gmail's own checkbox handler;
+Shift-click selects a range within the currently rendered table, and combining
+Ctrl/Command with Shift adds a range. Ordinary row clicks and nested controls stay
+native. The range anchor is checked against route, table membership and thread
+identity; mode OFF releases delegated handlers and restores checkboxes. There is
+no parallel selection store, Gmail ARIA mutation, polling or per-row observer.
+The macOS Control-click contextmenu companion is suppressed without a second toggle;
+ordinary right-click remains available.
+
+Validation: 21/21 Node lifecycle/settings checks and 41/41 Chromium appearance checks
+passed. Coverage includes hidden-column restoration, native checkbox dispatch,
+disjoint selection/toggling, forward/reverse/contracting/additive ranges, missing
+and recycled anchors, SPA replacement, nested controls, OFF cleanup, and Mac
+context-menu behavior. Live Chrome/Gmail verified hidden row checkboxes, Ctrl-click
+selection, Shift-click selecting three conversations, Command-click deselecting one,
+and native bulk-action availability. Unread count stayed unchanged; no bulk action
+was executed. Live testing used a separate temporary tab to preserve the user's
+existing open view.

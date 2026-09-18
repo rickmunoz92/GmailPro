@@ -181,6 +181,11 @@
     assert(selectedIndices(nodes) === "1,3" && opened === 0, "disjoint native selection, no open");
     gesture(nodes[1], {ctrlKey:true});
     assert(selectedIndices(nodes) === "3" && nodes.every(node => node.classList.contains("zE")), "toggle off and unread preserved");
+    const menu = new MouseEvent("contextmenu", {bubbles:true,cancelable:true,button:2,ctrlKey:true});
+    nodes[1].dispatchEvent(menu);
+    assert(menu.defaultPrevented && selectedIndices(nodes) === "3", "Mac Control-click menu suppressed without double toggle");
+    const rightClick = new MouseEvent("contextmenu", {bubbles:true,cancelable:true,button:2});
+    nodes[1].dispatchEvent(rightClick); assert(!rightClick.defaultPrevented, "ordinary right-click preserved");
     gesture(nodes[2]); assert(opened === 1, "plain click still reaches Gmail");
   });
   await test("Shift-click selects and contracts ranges; Ctrl/Command-Shift adds ranges", () => {

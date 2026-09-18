@@ -367,7 +367,7 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   assert.equal(watches, 0);
   feature.update({ appleMailModeEnabled: true, appearanceTheme: "system", accentColor: "yellow" });
   feature.update({ autoBccEnabled: true });
-  assert.equal(gestures.size, 3);
+  assert.equal(gestures.size, 4);
   assert.equal(watches, 1); assert.equal(listeners.size, 1);
   f.context.document.documentElement = rootElement; deliver();
   assert.equal(disconnects, 1); assert.equal(rootElement.dataset.gpTheme, "light");
