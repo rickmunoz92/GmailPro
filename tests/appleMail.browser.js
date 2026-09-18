@@ -106,13 +106,15 @@
   for (const theme of ["dark", "light"]) for (const accent of GmailPro.settings.choices.accentColor) await test(`${theme} / ${accent}: selected row, dot, neutral sidebar and palette contrast`, () => {
     const node = row({unread:true,label:"Projects/Example",attachment:true}); enable({appearanceTheme:theme,accentColor:accent});
     node.classList.add("aps");
-    // Keep the requested exact label blue and the existing contrast checks
-    // for other accents; white selection text on vivid blue remains ~4:1.
-    const selectionContrast = accent === "blue" ? 4 : 4.5;
+    if (accent === "blue") {
+      for (const name of ["--gp-accent", "--gp-accent-ui", "--gp-accent-hover", "--gp-accent-active", "--gp-label-accent"]) {
+        assert(token(name) === "rgb(0, 174, 255)", `${name} uses exact requested blue`);
+      }
+    }
     assert(css(node).backgroundColor === token("--gp-accent"), "native open row uses accent");
-    assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= selectionContrast, "subject contrast");
-    assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= selectionContrast, "date contrast");
-    assert(contrast(css(node).backgroundColor, css(node.querySelector(".at .av")).color) >= selectionContrast, "nested Gmail label text contrast");
+    assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= 4.5, "subject contrast");
+    assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= 4.5, "date contrast");
+    assert(contrast(css(node).backgroundColor, css(node.querySelector(".at .av")).color) >= 4.5, "nested Gmail label text contrast");
     assert(dot(node).visibility === "hidden" && node.classList.contains("zE"), "selected unread state retained, redundant dot hidden");
     const selected = document.querySelector(".TO.nZ"), link = selected.querySelector("a");
     assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");
@@ -123,7 +125,7 @@
     assert(contrast(css(selected.querySelector(".bsU")).color, css(selected).backgroundColor) >= 4.5, "count contrast >= 4.5");
     selected.classList.add("nY");
     assert(css(selected).backgroundColor === token("--gp-accent"), "drop target uses current accent");
-    assert(contrast(css(link).color, css(selected).backgroundColor) >= selectionContrast, "drop label contrast");
+    assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "drop label contrast");
     assert(css(selected.querySelector("svg")).fill === token("--gp-accent-contrast"), "drop icon matches foreground");
     selected.classList.remove("nY");
     node.classList.remove("aps"); assert(dot(node).visibility === "visible" && css(node).backgroundColor === token("--gp-bg-primary"), "deselect restores unread");

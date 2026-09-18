@@ -15,7 +15,7 @@
   --gp-selection-sidebar-bg: #dedfe3;
   --gp-sidebar-width: 216px;
   --gp-message-list-width: 380px; /* design reference; native splitter owns width */
-  --gp-accent: #007AFF;
+  --gp-accent: #00AEFF;
   --gp-accent-contrast: #ffffff;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 80%, black);
   --gp-label-accent: var(--gp-accent-ui);
@@ -37,17 +37,14 @@
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 48%, white);
   --gp-icon-filter: brightness(0) invert(.86);
 }
-/* Use the full blue palette rather than mixing the dark sidebar blue with white.
-   Blue keeps Apple's vivid selection treatment; its white foreground is ~4:1.
-   Other accent foregrounds retain >= 4.5:1 contrast. */
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="light"][data-gp-accent="blue"] {
-  --gp-accent-ui: #005EC7;
-}
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"][data-gp-accent="blue"] {
-  --gp-accent-ui: #008AFF;
-}
+/* Blue uses the requested exact accent throughout both themes. Like the other
+   bright fills, it uses a dark foreground to keep selected text readable. */
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="blue"] {
-  --gp-label-accent: #00AEFF;
+  --gp-accent-ui: var(--gp-accent);
+  --gp-accent-hover: var(--gp-accent);
+  --gp-accent-active: var(--gp-accent);
+  --gp-accent-contrast: #202124;
+  --gp-selected-icon-filter: brightness(0);
 }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="purple"] { --gp-accent: #8050bd; }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="pink"] { --gp-accent: #b53675; }
