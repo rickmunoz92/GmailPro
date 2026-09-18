@@ -190,3 +190,18 @@ drop-target contrast across all 16 theme/accent pairs, selected/unselected wrapp
 restoration, hover/drag tooltip suppression, and mode-OFF restoration. Existing
 message/editor boundary checks pass. Live hover/drag gestures were not replayed;
 reload the development extension and Gmail to apply and visually verify the update.
+
+## Quiet conversation hover — 0.7.3, 2026-09-18
+
+Reviewed frames from the user's hover recording and inspected live Gmail's checkbox
+opacity, ripple, drag-grip, and row action CSS. Apple Mail Mode now hides the native
+per-row action toolbar and retains dates/attachment icons on hover. Unchecked
+checkbox opacity no longer changes with pointer/row focus, and checkbox ripples
+and hover grips are suppressed. Checked boxes, open-row checkboxes, keyboard focus,
+main toolbar actions, and native click/drag behavior are preserved.
+
+Validation: 21/21 Node checks, 37/37 appearance browser checks, and 20/20 standalone
+list checks passed. Regression coverage includes steady opacity, hidden toolbar,
+metadata visibility at four widths, checkbox selection/focus, and mode-OFF
+restoration. Updated styles require an extension/Gmail reload; live gestures were
+not replayed after installation.

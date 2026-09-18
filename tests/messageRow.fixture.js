@@ -3,7 +3,7 @@ window.GmailProTestRow = function row({ unread = false, label = "", attachment =
     const table = document.createElement("table");
     table.innerHTML = `<tbody><tr class="zA ${unread ? "zE" : "yO"}" role="row" tabindex="0" draggable="true">
       <td class="PF xY"></td>
-      <td class="oZ-x3 xY"><div role="checkbox" tabindex="-1" aria-checked="false" aria-label="Select message">□</div></td>
+      <td class="oZ-x3 xY"><div class="oZ-jc T-Jo" role="checkbox" tabindex="-1" aria-checked="false" aria-label="Select message">□</div></td>
       <td class="apU xY"><span role="button" aria-label="Not starred">☆</span></td>
       <td class="WA xY"><div role="switch" aria-checked="false" aria-label="Important">›</div></td>
       <td class="yX xY" role="gridcell" tabindex="-1"><div class="afn"></div><div class="yW"><span class="bA4"><span class="sender" email="alex@example.com"></span></span></div></td>

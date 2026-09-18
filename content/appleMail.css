@@ -200,6 +200,17 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   /* Hide only the native list star/importance cells. Keep their state and the
      reading-pane actions intact; disabling the mode restores both controls. */
   :scope > td.apU:has(> [role="button"]), :scope > td.WA:has(> [role="switch"]) { display: none !important; }
+  /* A quiet list keeps dates/attachments in place instead of swapping in the
+     per-row action toolbar. Actions remain available in Gmail's main toolbar. */
+  :scope > td.bq4:has(> [role="toolbar"]) { display: none !important; }
+  :scope > td.xW[role="gridcell"], :scope > td.yf { display: flex !important; }
+  /* Native .aqw/.btb and direct hover brighten checkboxes and add a drag grip
+     or ripple. Keep a steady unchecked state; selection/focus stay distinct. */
+  :scope > td.oZ-x3::before,
+  :scope > td > .T-Jo[role="checkbox"]::before { content: none !important; }
+  :scope > td > .T-Jo[role="checkbox"] { opacity: .32 !important; box-shadow: none !important; }
+  :scope.aps > td > .T-Jo[role="checkbox"],
+  :scope > td > .T-Jo[role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"], :focus-visible) { opacity: 1 !important; }
   :scope > td.yX[role="gridcell"] { position: relative; padding-inline-start: 13px !important; }
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
   :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }

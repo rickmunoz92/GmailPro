@@ -45,3 +45,7 @@ table[role="grid"], tbody { display: block; width: 100%; }
 .nY { background: #ffffcc !important; }
 .nY .n0, .nY .nU { color: #222 !important; }
 .T-ays { display: block; }
+.xY > .T-Jo { opacity: .32; }
+.aqw > .xY > .T-Jo, .btb > .xY > .T-Jo, .xY > .T-Jo:hover, .xY > .T-Jo:focus { opacity: 1; }
+.aqw > td.oZ-x3::before { content: ""; opacity: .32; }
+.xY > .T-Jo::before { content: ""; background: #ffffff22; }

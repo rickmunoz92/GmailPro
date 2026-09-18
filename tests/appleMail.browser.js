@@ -136,14 +136,27 @@
     assert(css(rows[1].querySelector(".TN")).paddingLeft === "32px" && rows[1].querySelector(".bsU").textContent === "2", "nesting and count intact");
     rows[1].classList.remove("nZ"); rows[0].classList.add("nZ");
   });
-  for (const width of [320, 380, 680, 1200]) await test(`compact geometry, ellipsis, hover controls at ${width}px`, () => {
+  for (const width of [320, 380, 680, 1200]) await test(`compact geometry, ellipsis, stable hover metadata at ${width}px`, () => {
     workspace.style.width = `${width}px`; const node = row({sender:"A very long sender ".repeat(12),subject:"A long subject ".repeat(20),label:"Project",attachment:true}); enable();
     const h = rect(node).height; assert(h >= 50 && h <= 64, `compact row (${h})`);
     assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".xW")).left, "sender date don't overlap");
     assert(node.querySelector(".bog").scrollWidth > node.querySelector(".bog").clientWidth, "subject ellipsized");
     node.classList.add("aqw");
-    assert(rect(node).height === h && rect(node.querySelector('[role="toolbar"]')).width > 0, "hover toolbar visible without height jump");
-    assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".bq4")).left, "hover actions don't overlap sender");
+    assert(rect(node).height === h && rect(node.querySelector('[role="toolbar"]')).width === 0, "hover toolbar hidden without height jump");
+    assert(css(node.querySelector(".xW")).display !== "none" && css(node.querySelector(".yf")).display !== "none", "date and attachment stay visible");
+    assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".xW")).left, "date doesn't overlap sender on hover");
+  });
+  await test("hover checkbox emphasis and grip are suppressed; selection, focus and OFF still work", () => {
+    const node = row(), box = node.querySelector('[role="checkbox"]'); enable();
+    const opacity = css(box).opacity;
+    node.classList.add("aqw", "btb");
+    assert(css(box).opacity === opacity, "row hover/focus doesn't brighten checkbox");
+    assert(getComputedStyle(box, "::before").content === "none" && getComputedStyle(box.parentElement, "::before").content === "none", "no ripple or grip");
+    box.setAttribute("aria-checked", "true"); assert(css(box).opacity === "1", "checked remains clear");
+    box.setAttribute("aria-checked", "false"); box.focus();
+    assert(box.matches(":focus-visible") && css(box).outlineStyle === "solid" && css(box).opacity === "1", "keyboard focus stays visible");
+    box.blur(); feature.stop();
+    assert(css(box).opacity === "1" && rect(node.querySelector('[role="toolbar"]')).width > 0, "native hover controls restore on OFF");
   });
   await test("SPA replacement receives styles without discovery, listeners, or cached row state", () => {
     enable(); row().closest("table").remove(); const next = row({unread:true}); next.classList.add("aps");
