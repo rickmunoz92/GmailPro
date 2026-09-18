@@ -7,7 +7,7 @@
   const enable = (patch = {}) => feature.start({ appleMailModeEnabled: true, appearanceTheme: "dark", accentColor: "blue", ...patch });
   const color = value => { const e = document.createElement("i"); e.style.color = value; root.append(e); const c = css(e).color; e.remove(); return c; };
   const token = name => color(css(root).getPropertyValue(name).trim());
-  const dot = node => getComputedStyle(node, "::before");
+  const dot = node => getComputedStyle(node.querySelector(".yX"), "::before");
   const gesture = (node, modifiers = {}) => {
     for (const type of ["pointerdown", "mousedown", "click"]) node.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...modifiers }));
   };
@@ -61,13 +61,13 @@
     assert(JSON.stringify(textStyle()) === readText && css(node).backgroundColor === bg, "read/unread typography and background match");
     node.classList.remove("zE"); assert(dot(node).content === "none", "read clears dot synchronously");
   });
-  await test("unread dot stays centered across both lines at different row sizes", () => {
+  await test("unread dot aligns with sender at different row sizes", () => {
     const node = row({unread:true}); enable();
     for (const height of [46, 80]) for (const width of [320, 700]) {
       workspace.style.width = `${width}px`; node.style.minHeight = `${height}px`;
-      const style = dot(node), bounds = rect(node);
+      const style = dot(node), bounds = rect(node.querySelector(".yX"));
       const center = parseFloat(style.top) + parseFloat(style.height) / 2;
-      assert(Math.abs(center - bounds.height / 2) <= 1, "dot vertically centered on full row");
+      assert(Math.abs(center - bounds.height / 2) <= 1, "dot vertically centered on sender line");
       assert(bounds.left + parseFloat(style.left) + parseFloat(style.width) < rect(node.querySelector(".yW")).left, "dot remains in text gutter");
     }
   });

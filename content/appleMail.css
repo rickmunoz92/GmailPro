@@ -199,7 +199,6 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     min-height: 46px;
     padding-block: 4px !important;
     row-gap: 0;
-    position: relative;
   }
   :scope > td { background: transparent !important; color: inherit !important; font: 13px/18px var(--gp-font) !important; }
   /* Hide only the native list star/importance cells. Keep their state and the
@@ -212,7 +211,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   /* Keep the native checkbox in the DOM for Gmail's bulk actions and keyboard
      shortcuts. appearance.js activates it for modifier-click selection. */
   :scope > td:has(> [role="checkbox"]) { display: none !important; }
-  :scope > td.yX[role="gridcell"] { padding-inline-start: 13px !important; }
+  :scope > td.yX[role="gridcell"] { position: relative; padding-inline-start: 13px !important; }
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
   :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }
   :scope .yW :is(span, .bA4), :scope .bog span, :scope .xW span { color: inherit !important; }
@@ -222,10 +221,10 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
   :scope .yi .at { border-radius: 3px !important; font: 10px/16px var(--gp-font) !important; max-height: 16px; }
   :scope:hover, :scope.aqw { background: var(--gp-bg-primary) !important; }
-  :scope.zE::before {
+  :scope.zE > .yX::before {
     content: "";
     position: absolute;
-    inset-inline-start: 4px;
+    inset-inline-start: 1px;
     top: calc(50% - 3px);
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--gp-accent);
@@ -241,7 +240,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     color: var(--gp-accent-contrast) !important;
     background: transparent !important;
   }
-  :scope.aps::before, :scope:has(> td > [role="checkbox"][aria-checked="true"])::before { visibility: hidden; }
+  :scope.aps > .yX::before, :scope:has(> td > [role="checkbox"][aria-checked="true"]) > .yX::before { visibility: hidden; }
   :scope :is(.T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-icon-filter); }
   :scope.aps :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE),
   :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-selected-icon-filter); }
