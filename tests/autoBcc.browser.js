@@ -16,8 +16,9 @@
     for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
     return node;
   }
-  function compose({ mode = "new", initial = {}, floating = false, delayed = false, reject = false, focus = true, onExpand } = {}) {
+  function compose({ mode = "new", initial = {}, floating = false, delayed = false, reject = false, focus = true, identity, onExpand } = {}) {
     const region = element("section", { role: "region" });
+    if (identity) region.setAttribute("data-compose-id", identity);
     const form = element("form");
     const marker = element("input", { name: "composeid", type: "hidden" });
     const editor = element("div", { contenteditable: "true", role: "textbox" });
@@ -154,6 +155,28 @@
     draft.boxes.To.focus(); draft.form.append(element("span")); await settle();
     assert(draft.attempts === 1 && draft.chips().length === 0, "no re-add");
     draft.close(); const fresh = compose(); await settle(); assert(fresh.chips().length === 1, "new draft inserted");
+  });
+  for (const removed of [false, true]) await test(`native pop-out replacement preserves ${removed ? "manual removal" : "one BCC"}`, async () => {
+    const identity = `transition-${removed}`;
+    const old = compose({ identity }); await settle();
+    if (removed) old.chips()[0].remove();
+    old.close();
+    const next = compose({ identity, floating: true, initial: { BCC: removed ? [] : [address] } });
+    await settle();
+    assert(next.attempts === 0 && next.chips().length === (removed ? 0 : 1), "replacement never reinserts");
+    next.region.hidden = true; await settle(); next.region.hidden = false; next.editor.focus(); await settle();
+    assert(next.attempts === 0, "minimize/restore never reinserts");
+  });
+  await test("pop-out before initial insertion initializes only the replacement", async () => {
+    const old = compose({ identity: "early-transition" }); old.close();
+    const next = compose({ identity: "early-transition", floating: true }); await settle();
+    assert(old.attempts === 0 && next.attempts === 1 && next.chips().length === 1, "only replacement inserted");
+  });
+  await test("late native compose identity preserves removal through replacement", async () => {
+    const old = compose(); old.region.setAttribute("data-compose-id", "late-identity"); await settle();
+    old.chips()[0].remove(); await settle(); old.close();
+    const next = compose({ floating:true }); next.region.setAttribute("data-compose-id", "late-identity"); await settle();
+    assert(next.attempts === 0 && next.chips().length === 0, "late identity recovers existing decision");
   });
   await test("address change affects future compositions", async () => {
     const old = compose(); await settle(); app.autoBcc.update({ bccAddress: nextAddress });

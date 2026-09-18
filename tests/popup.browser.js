@@ -38,6 +38,13 @@
     assert(!bcc.checked && !reverse.checked && !messageList.checked && address.value === "" && store.writes === 0, "safe defaults");
     assert(store.listeners.size === 1, "one settings listener");
   });
+  await test("floating compose settings default on and save independently", async () => {
+    for (const id of ["floating-reply", "floating-reply-all", "floating-forward"]) assert(byId(id).checked, "default on");
+    edit(byId("floating-reply-all"), false); await submit();
+    const saved = await GmailPro.settings.load();
+    assert(saved.floatingReplyEnabled && !saved.floatingReplyAllEnabled && saved.floatingForwardEnabled, "independent save");
+    store.writes = 0;
+  });
   await test("enabled Auto BCC requires an address", async () => {
     edit(bcc, true); await submit();
     assert(address.getAttribute("aria-invalid") === "true" && store.writes === 0, "missing address rejected");

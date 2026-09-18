@@ -5,6 +5,17 @@
   const S = app.selectors;
   const seen = new WeakMap();
   const active = new Map();
+  // Session-only decisions for Gmail's native data-compose-id. The native
+  // pop-out rebuilds forms but retains this identity. Bound detached history;
+  // never persist recipient content or match drafts by subject/recipient.
+  const identities = new Map();
+  function remember(state) {
+    state.identity ||= state.form.closest(S.region)?.getAttribute("data-compose-id");
+    if (!state.identity) return;
+    identities.delete(state.identity);
+    identities.set(state.identity, { address: state.address, status: state.status, attempted: state.attempted });
+    if (identities.size > 100) identities.delete(identities.keys().next().value);
+  }
   let running = false;
   let settings = { ...app.settings.defaults };
   let discovery;
@@ -56,7 +67,7 @@
   }
 
   function finish(state, status) {
-    state.status = status;
+    if (status !== "closed" && status !== "stopped") { state.status = status; remember(state); }
     release(state);
   }
 
@@ -106,6 +117,13 @@
   function step(state) {
     state.timer = null;
     if (!running || !state.form.isConnected) return finish(state, "closed");
+    if (!state.identity) {
+      const identity = state.form.closest(S.region)?.getAttribute("data-compose-id");
+      const prior = identity && identities.get(identity);
+      if (identity) state.identity = identity;
+      if (prior) Object.assign(state, prior);
+      if (!["pending", "inserted"].includes(state.status)) return finish(state, state.status);
+    }
     if (state.status === "inserted") {
       if (!bccCommitted(state)) {
         app.debug.log("bcc-user-removal");
@@ -125,6 +143,7 @@
       if (state.attempted) {
         if (bccCommitted(state)) {
           state.status = "inserted";
+          remember(state);
           clearTimeout(state.deadline);
           state.observer.disconnect();
           state.observer.observe(state.form, { childList: true, subtree: true, attributes: true,
@@ -143,6 +162,7 @@
       if (bcc.length === 1) {
         if (bcc[0].value.trim()) return; // Do not overwrite uncommitted user text.
         state.attempted = true; // Set BEFORE Gmail can synchronously mutate the DOM.
+        remember(state);
         app.debug.log("bcc-insertion-attempted");
         preserveFocus(() => {
           bcc[0].focus({ preventScroll: true });
@@ -214,12 +234,22 @@
   function discover(form) {
     if (!running || !form?.matches(S.form) || !form.isConnected || seen.has(form) ||
         !form.querySelector(S.composeMarker)) return;
-    const state = { form, address: normalizeAddress(settings.bccAddress), status: "pending" };
+    const identity = form.closest(S.region)?.getAttribute("data-compose-id");
+    // Flush a removal before Gmail detaches the old form in the same task.
+    for (const previous of active.values()) if (identity && previous.identity === identity && previous.form !== form) {
+      if (previous.form.isConnected) return; // Ambiguous identity: never touch another draft.
+      if (previous.status === "inserted" && !bccCommitted(previous)) finish(previous, "removed");
+      else { remember(previous); release(previous); }
+    }
+    const prior = identity && identities.get(identity);
+    const state = { form, identity, address: normalizeAddress(settings.bccAddress), status: "pending", ...prior };
+    remember(state);
     seen.set(form, state);
     watchSpine(form.parentElement);
     // Disabled drafts are remembered too: future means future.
     app.debug.log("compose-detected");
-    if (!settings.autoBccEnabled || !state.address) { state.status = "disabled"; return; }
+    if (!["pending", "inserted"].includes(state.status)) return;
+    if (!settings.autoBccEnabled || !state.address) { state.status = "disabled"; remember(state); return; }
     active.set(form, state);
     state.onInput = event => { if (event.target.matches(S.recipientInput)) schedule(state); };
     form.addEventListener("input", state.onInput);
@@ -244,7 +274,12 @@
   }
 
   function cleanupDetached() {
-    for (const state of active.values()) if (!state.form.isConnected) finish(state, "closed");
+    for (const state of active.values()) if (!state.form.isConnected) {
+      // Detachment itself is not recipient removal. Only compare retained chips
+      // while the old form still has its recipient UI.
+      if (state.status === "inserted" && inputs(state.form).length && !bccCommitted(state)) finish(state, "removed");
+      else { remember(state); finish(state, "closed"); }
+    }
   }
 
   function watchSpine(node) {

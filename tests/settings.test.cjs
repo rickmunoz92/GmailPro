@@ -36,6 +36,7 @@ function fixture(initial = {}) {
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
   context.GmailPro.appearance = { start() {}, update() {}, stop() {} };
+  context.GmailPro.floatingCompose = { start() {}, update() {}, stop() {} };
   context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
@@ -46,7 +47,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -62,7 +63,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -389,3 +390,18 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   assert.equal(classes.size, 0); assert.deepEqual(rootElement.dataset, {}); assert.equal(listeners.size, 0);
   f.run("content/appearance.js"); assert.equal(feature, f.context.GmailPro.appearance);
 });
+
+for (const name of ["floatingReplyEnabled", "floatingReplyAllEnabled", "floatingForwardEnabled"]) {
+  test(`${name} defaults on, saves independently, validates and resets on deletion`, async () => {
+    const f = fixture();
+    assert.equal((await f.settings.load())[name], true);
+    await f.settings.save({ [name]: false });
+    const loaded = await f.settings.load();
+    assert.equal(loaded[name], false);
+    assert.equal(loaded.autoBccEnabled, false);
+    await assert.rejects(f.settings.save({ [name]: "true" }));
+    const patches = []; const stop = f.settings.subscribe(p => patches.push(plain(p)));
+    [...f.listeners][0]({ [prefix + name]: {} }, "sync");
+    assert.deepEqual(patches, [{ [name]: true }]); stop();
+  });
+}
