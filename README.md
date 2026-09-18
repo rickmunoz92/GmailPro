@@ -102,14 +102,13 @@ root styling, and the temporary range anchor.
 
 `shared/theme.css` is the single token/palette definition for Gmail chrome and the
 popup. It supplies surface, text, border, focus, sidebar, and accent variables.
-Precomputed luminance-based foreground choices use dark text for Blue/Orange/Yellow
-and white for the other five accents. Blue uses the requested exact **#00AEFF**
-throughout both themes: selections, unread dots, selected labels, focus indicators,
-and popup controls, including hover/active accents. Selected text and icons use a
-dark foreground so they remain readable on this brighter blue. Selected fills and
-sidebar counts retain the **4.5:1** checks across both themes. Exact blue sidebar
-text does not meet the normal-text contrast target on every neutral background;
-other sidebar accent pairs retain the **4.5:1** checks. `content/appleMail.css` documents the native selector contract and scopes
+Precomputed luminance-based foreground choices use dark text for Orange/Yellow and
+white for the other six accents. Blue uses vivid **#007AFF** selection backgrounds
+and the requested exact **#00AEFF** selected sidebar text/icons in both themes.
+The blue palette prioritizes these specified colors: white selection text has about
+**4:1** contrast, and blue sidebar text does not meet the 4.5:1 normal-text target
+in every theme. Other accent pairs and sidebar counts retain the **4.5:1** checks
+across both themes. `content/appleMail.css` documents the native selector contract and scopes
 chrome styling away from message HTML and editable content.
 
 The existing `messageList.css` supplies the two-line layout. Auto BCC, Newest Email
