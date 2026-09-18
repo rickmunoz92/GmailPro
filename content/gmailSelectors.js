@@ -4,11 +4,23 @@
   if (app.selectors) return;
 
   // Verified with Gmail's English desktop UI, September 2026. No generated
-  // classes. The form owns addressing but NOT the editable message body.
+  // classes for compose/thread discovery. The form owns addressing but NOT the editable message body.
   // Accessible names are localized; unknown layouts/locales fail closed.
   // Message-list layout needs no JS discovery: its structural gate and Gmail
   // presentation hooks are centralized/documented in content/messageList.css.
   app.selectors = Object.freeze({
+    // Label hooks verified against desktop Gmail, September 2026. gh=cl
+    // excludes system folders. Gmail currently uses flat .aim siblings inside
+    // .TK; require href + matching data-label-name + explicit indentation too.
+    // Unknown structures fail closed. Never treat all sidebar links as labels.
+    labelContainer: '[gh="cl"]',
+    labelList: ':scope > .TK',
+    labelRow: '.aim',
+    labelLine: '.TN',
+    labelLink: 'a[href*="#label/"]',
+    labelMenu: '[data-label-name][aria-haspopup="true"]',
+    labelSection: '[aria-labelledby]',
+    labelMoreCollapsed: '[gh="mll"][aria-label="More labels"]',
     main: '[role="main"]',
     form: 'form',
     composeMarker: 'input[name="composeid"]',

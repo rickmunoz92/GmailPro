@@ -15,6 +15,7 @@ function fixture(initial = {}) {
   let writes = 0;
   let failure = null;
   const context = vm.createContext({
+    TextEncoder,
     chrome: { storage: {
       sync: {
         async get(keys) {
@@ -34,6 +35,7 @@ function fixture(initial = {}) {
   });
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
+  context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
   return { context, run, data, listeners, settings: context.GmailPro.settings,
     get writes() { return writes; }, fail(error) { failure = error; } };
@@ -41,7 +43,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false });
+  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -57,7 +59,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false });
+  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -282,4 +284,18 @@ for (const cancel of [false, true]) test(`message-list early html bootstrap ${ca
   assert.equal(disconnects, 1);
   vm.runInContext(source, context); assert.equal(context.GmailPro.messageList, feature);
   feature.stop(); assert.equal(classes.size, 0);
+});
+
+test("label order validates, deduplicates, preserves other settings and handles quota", async () => {
+  const f = fixture({ [prefix + "autoBccEnabled"]: true });
+  await f.settings.save({ customLabelOrderEnabled: true, customLabelOrder: ["label/B", "label/A", "label/B"] });
+  assert.deepEqual(plain((await f.settings.load()).customLabelOrder), ["label/B", "label/A"]);
+  assert.equal((await f.settings.load()).autoBccEnabled, true);
+  for (const value of [null, "label/A", [1], ["inbox"], Array(501).fill("label/A"), Array(100).fill("label/" + "界".repeat(100))]) {
+    await assert.rejects(f.settings.save({ customLabelOrder: value }));
+  }
+  await f.settings.save({ customLabelOrder: [] });
+  assert.deepEqual(plain((await f.settings.load()).customLabelOrder), []);
+  const malformed = fixture({ [prefix + "customLabelOrder"]: ["inbox"] });
+  assert.deepEqual(plain((await malformed.settings.load()).customLabelOrder), []);
 });

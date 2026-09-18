@@ -70,3 +70,6 @@ footer { padding-top: 10px; border-top: 1px solid #e0e5dd; text-align: center; c
 footer p + p { margin-top: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (prefers-reduced-motion: reduce) { *, *::after { transition: none !important; } }
+
+.label-actions { display: flex; gap: 8px; margin-top: 12px; }
+.label-actions button { font: inherit; padding: 7px 10px; cursor: pointer; }

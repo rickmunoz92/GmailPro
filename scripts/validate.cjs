@@ -23,7 +23,7 @@ for (const content of manifest.content_scripts) {
   assert.ok(!content.world || content.world === "ISOLATED");
 }
 assert.equal(manifest.content_scripts[0].run_at, "document_start");
-assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css"]);
+assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css"]);
 assert.equal(manifest.content_scripts[1].run_at, "document_idle");
 assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
 assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/);

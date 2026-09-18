@@ -16,6 +16,8 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Apple Mail-style Message List:** displays Gmail messages using a cleaner
   two-line sender/subject layout optimized for readability, especially beside
   the reading pane. Labels, attachments, selection and native controls stay available.
+- **Custom Label Order:** choose the visual order of custom Gmail labels without
+  renaming or modifying those labels in Gmail.
 
 All features are off by default. Open the extension popup, choose your settings,
 and select **Save preferences**.
@@ -82,6 +84,50 @@ precedes `<html>`, a one-shot observer watches only the document's direct childr
 and disconnects as soon as that element exists. Colors and fonts remain Gmail's,
 including existing dark themes; this feature does not implement a dark mode.
 
+### Custom Label Order
+
+Under **LABELS**, turn on **Custom label order**, save preferences, then select
+**Edit label order** while Gmail is active with its sidebar expanded. Small handles
+appear beside top-level labels. Drag a handle or focus it and press **↑ / ↓**.
+Each completed move saves automatically; **Done** or **Escape** exits. A failed
+save leaves the prior order in place and shows a retry message. **Reset label
+order** clears the saved ordering; disabling restores Gmail's native presentation.
+
+The feature uses CSS `order` on Gmail's original custom-label rows inside a column
+layout. It never moves, clones or replaces Gmail rows: live testing showed that
+Gmail relies on its native child sequence during incremental rendering. Each parent
+and all rendered descendants receive consecutive visual positions. Gmail retains
+expand/collapse, unread counts, icons, colors, menus and message-drop handlers.
+Pointer Events are confined to extension-owned handles during editing; no native
+HTML drag/drop listeners are installed. Keyboard moves follow the visual order.
+
+Identity is the decoded `#label/…` navigation path, validated against the row's
+`data-label-name`. No immutable Gmail label ID was exposed in the inspected rows.
+Deleted/stale entries are ignored. Renames act like new labels, which follow saved
+labels in Gmail's native relative order. Missing entries remain in the preference
+so editing a partially rendered section cannot erase ordering for unseen labels.
+
+Gmail renders visible labels and labels behind **More** in separate containers.
+Editing temporarily opens the custom-label More control and restores it on exit
+if the user has not already collapsed it. Ordering is stored as one logical list,
+but each native visibility section is ordered independently: labels never cross
+Gmail's visible/More boundary. Nested children are never independently draggable.
+Some children exist only while expanded; they inherit their parent's rank when
+Gmail renders them. No parent/child relationships or visibility settings change.
+
+The shared settings adapter saves `gmailPro.v1.customLabelOrderEnabled` and
+`gmailPro.v1.customLabelOrder` through `chrome.storage.sync`. The order is limited
+to 500 entries and 7,500 JSON bytes to stay below Sync's per-item quota. Only label
+path/order preferences are stored, never message data or authentication information.
+As with other preferences, this applies across Gmail accounts in a Chrome profile;
+matching label paths share their position. Reset removes stale entries too.
+
+Ordering is local presentation behavior: **Gmail mobile and other clients are
+unaffected**, and actual Gmail label names/hierarchy remain unchanged. Chrome Sync
+can carry the preference to other installations of Gmail Pro. Screen readers and
+Tab navigation retain Gmail's native DOM sequence. Gmail DOM changes may require
+Gmail Pro selector updates; unsupported structures retain native presentation.
+
 ## Privacy
 
 - Gmail Pro runs locally in the browser and does not operate a backend.
@@ -92,8 +138,9 @@ including existing dark themes; this feature does not implement a dark mode.
 - Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
   Gmail network traffic or call undocumented Gmail APIs.
 - Preferences are stored through **`chrome.storage.sync`**. This includes the configured
-  BCC address and feature toggles. Chrome can synchronize those preferences through
-  Google's Chrome Sync service when enabled; this is not strictly device-only storage.
+  BCC address, feature toggles, and custom-label navigation paths/order. Chrome can
+  synchronize those preferences through Google's Chrome Sync service when enabled;
+  this is not strictly device-only storage.
 - Gmail may save recipient changes as part of its normal draft behavior. If you send
   a message, the configured BCC recipient receives a copy through Gmail.
 
@@ -134,6 +181,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/reverseThreads.html`
 - `http://127.0.0.1:8765/tests/popup.html`
 - `http://127.0.0.1:8765/tests/messageList.html`
+- `http://127.0.0.1:8765/tests/labelOrder.html`
 
 The fixtures use synthetic messages and addresses; they cannot send email. The popup
 fixture serves the actual popup with a test-only Chrome storage adapter. This server
@@ -155,6 +203,7 @@ the checks intentionally limited to synthetic data.
 - `content/autoBcc.js`: per-composition detection, insertion, and removal state.
 - `content/reverseThreads.js` and `.css`: validated, reversible visual ordering.
 - `content/messageList.js` and `.css`: one preference class and scoped two-line layout.
+- `content/labelOrder.js` and `.css`: reversible custom-label visual ordering and edit handles.
 - `content/gmailSelectors.js`: centralized JavaScript selectors; points to the
   CSS-only message-list selector contract in `content/messageList.css`.
 - `content/content.js`: one settings subscription and shared lifecycle, started early.
@@ -193,6 +242,15 @@ so the scoped stylesheet also depends on documented presentation hooks: `.yX/.yW
 These hooks are centralized in that stylesheet, never scattered across scripts.
 Recheck them when Gmail changes. If the structural gate no longer matches, the row
 keeps Gmail's normal layout. Unknown snippet markup is retained rather than parsed.
+
+Custom-label selectors in `gmailSelectors.js` validate `[gh="cl"] > .TK`, flat
+`.aim` rows, `.TN` indentation, label navigation links and matching menu metadata.
+System-folder containers are excluded. The sidebar section is observed for relevant
+structural changes; ancestors have shallow child-list watches to detect replacement.
+A temporary document subtree observer supports initial shell loading for up to ten
+seconds, then disconnects; navigation can rediscover a late shell. No continuous
+polling runs, unread text changes do not reconcile ordering, and own style/control
+writes occur with observation disconnected. See [label-order QA](tests/labelOrder-QA.md).
 
 Additional limits:
 

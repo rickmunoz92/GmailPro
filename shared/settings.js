@@ -8,7 +8,9 @@
     autoBccEnabled: false,
     bccAddress: "",
     newestEmailFirstEnabled: false,
-    appleMailMessageListEnabled: false
+    appleMailMessageListEnabled: false,
+    customLabelOrderEnabled: false,
+    customLabelOrder: Object.freeze([])
   });
   // Independent, versioned keys avoid overwriting unrelated preferences when
   // different extension contexts save changes. Same-key conflicts are last-write-wins.
@@ -16,7 +18,9 @@
     autoBccEnabled: "gmailPro.v1.autoBccEnabled",
     bccAddress: "gmailPro.v1.bccAddress",
     newestEmailFirstEnabled: "gmailPro.v1.newestEmailFirstEnabled",
-    appleMailMessageListEnabled: "gmailPro.v1.appleMailMessageListEnabled"
+    appleMailMessageListEnabled: "gmailPro.v1.appleMailMessageListEnabled",
+    customLabelOrderEnabled: "gmailPro.v1.customLabelOrderEnabled",
+    customLabelOrder: "gmailPro.v1.customLabelOrder"
   });
   const subscribers = new Map();
   const emailPattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -25,7 +29,15 @@
     return typeof value === "string" && value.length <= 254 && emailPattern.test(value);
   }
 
+  // Stay below Chrome Sync's per-item quota, including key/JSON overhead.
+  function validOrder(value) {
+    return Array.isArray(value) && value.length <= 500 &&
+      value.every(id => typeof id === "string" && id.startsWith("label/") && id.length <= 1024) &&
+      new TextEncoder().encode(JSON.stringify(value)).length <= 7500;
+  }
+
   function normalize(name, value) {
+    if (name === "customLabelOrder") return validOrder(value) ? [...new Set(value)] : [];
     if (name === "bccAddress") {
       const address = typeof value === "string" ? value.trim() : "";
       return address === "" || isValidEmail(address) ? address : "";
@@ -51,6 +63,8 @@
         if (typeof value !== "string" || (value.trim() !== "" && !isValidEmail(value.trim()))) {
           throw new TypeError("Enter one valid email address.");
         }
+      } else if (name === "customLabelOrder") {
+        if (!validOrder(value)) throw new TypeError("Label order is too large or invalid.");
       } else if (typeof value !== "boolean") {
         throw new TypeError("Setting must be a boolean.");
       }

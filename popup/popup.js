@@ -16,7 +16,8 @@
     autoBccEnabled: document.getElementById("auto-bcc"),
     bccAddress: address,
     newestEmailFirstEnabled: document.getElementById("newest-first"),
-    appleMailMessageListEnabled: document.getElementById("apple-mail-list")
+    appleMailMessageListEnabled: document.getElementById("apple-mail-list"),
+    customLabelOrderEnabled: document.getElementById("custom-label-order")
   };
   let saved = { ...app.settings.defaults };
   let loadingChanges = {};
@@ -29,12 +30,14 @@
       autoBccEnabled: controls.autoBccEnabled.checked,
       bccAddress: address.value.trim(),
       newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked,
-      appleMailMessageListEnabled: controls.appleMailMessageListEnabled.checked
+      appleMailMessageListEnabled: controls.appleMailMessageListEnabled.checked,
+      customLabelOrderEnabled: controls.customLabelOrderEnabled.checked
     };
   }
 
   function render(names = Object.keys(controls)) {
     for (const name of names) {
+      if (!controls[name]) continue;
       if (name === "bccAddress") address.value = saved[name];
       else controls[name].checked = saved[name];
     }
@@ -136,6 +139,39 @@
       saving = false;
       fields.disabled = false;
       saveButton.textContent = "Save preferences";
+      updateDirty();
+    }
+  });
+
+  document.getElementById("edit-label-order").addEventListener("click", async () => {
+    if (!loaded || saving) return;
+    if (dirty.has("customLabelOrderEnabled") || !saved.customLabelOrderEnabled) {
+      setStatus("Turn on Custom label order and save preferences first.", "error");
+      return;
+    }
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, { type: "gmail-pro-edit-label-order" });
+      if (!response?.ok) throw new Error();
+      window.close();
+    } catch {
+      setStatus("Open Gmail with its sidebar expanded, refresh it, then try again.", "error");
+    }
+  });
+  document.getElementById("reset-label-order").addEventListener("click", async () => {
+    if (!loaded || saving) return;
+    saving = true;
+    fields.disabled = true;
+    updateDirty();
+    try {
+      await app.settings.save({ customLabelOrder: [] });
+      saved.customLabelOrder = [];
+      setStatus("Label order reset to Gmail’s order.");
+    } catch {
+      setStatus("Couldn’t reset label order. Please try again.", "error");
+    } finally {
+      saving = false;
+      fields.disabled = false;
       updateDirty();
     }
   });
