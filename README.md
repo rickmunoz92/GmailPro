@@ -59,6 +59,11 @@ message wrappers use `column-reverse`. A fallback preserves fixed controls' slot
 when they are interleaved with messages. Turning the feature off restores the native
 presentation.
 
+Read status and expanded/collapsed state do not affect ordering. Discovery waits
+for Gmail's list role, heading metadata, and complete message wrappers, including
+slow or staged reading-pane loads. Once validated, it returns to shallow watches
+outside message bodies; removing the pane re-arms discovery for its replacement.
+
 Complete wrappers keep their sender details, attachments, message controls, and
 inline composers. Message nodes are never moved or cloned; timestamps and server-side
 conversation data are unchanged. No threads are prefetched, opened in the background,

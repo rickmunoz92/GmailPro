@@ -41,7 +41,7 @@
     envelope.append(body); node.append(envelope);
     return node;
   }
-  function thread(count = 3, placeholders = []) {
+  function thread(count = 3, placeholders = [], mount = main()) {
     const shell = el("section");
     const heading = el("h2", { "data-thread-perm-id": "synthetic-thread", "data-legacy-thread-id": "legacy-thread" });
     heading.textContent = "Synthetic subject";
@@ -49,7 +49,7 @@
     const holder = el("div");
     const list = el("div", { role: "list" });
     const nodes = Array.from({ length: count }, (_, i) => item(i, placeholders.includes(i)));
-    list.append(...nodes); holder.append(list); shell.append(heading, toolbar, holder); main().append(shell);
+    list.append(...nodes); holder.append(list); shell.append(heading, toolbar, holder); mount.append(shell);
     return { shell, heading, toolbar, holder, list, nodes };
   }
   const isReversed = node => node.hasAttribute("data-gmail-pro-thread-order");
@@ -209,6 +209,67 @@
     assert(composer.attempts === 0 && visual(t.list)[0] === t.nodes[2], "independent settings");
   });
   const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  await test("fully read conversation keeps newest first through collapse and setting changes", async () => {
+    const t = thread();
+    // Read/collapsed Gmail headers have no loaded message body or message IDs.
+    for (const node of t.nodes.slice(0, 2)) node.firstElementChild.textContent = "Read message header";
+    t.nodes[2].setAttribute("aria-expanded", "true");
+    const unsubscribe = app.reverseThreads.subscribeConversation(() => {});
+    try {
+      enable(); await frame();
+      assert(matches(visual(t.list), t.nodes.slice().reverse()), "latest expanded read email on top");
+      t.nodes[2].setAttribute("aria-expanded", "false"); await frame();
+      assert(matches(visual(t.list), t.nodes.slice().reverse()), "all collapsed still newest first");
+      app.reverseThreads.update({ newestEmailFirstEnabled: false });
+      assert(matches(visual(t.list), t.nodes), "off restores native order while zoom discovery stays subscribed");
+      t.nodes[0].setAttribute("aria-expanded", "true"); await frame();
+      assert(matches(visual(t.list), t.nodes), "expanding while off does not reorder");
+      enable(); await frame();
+      assert(matches(visual(t.list), t.nodes.slice().reverse()), "on again reverses exactly once");
+    } finally { unsubscribe(); }
+  });
+  await test("late heading metadata discovers an already populated read conversation", async () => {
+    enable(); const t = thread();
+    t.heading.removeAttribute("data-thread-perm-id"); t.heading.removeAttribute("data-legacy-thread-id");
+    await frame(); assert(!isReversed(t.list), "incomplete heading is not trusted");
+    t.heading.setAttribute("data-thread-perm-id", "synthetic-late");
+    t.heading.setAttribute("data-legacy-thread-id", "legacy-late"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "heading attributes complete discovery");
+  });
+  await test("late list role discovers an already populated read conversation", async () => {
+    enable(); const t = thread(); t.list.removeAttribute("role"); await frame();
+    assert(!isReversed(t.list), "incomplete list is not trusted");
+    t.list.setAttribute("role", "list"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "list role completes discovery");
+  });
+  await test("slow reading pane construction is discovered after five seconds", async () => {
+    enable(); const outer = el("section"), inner = el("div"); outer.append(inner); main().append(outer);
+    await new Promise(resolve => setTimeout(resolve, 5100));
+    const t = thread(3, [], inner); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "late nested pane is ordered without another navigation");
+  });
+  await test("pane replacement without navigation re-arms discovery", async () => {
+    const outer = el("section"), inner = el("div"); outer.append(inner); main().append(outer);
+    const first = thread(3, [], inner); enable(); await frame();
+    first.shell.remove(); await frame();
+    const next = thread(3, [], inner); await frame();
+    assert(matches(visual(next.list), next.nodes.slice().reverse()), "deep replacement is discovered without click or hash change");
+  });
+  await test("disabling during staged discovery prevents late ordering", async () => {
+    enable(); const t = thread(); t.heading.removeAttribute("data-thread-perm-id"); await frame();
+    app.reverseThreads.stop(); t.heading.setAttribute("data-thread-perm-id", "synthetic-late"); await frame();
+    assert(matches(visual(t.list), t.nodes) && !isReversed(t.list), "late metadata cannot reactivate disabled ordering");
+    assert(!observers.size, "pending discovery fully disconnected");
+  });
+  await test("reused list recovers when its replacement heading gets metadata later", async () => {
+    const t = thread(); enable(); await frame();
+    const heading = el("h2"); heading.textContent = "Replacement subject";
+    t.heading.replaceWith(heading); await frame();
+    assert(!isReversed(t.list), "missing heading metadata releases ordering");
+    heading.setAttribute("data-thread-perm-id", "replacement-thread");
+    heading.setAttribute("data-legacy-thread-id", "replacement-legacy"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "reused list revalidated on late metadata");
+  });
   await test("first rendered frame of a newly inserted thread is newest-first", async () => {
     enable(); await settle();
     const t = thread(3);

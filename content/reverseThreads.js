@@ -7,7 +7,8 @@
   const mains = new Set();
   const pendingRoots = new Set();
   let bootstrap;
-  let bootstrapTimer;
+  const discoveryOptions = { childList: true, subtree: true, attributes: true,
+    attributeFilter: ["role", "data-thread-perm-id", "data-legacy-thread-id"] };
   const attributes = ["role", "aria-expanded", "tabindex", "jsaction", "style", "data-gmail-pro-thread-order"];
   let enabled = false;
   let reverseEnabled = false;
@@ -152,12 +153,17 @@
       }
       const plan = state.list.matches(S.threadList) && headerFor(state.list) && ordering(state.list);
       if (!plan || state.blocked) {
+        const main = state.list.closest(S.main);
+        if (!state.blocked && main) bootstrap.observe(main, discoveryOptions);
         restore(state);
         if (!state.invalid) app.debug.log("thread-selector-failure");
         state.invalid = true;
         return;
       }
       state.invalid = false;
+      // Gmail can insert an empty list or add its role/heading IDs later.
+      // Finish discovery only once the message structure is actually ready.
+      bootstrap?.disconnect();
       for (const node of state.styles.keys()) {
         if (node !== state.list && node.parentElement !== state.list) restoreNode(state, node);
       }
@@ -218,15 +224,18 @@
   }
 
   function register(list) {
-    if (active.has(list) || !headerFor(list)) return;
+    const existing = active.get(list);
+    if (existing) {
+      if (existing.invalid) apply(existing);
+      return;
+    }
+    if (!headerFor(list)) return;
     const state = { list, styles: new Map(), nativeStyles: new Map(), originalMarker: list.getAttribute(marker), mode: null, originalOrder: [], visualOrder: [], blocked: false, invalid: false };
     state.observer = new MutationObserver(() => apply(state));
     active.set(list, state);
     observeThread(state);
     app.debug.log("thread-detected");
     apply(state);
-    bootstrap?.disconnect();
-    clearTimeout(bootstrapTimer);
   }
 
   function scan(root) {
@@ -235,9 +244,7 @@
     for (const main of foundMains) {
       if (!mains.has(main)) {
         mains.add(main);
-        bootstrap.observe(main, { childList: true, subtree: true });
-        clearTimeout(bootstrapTimer);
-        bootstrapTimer = setTimeout(() => bootstrap.disconnect(), 5000);
+        bootstrap.observe(main, discoveryOptions);
       }
     }
     const enclosing = root.closest(S.threadList);
@@ -271,6 +278,12 @@
   function discover() {
     if (!enabled) return;
     for (const state of active.values()) if (!state.list.isConnected) release(state);
+    // Re-arm when a pane is removed. Its replacement may be built deep inside
+    // an existing container, including keyboard navigation with no hash change.
+    for (const state of active.values()) if (!headerFor(state.list)) apply(state);
+    if (!active.size) for (const main of mains) {
+      if (main.isConnected) bootstrap.observe(main, discoveryOptions);
+    }
     for (const root of pendingRoots) {
       let parent = root.parentElement;
       while (parent && !pendingRoots.has(parent)) parent = parent.parentElement;
@@ -287,6 +300,7 @@
       if (mutation.target instanceof Element && mutation.target.closest(S.threadList) &&
           active.has(mutation.target.closest(S.threadList))) continue;
       relevant = true;
+      if (mutation.type === "attributes") pendingRoots.add(mutation.target);
       for (const node of mutation.addedNodes) if (node instanceof Element) pendingRoots.add(node);
     }
     if (!relevant) return;
@@ -298,15 +312,13 @@
   function navigation() {
     if (!enabled) return;
     bootstrap?.disconnect();
-    clearTimeout(bootstrapTimer);
     for (const main of document.querySelectorAll(S.main)) {
       // A newly opening pane can build deep descendants before a list exists.
-      // Bootstrap briefly, then replace this with shallow ancestor/list watches.
-      bootstrap.observe(main, { childList: true, subtree: true });
+      // Watch until validated, not for a fixed timeout that races slow rendering.
+      bootstrap.observe(main, discoveryOptions);
       mains.add(main);
       pendingRoots.add(main);
     }
-    bootstrapTimer = setTimeout(() => bootstrap.disconnect(), 5000);
     discover();
   }
 
@@ -324,7 +336,6 @@
     enabled = false;
     discovery?.disconnect();
     bootstrap?.disconnect();
-    clearTimeout(bootstrapTimer);
     window.removeEventListener("hashchange", navigation);
     window.removeEventListener("popstate", navigation);
     document.removeEventListener("focusin", focus, true);
