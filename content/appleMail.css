@@ -257,7 +257,7 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
    details menus, attachment controls and all authored body/editor formatting. */
 @scope (html.gmail-pro-apple-mail-mode [role="main"] .iY:has(h2[data-thread-perm-id][data-legacy-thread-id])) to (.ii, .a3s, [contenteditable], form, [role="dialog"]) {
   .V8djrc:has(h2[data-thread-perm-id]) { padding: 12px 16px 6px !important; }
-  h2[data-thread-perm-id] { font-size: 16px !important; line-height: 1.4 !important; }
+  h2[data-thread-perm-id] { font-size: 16px !important; line-height: 1.4 !important; margin: 0 !important; }
   .ha { margin: 0 !important; padding: 0 !important; }
   /* Gmail's summary card has a stable semantic card identifier. No global
      Gemini setting exists; only this reading-surface presentation is hidden. */
@@ -281,10 +281,11 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   [role="listitem"][aria-expanded="true"] .gE {
     padding: 8px 0 8px 40px !important; min-height: 40px;
   }
+  .gE h3 { margin: 0; }
   .gE .gD { font-weight: 600; font-size: 14px; }
   .gE :is(.g3, .g2, .go, .ajw) { font-size: 12px; }
   .gE .gH { vertical-align: top; }
-  .gE button { width: 30px !important; height: 30px !important; }
+  .gE button:has(svg) { width: 30px !important; height: 30px !important; }
   .gE :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }
   .gE button svg { filter: var(--gp-icon-filter); }
   .Bk, .G3 { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
@@ -301,7 +302,7 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
 /* The .ii wrapper is Gmail-owned. Padding/scroll containment never changes the
    inner .a3s HTML or its fonts/colors; wide tables/images remain scrollable. */
 html.gmail-pro-apple-mail-mode [role="main"] .iY [role="listitem"][aria-expanded="true"]
-[data-message-id][data-legacy-message-id] .ii:has(> .a3s):not([contenteditable] *) {
+[data-message-id][data-legacy-message-id] .ii:has(> .a3s):not(.a3s *, [contenteditable] *) {
   margin: 0 !important;
   padding: 16px !important;
   box-sizing: border-box;

@@ -92,7 +92,7 @@
   }
 
   function watch(current) {
-    if (current) observedContext = current;
+    if (current) observedContext = { shell: current.shell, toolbar: current.toolbar, toolbarHost: current.toolbarHost };
     // Keep the small shell/toolbar spine alive while Gmail temporarily hides
     // the thread or removes its toolbar, so restoration needs no polling.
     if (!observedContext?.shell.isConnected) return;
@@ -151,6 +151,7 @@
     enabled = false;
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
+    window.removeEventListener("resize", schedule);
     group?.remove(); group = undefined;
     observedContext = undefined;
     restore();
@@ -161,6 +162,7 @@
     if (enabled) return;
     enabled = true;
     observer = new MutationObserver(schedule);
+    window.addEventListener("resize", schedule);
     unsubscribe = app.reverseThreads.subscribeConversation(schedule);
     refresh();
   }

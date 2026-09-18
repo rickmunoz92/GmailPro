@@ -24,6 +24,11 @@
     workspace.replaceChildren(); clicks.length = 0; await settle();
     result.textContent = reports.join('\n');
   }
+  if (new URLSearchParams(location.search).has('preview')) {
+    const f=fixture('preview');
+    f.footer.addEventListener('click',()=>{ result.textContent='Native action invoked: '+clicks.at(-1)?.key; });
+    start(); result.textContent='Synthetic visual preview — no Gmail connection.'; return;
+  }
   await test('mode OFF leaves native controls and markup untouched', async () => {
     const f=fixture(), before=f.main.innerHTML; app.readingPane.start({appleMailModeEnabled:false}); await settle();
     assert(f.main.innerHTML===before && !button('reply'), 'OFF inert');
@@ -145,6 +150,26 @@
     observer.observe(f.footer,{attributes:true}); observer.observe(group,{attributes:true,subtree:true});
     for(let i=0;i<100;i++) f.body.append(document.createElement('span'));
     await settle(); observer.disconnect(); assert(changes===0,'body edits did not cause refresh/marker churn');
+  });
+  await test('Search, Labels, Sent, Drafts and Back/Forward route changes resolve fresh contexts', async () => {
+    fixture(); start(); await settle();
+    for(const route of ['search/synthetic','label/synthetic','sent','drafts','inbox']) {
+      workspace.replaceChildren(); const f=fixture(route);
+      window.dispatchEvent(new PopStateEvent('popstate')); await settle();
+      button('forward').click(); assert(clicks.at(-1)?.id===route,'route target '+route);
+      f.shell.hidden=true; await settle(); assert(!button('reply'),'no selected message on '+route);
+    }
+  });
+  await test('a missing More anchor falls back and returns after native reconstruction', async () => {
+    const f=fixture(); start(); await settle(); const more=f.toolbar.querySelector('.more'); more.remove(); await settle();
+    assert(!button('reply') && css(f.footer.closest('.btDi4d')).display!=='none','native fallback');
+    f.toolbar.querySelector('.G-tF').append(more); await settle(); assert(button('reply'),'anchor reconstruction');
+  });
+  await test('resizing reevaluates whether native bottom controls are needed', async () => {
+    const f=fixture(); start(); await settle(); f.toolbar.style.width='90px'; window.dispatchEvent(new Event('resize')); await settle();
+    assert(css(f.footer.closest('.btDi4d')).display!=='none','narrow fallback');
+    f.toolbar.style.width=''; window.dispatchEvent(new Event('resize')); await settle();
+    assert(css(f.footer.closest('.btDi4d')).display==='none','wide replacement restored');
   });
   await test('mode OFF restores footer/reading geometry and releases lifecycle', async () => {
     const f=fixture(), before=f.main.innerHTML; start(); await settle(); app.readingPane.stop(); app.appearance.stop(); await settle();

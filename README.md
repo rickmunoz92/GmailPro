@@ -320,6 +320,58 @@ This is a Manifest V3 extension. It has no background service worker, OAuth scop
 `tabs`, `activeTab`, `scripting`, `webRequest`, or broad host permissions. The popup's
 content security policy permits bundled resources and disallows network connections.
 
+## Clean reading pane and persistent message actions
+
+Apple Mail Mode streamlines Gmail's message-reading interface by reducing
+Gmail-specific chrome while preserving the original email content. It uses a
+compact subject/sender header, a 28px avatar, tighter metadata spacing, and a 16px
+outer gutter instead of Gmail's 72px avatar column alongside the whole message.
+The Gmail-owned body wrapper adds 16px of readable inner padding and horizontal
+scrolling for wide content. Received HTML, fonts, colors, links, tables, images,
+signatures, quotes, attachments and outgoing editor formatting are not rewritten.
+White documents remain white; simple messages retain a safe readable document
+canvas rather than risking black text on dark chrome. Security/external warnings
+and Gmail's Details control remain available. The reading summary card and
+suggested-reply toolbar are hidden only in Apple Mail Mode.
+
+Reply, Reply All, Forward, and supported reaction actions are available in the
+main toolbar while a message is selected. The compact icon group has accessible
+names, tooltips, native button keyboard activation, and a CSS divider. It is
+inserted before Gmail's More group, after the existing Labels/third-party hook
+group in the inspected layout. No phishing-extension class name is required; the
+same insertion point works when that extension is absent.
+
+The new controls **delegate to Gmail's current native footer controls**. They do
+not move native nodes, build drafts, derive recipients, send mail, call Gmail APIs,
+or use network endpoints. Available/disabled native actions determine what is
+shown. Every activation resolves the visible thread and native control again;
+there is no captured message-action handler or selected-message store. Shift and
+other activation modifiers are forwarded, leaving pop-out behavior to Gmail.
+
+Target semantics deliberately match Gmail's native bottom action bar. Newest Email
+First changes visual order only and therefore does not retarget replies. Expanding
+an older message does not independently make it the thread footer's reply target;
+use that message's retained native header/menu for an explicit reply to it. If
+Gmail itself retargets/replaces the footer, the top controls follow immediately.
+
+The original bottom bar is hidden only after recognized native actions have a
+visible, fitting top replacement. Missing/ambiguous controls, a missing toolbar,
+unrecognized actions, or insufficient toolbar space retain the native footer.
+Composer controls and editors are never hidden by that replacement. Turning Apple
+Mail Mode OFF removes the group, divider, temporary markers and observation,
+restoring native reading chrome and bottom actions.
+
+`content/readingPane.js` shares `reverseThreads`' existing conversation discovery.
+One additional narrow observer watches reading chrome, toolbar controls and their
+ancestor spine, excluding received-message documents and compose editors. There
+is no new document-wide observer, polling, telemetry, or persisted message data.
+Selectors are centralized in `content/gmailSelectors.js`; presentation selectors
+are documented in `content/appleMail.css`. This targets current English desktop
+Gmail: `.iY`, `[gh="tm"] [gh="mtb"]`, the accessible More control, and native
+`.amn` action links (`.bkI/.bkH/.bkG`) plus the accessible reaction button. Gmail
+DOM changes or another extension moving those controls may disable only this
+bridge; native actions remain the fallback. See [reading-pane QA](tests/readingPane-QA.md).
+
 ## Development
 
 Use Node.js 18 or newer for the local validation suite:
@@ -346,6 +398,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/labelOrder.html`
 - `http://127.0.0.1:8765/tests/messageZoom.html`
 - `http://127.0.0.1:8765/tests/appleMail.html`
+- `http://127.0.0.1:8765/tests/readingPane.html`
 
 Repeat Auto BCC, reverseThreads, messageZoom, and labelOrder with `?appearance=1`
 to run the same regressions with Apple Mail Mode active.
@@ -368,6 +421,7 @@ the checks intentionally limited to synthetic data.
 ### Structure and maintenance
 
 - `content/appearance.js`: root appearance lifecycle and optional system-theme listener.
+- `content/readingPane.js`: native message-action bridge and narrow reading-chrome lifecycle.
 - `content/appleMail.css`: gated native chrome, sidebar and message state presentation.
 - `shared/theme.css`: shared light/dark tokens, palette and contrast variants.
 - `content/autoBcc.js`: per-composition detection, insertion, and removal state.
