@@ -61,7 +61,8 @@ windows and collapsed navigation retain Gmail's sizing. Header geometry stays na
 so Gmail's measured scrolling regions remain correct.
 
 - **Unread:** Gmail's `.zE` state displays a 6px accent dot before the sender and
-  stronger sender/subject text. Read/unread rows share the same background.
+  identical sender/subject/date text styling for read and unread messages. The dot
+  alone indicates unread status; both states share the same background.
 - **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
   the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
   The dot is hidden while selected, without changing the native unread state.
@@ -101,6 +102,12 @@ If Dark Reader advertises ownership of document colors, its canvas is left alone
 Compose title chrome is styled; the editable message, its formatting, addressing,
 and outgoing HTML are untouched. The composer may therefore retain a light editor.
 Gmail Pro cannot recolor Chrome's own tab/address bars or a separate window's frame.
+
+Dark main surfaces, sidebar, and toolbar use `#23292B`. Conversation-list stars and
+importance chevrons are hidden in this mode, without changing their Gmail state or
+reading-pane actions. Label/conversation hover backgrounds and pointer-following row
+outlines are suppressed; actual selection and keyboard focus remain visible. Native
+hover action buttons remain available. Turning the mode off restores native controls.
 
 Turn **Apple Mail Mode OFF** to restore Gmail's native chrome immediately. Other
 independent features remain as configured. If **Apple Mail-style message list** was

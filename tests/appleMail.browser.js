@@ -30,13 +30,15 @@
     feature.stop(); assert(css(node).display === "flex" && css(node).backgroundColor === baseline && workspace.innerHTML === html, "exact restoration");
     assert(!root.hasAttribute("data-gp-theme") && !root.hasAttribute("data-gp-accent"), "root cleaned");
   });
-  await test("native unread class controls dot and sender emphasis without changing background", () => {
+  await test("native unread class changes only the dot, not text or background", () => {
     const node = row(); enable(); const bg = css(node).backgroundColor;
+    const textStyle = () => [".sender", ".bqe", ".xW span"].map(selector => { const style = css(node.querySelector(selector)); return [style.color, style.fontWeight]; });
+    const readText = JSON.stringify(textStyle());
     assert(dot(node).content === "none", "read has no dot");
     node.classList.add("zE");
     assert(dot(node).content === '""' && dot(node).backgroundColor === token("--gp-accent"), "unread accent dot");
     assert(rect(node.querySelector(".yW")).left >= rect(node.querySelector(".yX")).left + 12, "dot never overlaps sender text");
-    assert(css(node.querySelector(".sender")).fontWeight === "600" && css(node).backgroundColor === bg, "weight not background");
+    assert(JSON.stringify(textStyle()) === readText && css(node).backgroundColor === bg, "read/unread typography and background match");
     node.classList.remove("zE"); assert(dot(node).content === "none", "read clears dot synchronously");
   });
   for (const theme of ["dark", "light"]) for (const accent of GmailPro.settings.choices.accentColor) await test(`${theme} / ${accent}: selected row, dot, neutral sidebar and accessible contrast`, () => {
@@ -54,6 +56,33 @@
     assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast >= 4.5");
     assert(contrast(css(selected.querySelector(".bsU")).color, css(selected).backgroundColor) >= 4.5, "count contrast >= 4.5");
     node.classList.remove("aps"); assert(dot(node).visibility === "visible" && css(node).backgroundColor === token("--gp-bg-primary"), "deselect restores unread");
+  });
+  await test("list stars and importance markers hide without reserving space and restore on OFF", () => {
+    const node = row(), star = node.querySelector(".apU"), importance = node.querySelector(".WA");
+    const html = node.innerHTML; enable();
+    assert(css(star).display === "none" && css(importance).display === "none", "both cells hidden");
+    assert(rect(node.querySelector(".yX")).left <= rect(node.querySelector(".oZ-x3")).right + 1, "no empty control columns");
+    feature.stop();
+    assert(css(star).display !== "none" && css(importance).display !== "none" && node.innerHTML === html, "native controls restored unchanged");
+  });
+  await test("native mouse hover/focus classes do not highlight rows; selected rows stay accented", () => {
+    const node = row(); enable(); const bg = css(node).backgroundColor;
+    node.classList.add("aqw", "btb");
+    assert(css(node).backgroundColor === bg && css(node).boxShadow === "none" && css(node).outlineStyle === "none", "no hover or pointer-following outline");
+    node.classList.add("aps");
+    assert(css(node).backgroundColor === token("--gp-accent"), "actual selection stays accented while hovered");
+  });
+  await test("native label hover chrome is suppressed without clearing mailbox selection", () => {
+    enable(); const rows = document.querySelectorAll("#sidebar .TO");
+    const backgrounds = [...rows].map(e => css(e).backgroundColor);
+    rows.forEach(e => e.classList.add("NQ"));
+    assert([...rows].every((e, i) => css(e).backgroundColor === backgrounds[i] && css(e).boxShadow === "none"), "hover retains unselected/selected backgrounds without shadows");
+    rows.forEach(e => e.classList.remove("NQ"));
+  });
+  await test("dark main and sidebar surfaces use the requested exact background", () => {
+    enable();
+    assert(css(workspace).backgroundColor === "rgb(35, 41, 43)", "main is #23292B");
+    assert(css(document.getElementById("sidebar")).backgroundColor === "rgb(35, 41, 43)", "sidebar is #23292B");
   });
   await test("reading selection follows Gmail instantly; keyboard focus is not selection", () => {
     const a = row({unread:true}), b = row(); enable();

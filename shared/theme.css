@@ -24,8 +24,8 @@
   --gp-selected-icon-filter: brightness(0) invert(1);
 }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"] {
-  --gp-bg-primary: #202124;
-  --gp-bg-secondary: #27282b;
+  --gp-bg-primary: #23292B;
+  --gp-bg-secondary: var(--gp-bg-primary);
   --gp-bg-tertiary: #303236;
   --gp-text-primary: #f1f2f4;
   --gp-text-secondary: #c4c6cc;

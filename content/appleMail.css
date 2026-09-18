@@ -36,17 +36,20 @@
     font-size: 13px !important;
   }
   [role="navigation"] .aim:has(a[href*="#"]) > .TO {
+    box-shadow: none !important;
     margin-inline: 6px !important;
     border-radius: 5px !important;
     background: transparent !important;
   }
   [role="navigation"] .aim:has(a[href*="#"]) .TN {
+    background: transparent !important;
+    box-shadow: none !important;
     min-height: 28px;
     height: 28px !important;
     padding-inline-end: 10px;
     /* Native inline start padding is the folder-depth source of truth. */
   }
-  [role="navigation"] .aim:has(a[href*="#"]) > .TO:hover { background: var(--gp-hover) !important; }
+  [role="navigation"] .aim:has(a[href*="#"]) > .TO:hover { background: transparent !important; }
   [role="navigation"] .aim:has(a[href*="#"]) > .TO.nZ {
     background: var(--gp-selection-sidebar-bg) !important;
   }
@@ -169,18 +172,22 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     border-bottom: 1px solid var(--gp-border) !important;
     box-shadow: none !important;
     font-family: var(--gp-font) !important;
-    grid-template-columns: 3px auto auto auto minmax(0, 1fr) auto auto auto;
+    grid-template-columns: 3px auto 0 0 minmax(0, 1fr) auto auto auto;
   }
   :scope > td { background: transparent !important; color: inherit !important; font: 13px/20px var(--gp-font) !important; }
+  /* Hide only the native list star/importance cells. Keep their state and the
+     reading-pane actions intact; disabling the mode restores both controls. */
+  :scope > td.apU:has(> [role="button"]), :scope > td.WA:has(> [role="switch"]) { display: none !important; }
   :scope > td.yX[role="gridcell"] { position: relative; padding-inline-start: 13px !important; }
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
   :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }
-  :scope .yW :is(span, .bA4), :scope .xW span { color: inherit !important; }
+  :scope .yW :is(span, .bA4), :scope .bog span, :scope .xW span { color: inherit !important; }
+  /* The unread dot is the only read-state emphasis, including Gmail's nested
+     sender/subject/date spans that otherwise retain native bold weights. */
+  :scope :is(.yW, .yW span, .bog, .bog span, .xW, .xW span) { font-weight: 400 !important; }
   :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
   :scope .yi .at { border-radius: 3px !important; font: 10px/16px var(--gp-font) !important; max-height: 16px; }
-  :scope:hover { background: var(--gp-hover) !important; }
-  :scope.zE { color: var(--gp-text-primary) !important; }
-  :scope.zE :is(.yW, .yW span, .bog) { font-weight: 600 !important; }
+  :scope:hover, :scope.aqw { background: var(--gp-bg-primary) !important; }
   :scope.zE > .yX::before {
     content: "";
     position: absolute;
@@ -205,7 +212,8 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope.aps :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE),
   :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-selected-icon-filter); }
   :scope :is([role="button"], [role="switch"], [role="checkbox"]) { color: inherit !important; }
-  :scope:focus-visible, :scope.btb { outline: 2px solid var(--gp-accent-ui) !important; outline-offset: -2px; }
+  :scope.btb:not(:focus-visible) { outline: none !important; }
+  :scope:focus-visible { outline: 2px solid var(--gp-accent-ui) !important; outline-offset: -2px; }
   :scope :focus-visible { outline: 2px solid currentColor !important; outline-offset: 1px; }
 }
 @media (forced-colors: active) {

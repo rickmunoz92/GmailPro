@@ -36,7 +36,7 @@ New tests: `appleMail.html`, `appleMail.browser.js`, `appearance.integration.js`
 `messageRow.fixture.js` (shared synthetic row factory extracted from list tests).
 Existing settings/popup tests and cross-feature HTML harnesses are extended.
 
-## Automated results
+## Initial implementation automated results
 
 | Suite | Passed |
 | --- | ---: |
@@ -158,3 +158,21 @@ Implementation commits include `a366049` (appearance foundation/UI/state tests) 
 and contrast hardening are recorded in the branch's later commit. Work is delivered
 on `codex/apple-mail-mode` without rewriting `main` or force-pushing. Nothing is
 published to the Chrome Web Store.
+
+
+## Appearance refinement — 0.7.1, 2026-09-18
+
+The follow-up design request hides list star/importance cells and reclaims their
+column space, removes conversation/label hover fills and pointer-following row
+outlines, and uses identical read/unread sender, subject and timestamp typography.
+The native unread dot alone communicates read state. Actual selected rows/mailboxes
+and keyboard `:focus-visible` outlines remain visible. Native hover action buttons
+are retained. Dark main/sidebar/toolbar backgrounds now use exactly `#23292B`.
+
+Targeted verification: 21/21 Node checks, 34/34 appearance browser checks, 20/20
+standalone message-list checks, and 14/14 popup checks. Appearance tests cover native
+hover classes, hidden-control restoration and reclaimed spacing, matching read/unread
+colors and weights including nested timestamps, exact dark surface colors, and all
+existing contrast and layout cases. Browser fixtures were run in Codex's Chromium
+browser; these refinements were not revalidated in live Gmail. Reload the development
+extension and Gmail to apply the updated bundled styles.

@@ -39,3 +39,6 @@ table[role="grid"], tbody { display: block; width: 100%; }
 .dark .zA { background: #222; color: #eee; }
 
 .at .av { color: #444746; overflow: hidden; text-overflow: ellipsis; }
+
+.zE .xW span { font-weight: 700; }
+.TO.NQ, .TO:hover { background: #aabbcc; box-shadow: inset 0 0 2px #667788; }
