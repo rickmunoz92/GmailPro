@@ -343,14 +343,18 @@ test("appearance settings validate, sync independently, and reset safely on dele
   stop();
 });
 
-test("appearance root lifecycle follows system only when enabled and never scans Gmail", () => {
+test("appearance lifecycle deduplicates and removes delegated listeners without startup scans", () => {
   const f = fixture();
   const classes = new Set(), listeners = new Set();
   let watches = 0, disconnects = 0, deliver;
   const rootElement = { dataset: {}, classList: { add: n => classes.add(n), remove: n => classes.delete(n) } };
   const media = { matches: false, addEventListener: (_, fn) => listeners.add(fn), removeEventListener: (_, fn) => listeners.delete(fn) };
   f.context.matchMedia = () => media;
-  f.context.document = { documentElement: null };
+  const gestures = new Map();
+  f.context.document = { documentElement: null,
+    addEventListener(type, fn, capture) { assert.equal(capture, true); assert.ok(!gestures.has(type)); gestures.set(type, fn); },
+    removeEventListener(type, fn, capture) { assert.equal(capture, true); if (gestures.has(type)) assert.equal(gestures.get(type), fn); gestures.delete(type); }
+  };
   f.context.MutationObserver = class {
     constructor(fn) { deliver = fn; }
     observe(target, options) { assert.equal(target, f.context.document); assert.deepEqual(plain(options), { childList: true }); watches++; }
@@ -363,6 +367,7 @@ test("appearance root lifecycle follows system only when enabled and never scans
   assert.equal(watches, 0);
   feature.update({ appleMailModeEnabled: true, appearanceTheme: "system", accentColor: "yellow" });
   feature.update({ autoBccEnabled: true });
+  assert.equal(gestures.size, 3);
   assert.equal(watches, 1); assert.equal(listeners.size, 1);
   f.context.document.documentElement = rootElement; deliver();
   assert.equal(disconnects, 1); assert.equal(rootElement.dataset.gpTheme, "light");
@@ -374,6 +379,7 @@ test("appearance root lifecycle follows system only when enabled and never scans
   feature.update({ appearanceTheme: "system" });
   const lateChange = [...listeners][0];
   feature.stop(); lateChange();
+  assert.equal(gestures.size, 0);
   assert.equal(classes.size, 0); assert.deepEqual(rootElement.dataset, {}); assert.equal(listeners.size, 0);
   f.run("content/appearance.js"); assert.equal(feature, f.context.GmailPro.appearance);
 });

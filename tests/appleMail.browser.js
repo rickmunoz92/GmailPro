@@ -8,6 +8,24 @@
   const color = value => { const e = document.createElement("i"); e.style.color = value; root.append(e); const c = css(e).color; e.remove(); return c; };
   const token = name => color(css(root).getPropertyValue(name).trim());
   const dot = node => getComputedStyle(node.querySelector(".yX"), "::before");
+  const gesture = (node, modifiers = {}) => {
+    for (const type of ["pointerdown", "mousedown", "click"]) node.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...modifiers }));
+  };
+  function selectableRows() {
+    const nodes = Array.from({length:5}, (_, index) => {
+      const node = row({unread:true});
+      node.querySelector("[data-thread-id]").dataset.threadId = `thread-${index}`;
+      const box = node.querySelector('[role="checkbox"]');
+      box.addEventListener("click", event => {
+        event.stopPropagation(); // Simulate Gmail owning its checkbox state.
+        box.setAttribute("aria-checked", String(box.getAttribute("aria-checked") !== "true"));
+      });
+      return node;
+    });
+    for (const node of nodes.slice(1)) { const table = node.closest("table"); nodes[0].parentElement.append(node); table.remove(); }
+    return nodes;
+  }
+  const selectedIndices = nodes => nodes.flatMap((node, index) => node.querySelector('[role="checkbox"]').getAttribute("aria-checked") === "true" ? [index] : []).join(",");
   const luminance = c => {
     // Resolve modern color-mix through a canvas for stable sRGB channel values.
     const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
@@ -66,7 +84,7 @@
     const node = row(), star = node.querySelector(".apU"), importance = node.querySelector(".WA");
     const html = node.innerHTML; enable();
     assert(css(star).display === "none" && css(importance).display === "none", "both cells hidden");
-    assert(rect(node.querySelector(".yX")).left <= rect(node.querySelector(".oZ-x3")).right + 1, "no empty control columns");
+    assert(rect(node.querySelector(".yX")).left <= rect(node).left + 4, "no empty control columns");
     feature.stop();
     assert(css(star).display !== "none" && css(importance).display !== "none" && node.innerHTML === html, "native controls restored unchanged");
   });
@@ -146,19 +164,56 @@
     assert(css(node.querySelector(".xW")).display !== "none" && css(node.querySelector(".yf")).display !== "none", "date and attachment stay visible");
     assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".xW")).left, "date doesn't overlap sender on hover");
   });
-  await test("hover checkbox emphasis and grip are suppressed; selection, focus and OFF still work", () => {
+  await test("checkbox column is hidden without removing native selection; OFF restores it", () => {
     const node = row(), box = node.querySelector('[role="checkbox"]'); enable();
-    const opacity = css(box).opacity;
     node.classList.add("aqw", "btb");
-    assert(css(box).opacity === opacity, "row hover/focus doesn't brighten checkbox");
-    assert(getComputedStyle(box, "::before").content === "none" && getComputedStyle(box.parentElement, "::before").content === "none", "no ripple or grip");
-    box.setAttribute("aria-checked", "true"); assert(css(box).opacity === "1", "checked remains clear");
-    box.setAttribute("aria-checked", "false"); box.focus();
-    assert(box.matches(":focus-visible") && css(box).outlineStyle === "solid" && css(box).opacity === "1", "keyboard focus stays visible");
-    box.blur(); feature.stop();
-    assert(css(box).opacity === "1" && rect(node.querySelector('[role="toolbar"]')).width > 0, "native hover controls restore on OFF");
+    assert(rect(box).width === 0 && css(box.parentElement).display === "none", "checkbox and hover effects fully hidden");
+    box.setAttribute("aria-checked", "true"); assert(css(node).backgroundColor === token("--gp-accent"), "native checked state styles row");
+    node.focus(); assert(node.matches(":focus-visible") && css(node).outlineStyle === "solid", "row keyboard focus visible");
+    node.blur(); feature.stop();
+    assert(rect(box).width > 0 && rect(node.querySelector('[role="toolbar"]')).width > 0, "native controls restore on OFF");
   });
-  await test("SPA replacement receives styles without discovery, listeners, or cached row state", () => {
+  await test("Ctrl/Command-click toggles native selection without opening or marking read", () => {
+    const nodes = selectableRows(); let opened = 0;
+    nodes.forEach(node => node.addEventListener("click", () => opened++)); enable(); enable();
+    gesture(nodes[1].querySelector(".sender"), {ctrlKey:true});
+    gesture(nodes[3].querySelector(".bog"), {metaKey:true});
+    assert(selectedIndices(nodes) === "1,3" && opened === 0, "disjoint native selection, no open");
+    gesture(nodes[1], {ctrlKey:true});
+    assert(selectedIndices(nodes) === "3" && nodes.every(node => node.classList.contains("zE")), "toggle off and unread preserved");
+    gesture(nodes[2]); assert(opened === 1, "plain click still reaches Gmail");
+  });
+  await test("Shift-click selects and contracts ranges; Ctrl/Command-Shift adds ranges", () => {
+    const nodes = selectableRows(); enable();
+    gesture(nodes[1]); gesture(nodes[4], {shiftKey:true});
+    assert(selectedIndices(nodes) === "1,2,3,4", "range includes ordinary-click anchor");
+    gesture(nodes[2], {shiftKey:true}); assert(selectedIndices(nodes) === "1,2", "range contracts from original anchor");
+    gesture(nodes[0], {shiftKey:true}); assert(selectedIndices(nodes) === "0,1", "reverse range");
+    gesture(nodes[4], {metaKey:true}); gesture(nodes[3], {metaKey:true,shiftKey:true});
+    assert(selectedIndices(nodes) === "0,1,3,4", "additive range preserves disjoint selection");
+  });
+  await test("Shift-click recovers safely from missing, recycled and replaced anchors", () => {
+    const nodes = selectableRows(); enable();
+    nodes[2].classList.add("aps"); gesture(nodes[4], {shiftKey:true});
+    assert(selectedIndices(nodes) === "2,3,4", "uses open conversation without an anchor");
+    gesture(nodes[0]); nodes[0].querySelector("[data-thread-id]").dataset.threadId = "recycled";
+    gesture(nodes[3], {shiftKey:true}); assert(selectedIndices(nodes) === "2,3", "recycled row cannot serve as old anchor");
+    workspace.replaceChildren(); const replacements = selectableRows();
+    gesture(replacements[3], {shiftKey:true}); assert(selectedIndices(replacements) === "3", "replacement with no current row starts locally");
+  });
+  await test("modifier gestures leave controls, message bodies, unknown rows and mode OFF native", () => {
+    const nodes = selectableRows(); enable();
+    const button = document.createElement("button"); nodes[1].querySelector(".a4W").append(button);
+    let clicks = 0; button.addEventListener("click", () => clicks++);
+    gesture(button, {ctrlKey:true}); assert(clicks === 1 && selectedIndices(nodes) === "", "nested control untouched");
+    nodes[2].querySelector("[data-thread-id]").removeAttribute("data-thread-id");
+    gesture(nodes[2], {ctrlKey:true}); assert(selectedIndices(nodes) === "", "unknown row untouched");
+    const body = document.querySelector(".a3s"); let bodyClicks = 0; const onBody = () => bodyClicks++;
+    body.addEventListener("click", onBody); gesture(body, {shiftKey:true}); body.removeEventListener("click", onBody);
+    assert(bodyClicks === 1, "email content untouched");
+    feature.stop(); gesture(nodes[0], {ctrlKey:true}); assert(selectedIndices(nodes) === "", "disabled mode has no gesture handlers");
+  });
+  await test("SPA replacement receives styles without per-row discovery or listeners", () => {
     enable(); row().closest("table").remove(); const next = row({unread:true}); next.classList.add("aps");
     assert(css(next).display === "grid" && css(next).backgroundColor === token("--gp-accent"), "replacement styled immediately");
   });

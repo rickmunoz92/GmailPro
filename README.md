@@ -66,19 +66,26 @@ so Gmail's measured scrolling regions remain correct.
 - **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
   the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
   The dot is hidden while selected, without changing the native unread state.
-  Checkbox multi-selection follows Gmail's `aria-checked` state. Keyboard focus
+  Multi-selection follows Gmail's `aria-checked` state, with row checkboxes hidden.
+  **Ctrl-click** (or **Command-click** on Mac) toggles individual conversations.
+  **Shift-click** selects a range of currently displayed rows; Ctrl/Command-Shift-click
+  adds that range. A normal click still opens the conversation. Keyboard focus
   (`.btb`) keeps an outline and is not mistaken for an opened conversation.
 - **Current mailbox/label:** Gmail's `.TO.nZ` state gets neutral gray selection
   chrome with an accent-tinted icon/text. Counts stay readable; nesting and
   disclosure controls retain Gmail's hierarchy and behavior.
 
 JavaScript in `content/appearance.js` applies one root class,
-`gmail-pro-apple-mail-mode`, and two preference attributes. It has no row scans,
-message parsing, navigation listeners, layout reads, per-node writes, polling, or
-ongoing DOM observers. A one-shot direct-child observer handles document-start
-before `<html>` exists. One media-query listener is installed only for Follow system
-while the mode is active. Disabling/page exit removes the marker, attributes, and
-listener. CSS handles rerenders, native selection changes, and navigation directly.
+`gmail-pro-apple-mail-mode`, and two preference attributes. Three delegated capture
+listeners implement modifier-click selection by clicking Gmail's own checkbox
+controls; the extension never writes Gmail's selection attributes or stores a
+parallel selected-message list. Range discovery is limited to visible rows in the
+clicked table body, on a user gesture. The anchor is validated against its thread
+identity, current table and route to avoid stale selections after navigation.
+There are no per-row listeners, polling, message parsing, or ongoing DOM observers.
+A one-shot observer handles document-start before `<html>` exists; a media-query
+listener runs only for Follow system. Disabling/page exit removes all listeners,
+root styling, and the temporary range anchor.
 
 `shared/theme.css` is the single token/palette definition for Gmail chrome and the
 popup. It supplies surface, text, border, focus, sidebar, and accent variables.
@@ -93,7 +100,8 @@ The existing `messageList.css` supplies the two-line layout. Auto BCC, Newest Em
 First, Message-only Zoom, and Custom Label Order keep their existing implementations
 and independent settings. Reorder controls adopt the selected appearance. Native
 reply, forwarding, attachments, warnings, search, message actions, compose and
-Shift-pop-out handlers remain Gmail's. No separate Pop-out Compose, full timestamp,
+compose Shift-pop-out handlers remain Gmail's. Shift-click on a conversation row
+selects a range while Apple Mail Mode is enabled. No separate Pop-out Compose, full timestamp,
 or conversation-cleanup feature existed in this baseline, so none is duplicated.
 
 Message fonts, HTML, images and tables are not rewritten or inverted. A light Gmail
@@ -107,7 +115,7 @@ Dark main surfaces, sidebar, and toolbar use `#23292B`. Conversation-list stars 
 importance chevrons are hidden in this mode, without changing their Gmail state or
 reading-pane actions. Label/conversation hover backgrounds and pointer-following row
 outlines are suppressed; actual selection and keyboard focus remain visible. Native
-checkboxes stay at a steady brightness. Per-row hover action buttons are hidden;
+row checkboxes and their column are hidden; modifier-click selects conversations. Per-row hover action buttons are hidden;
 dates and attachment icons stay visible, and actions remain in the main toolbar.
 Mailbox-name hover tooltips are suppressed,
 and native label drop targets use the selected accent with a contrasting foreground.

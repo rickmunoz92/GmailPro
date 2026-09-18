@@ -194,7 +194,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     border-bottom: 1px solid var(--gp-border) !important;
     box-shadow: none !important;
     font-family: var(--gp-font) !important;
-    grid-template-columns: 3px auto 0 0 minmax(0, 1fr) auto auto auto;
+    grid-template-columns: 3px 0 0 0 minmax(0, 1fr) auto auto auto;
   }
   :scope > td { background: transparent !important; color: inherit !important; font: 13px/20px var(--gp-font) !important; }
   /* Hide only the native list star/importance cells. Keep their state and the
@@ -204,13 +204,9 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
      per-row action toolbar. Actions remain available in Gmail's main toolbar. */
   :scope > td.bq4:has(> [role="toolbar"]) { display: none !important; }
   :scope > td.xW[role="gridcell"], :scope > td.yf { display: flex !important; }
-  /* Native .aqw/.btb and direct hover brighten checkboxes and add a drag grip
-     or ripple. Keep a steady unchecked state; selection/focus stay distinct. */
-  :scope > td.oZ-x3::before,
-  :scope > td > .T-Jo[role="checkbox"]::before { content: none !important; }
-  :scope > td > .T-Jo[role="checkbox"] { opacity: .32 !important; box-shadow: none !important; }
-  :scope.aps > td > .T-Jo[role="checkbox"],
-  :scope > td > .T-Jo[role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"], :focus-visible) { opacity: 1 !important; }
+  /* Keep the native checkbox in the DOM for Gmail's bulk actions and keyboard
+     shortcuts. appearance.js activates it for modifier-click selection. */
+  :scope > td:has(> [role="checkbox"]) { display: none !important; }
   :scope > td.yX[role="gridcell"] { position: relative; padding-inline-start: 13px !important; }
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
   :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }

@@ -8,7 +8,8 @@
   // Accessible names are localized; unknown layouts/locales fail closed.
   // Message-list layout needs no JS discovery: its structural gate and Gmail
   // presentation hooks are centralized/documented in content/messageList.css.
-  // Apple Mail Mode is CSS-first: chrome/state hooks live only in appleMail.css.
+  // Apple Mail Mode chrome/state hooks live in appleMail.css; appearance.js
+  // repeats the structural row gate solely for modifier-click selection.
   // .zE = native unread, .aps = open split-pane row, .TO.nZ = current mailbox.
   app.selectors = Object.freeze({
     // Label hooks verified against desktop Gmail, September 2026. gh=cl
