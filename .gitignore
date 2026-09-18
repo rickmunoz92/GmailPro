@@ -17,3 +17,33 @@ dist/
 *.pem
 .env
 .env.*
+
+# Local settings, credentials, and editor state
+*.local
+*.local.*
+*.key
+*.p12
+*.pfx
+*.code-workspace
+.history/
+
+# Development output and browser/session artifacts
+__pycache__/
+*.pyc
+*.tmp
+*.temp
+*.bak
+.cache/
+.tmp/
+logs/
+debug-output/
+artifacts/
+screenshots/
+browser-profile/
+chrome-profile/
+user-data-dir/
+playwright-report/
+blob-report/
+*.har
+cookies*.json
+storage-state*.json

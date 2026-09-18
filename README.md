@@ -1,497 +1,177 @@
 # Gmail Pro
 
-**Power-user enhancements for Gmail**
+**Power-user enhancements for Gmail.**
 
-A private Manifest V3 Chrome extension for `https://mail.google.com/*`.
-Plain HTML, CSS, and JavaScript. No build step, runtime dependencies, or backend.
+Gmail Pro is a lightweight Chrome extension that adds useful power-user
+functionality to the Gmail web interface. It runs locally in your browser, with
+plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backend.
 
-## Auto BCC
+## Features
 
-Enable **Auto BCC**, enter one email address, and choose **Save preferences**.
-New compose, inline reply, reply all, and forward interfaces receive that BCC
-recipient. Multiple drafts have independent state.
+- **Auto BCC:** automatically add a configured address to new messages, replies,
+  reply-all messages, and forwards. Each composition is handled independently.
+- **Newest Email First:** show the newest message at the top of an opened Gmail
+  conversation. This changes presentation only; it does not sort the Inbox or
+  change Gmail's stored messages.
 
-- A draft captures the settings when Gmail Pro first detects it. Changes apply
-  to future compositions; existing recipients are never rewritten or removed.
-- The address is not added if it already appears in To, CC, or BCC, including
-  contact chips or unfinished recipient text. Matching ignores case and surrounding
-  whitespace. Dots and plus tags are preserved; provider aliases are not guessed.
-- Removing an automatically added recipient keeps it removed for that compose
-  instance. The extension never retries an insertion that Gmail has already received.
-- Turning Auto BCC off cancels pending additions and leaves existing recipients
-  alone. Turning it on again affects future compose instances. Changing the address
-  also cancels pending work for the old address.
-- Closing and reopening a draft creates a new compose instance. Existing recipients
-  still prevent duplicates. Removal decisions are in-memory, not persisted across
-  a page refresh, reopened draft, or another Gmail tab.
-- An unknown or ambiguous layout is left alone. Auto BCC is a convenience, not a
-  send-time guarantee: confirm BCC before sending a message that requires a copy.
-  Gmail Pro does not intercept, delay, or trigger Send.
+Both features are off by default. Open the extension popup, choose your settings,
+and select **Save preferences**.
 
-## Newest email first (Phase 3)
+## Installation
 
-Enable **Newest email first** and choose **Save preferences**. Within an opened
-conversation, Gmail Pro displays the latest message above older messages. The
-Inbox list order does not change. Turning the setting off restores Gmail's normal
-presentation immediately, including the currently open conversation.
+1. Clone this repository or download and extract its source ZIP.
+2. Open `chrome://extensions` in Chrome and enable **Developer mode**.
+3. Select **Load unpacked** and choose the folder containing `manifest.json`.
+4. Refresh any open Gmail tabs, then open Gmail Pro from Chrome's Extensions menu.
 
-This is visual ordering only. Gmail's actual message nodes, timestamps, data,
-thread membership, and server-side conversation remain unchanged. Complete message
-wrappers retain their sender details, attachments, controls, and inline composers.
-No messages are cloned, removed, or moved in the DOM. Native keyboard navigation
-and screen-reader reading order therefore remain in Gmail's original DOM order;
-they do not become newest-first. The extension does not change focus or force scroll
-positions. Auto BCC and this setting work independently.
+After updating the source, reload Gmail Pro in `chrome://extensions`, refresh
+Gmail, and reopen the popup. The repository contains the unpacked extension; no
+Chrome Web Store installation or OAuth sign-in is required.
 
-## Project structure
+## How it works
 
-```text
-GmailPro/
-├── manifest.json
-├── content/
-│   ├── content.js
-│   ├── gmailSelectors.js
-│   ├── autoBcc.js
-│   ├── autoBccStart.js
-│   ├── reverseThreads.js
-│   └── reverseThreads.css
-├── popup/
-│   ├── popup.html
-│   ├── popup.css
-│   └── popup.js
-├── shared/
-│   ├── debug.js
-│   └── settings.js
-├── icons/
-│   ├── icon.svg
-│   └── icon{16,32,48,128}.png
-├── scripts/validate.cjs
-├── tests/
-│   ├── settings.test.cjs
-│   ├── autoBcc.html
-│   ├── autoBcc.browser.js
-│   ├── reverseThreads.html
-│   └── reverseThreads.browser.js
-├── .gitignore
-└── README.md
-```
+### Auto BCC
 
-## Architecture
+The extension observes Gmail's composition and recipient controls. A composition
+captures the settings when it is first detected. If the address is valid and not
+already in To, CC, or BCC, Gmail Pro reveals BCC and commits one recipient through
+Gmail's normal interface. Address matching ignores case and surrounding whitespace,
+including contact chips; dots and plus tags are preserved.
 
-The bundled ordering stylesheet, shared settings lifecycle, and thread module load
-at `document_start` in Chrome's default isolated world. Auto BCC still loads and
-starts at `document_idle`, through the small `autoBccStart.js` entry point. Guarded closures share one `globalThis.GmailPro`
-namespace per extension context. There is no bundler, page-script injection,
-background worker, message relay, or web-accessible resource.
+Manually removing the inserted BCC keeps it removed for that composition. Settings
+changes affect future compositions, and disabling Auto BCC cancels pending additions.
+Existing recipients are not rewritten. Reopening a saved draft or refreshing Gmail
+creates a new composition instance; existing recipients still prevent duplicates.
+Gmail Pro does not intercept or trigger **Send**.
 
-`content.js` subscribes before loading preferences and merges changes received
-while that read is pending. It starts thread ordering as soon as settings arrive,
-and Auto BCC only after its idle entry point arrives. Either startup order is safe;
-changes received before idle are included when Auto BCC starts. One subscription
-delivers subsequent settings patches and tears both modules down on page exit. A failed initial settings read leaves Gmail
-untouched; refresh Gmail after resolving the storage error.
+### Newest Email First
 
-`autoBcc.js` owns discovery, insertion, and cleanup. A WeakMap remembers each
-addressing form's decision. A Map holds only forms with pending work or recipient
-removal monitoring. The main Gmail pane has a child-list observer for inline
-compositions. Its ancestor spine is observed **shallowly** for SPA replacement.
-A single capturing `focusin` listener discovers floating compose windows. Verified
-compose ancestor paths are also watched shallowly to detect closure and additional
-windows. There is no permanent whole-document subtree observer, polling interval,
-or repeated full-document scan. One initial scan finds already-open compositions;
-later discovery only examines newly added subtrees or the focused compose region.
+A bundled stylesheet loads early. Narrow MutationObservers validate the conversation
+container and activate CSS ordering before the next paint. Lists containing only
+message wrappers use `column-reverse`. A fallback preserves fixed controls' slots
+when they are interleaved with messages. Turning the feature off restores the native
+presentation.
 
-Each active form has a narrow observer on its addressing UI, which excludes the
-editable message body. Changes coalesce into one 80 ms task. A five-second deadline
-bounds incomplete layouts; this is not a retry loop. At most one summary expansion,
-one BCC reveal, and one recipient-entry attempt occur per form. Insertion uses the
-native input setter, an input event, and Enter on the verified BCC input, then
-checks for Gmail's committed chip. Ordinary input/reveal actions restore focus
-synchronously without reading selection text. Inline reply headers require focus
-before Gmail renders their recipient fields; clicking alone is insufficient.
-Header activation is serialized so simultaneous replies cannot take focus from
-one another. Gmail can autofocus the editor after the header starts opening; BCC
-keeps focus through recipient entry so an intermediate restoration cannot collapse
-the fields. The saved caret is restored afterward only while focus remains
-in that addressing form. Any real pointer or keyboard interaction cancels that
-saved restoration. The two shared interaction listeners are removed on stop.
+Complete wrappers keep their sender details, attachments, message controls, and
+inline composers. Message nodes are never moved or cloned; timestamps and server-side
+conversation data are unchanged. No threads are prefetched, opened in the background,
+or downloaded by the extension.
 
-After confirmation, observation only recognizes removal. Removal, duplicate
-presence, cancellation, selector failure, closure, and stop are terminal for that
-compose instance. Observers, timers, and input listeners are released on completion
-or detachment. Repeated script injection/start/stop cannot create extra owners.
+## Privacy
 
-`reverseThreads.js` validates complete message envelopes, including Gmail's
-collapsed older-message slots. It adds one extension-owned attribute to a verified
-message-only list. `reverseThreads.css` then applies `display: flex` and
-`flex-direction: column-reverse`; newly inserted message wrappers inherit the
-correct visual position without per-message style writes. This is conditional CSS
-activation, not a broad rule that reverses every Gmail list. If explicit fixed
-controls are interleaved, a `column`/individual `order` fallback preserves those
-controls' original slots. Both paths are presentation-only and leave the native
-DOM sequence untouched. Subject/header and thread toolbar are outside the list.
-Unknown children or ambiguous containers cause native layout to be restored.
+- Gmail Pro runs locally in the browser and does not operate a backend.
+- It includes no analytics, tracking, remote logging, remote code, or external APIs.
+- It does not intentionally transmit Gmail message content to external services.
+  The extension code initiates no network requests and does not read message bodies,
+  subjects, or attachment contents.
+- Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
+  Gmail network traffic or call undocumented Gmail APIs.
+- Preferences are stored through **`chrome.storage.sync`**. This includes the configured
+  BCC address and feature toggles. Chrome can synchronize those preferences through
+  Google's Chrome Sync service when enabled; this is not strictly device-only storage.
+- Gmail may save recipient changes as part of its normal draft behavior. If you send
+  a message, the configured BCC recipient receives a copy through Gmail.
 
-Each active list keeps its native sequence, visual sequence, layout mode, and
-original values/priorities for any fallback inline styles. Inline layout ownership
-is checked before applying changes. Gmail/other-extension conflicts release the
-reversal until the setting is toggled off/on; unrelated styles are preserved.
-Turning off removes the marker and restores fallback properties, without sorting
-by timestamps or moving nodes. Detached lists release state and observers.
+No user preferences, mailbox data, browser profiles, or credentials belong in this
+repository. Documentation and fixtures use synthetic examples only.
 
-Once discovered, observation is shallow: list child changes, direct wrapper
-attributes/child construction, and the conversation's ancestor paths. Message body, attachment, and
-editor descendants are not observed by this module. Navigation uses hash/popstate
-and Inbox-row click events; a briefly wider main-pane discovery observer supports
-asynchronous pane construction, stops when a candidate list is found, and has a
-five-second maximum lifetime. New main panes and DOMContentLoaded also trigger
-bounded discovery. The only ordering timer is that observer's cleanup deadline;
-it never defers rendering. There is no polling, interval, or idle work.
-
-MutationObserver callbacks validate and activate CSS synchronously, before the
-next rendering opportunity. Added subtrees are deduplicated; own layout writes
-occur with the list observer disconnected. There is no animation-frame delay,
-loading spinner, temporary hiding, or wait for every message. Initial style reads
-are batched before writes, and existing pure-message lists need no additional
-layout writes when valid messages arrive. The disabled feature has no DOM observers
-or navigation listeners. The shared preference subscription remains active.
-
-`shared/settings.js` remains the only preference/storage adapter. The popup uses
-explicit Save, accessible controls, email validation, and retryable storage errors.
-Unsaved edits survive incoming settings changes. Popup-only changes require closing
-and reopening it; content or manifest changes require extension reload and Gmail refresh.
-
-### Settings contract
-
-| Property | Default | Chrome Sync key |
-| --- | --- | --- |
-| `autoBccEnabled` | `false` | `gmailPro.v1.autoBccEnabled` |
-| `bccAddress` | `""` | `gmailPro.v1.bccAddress` |
-| `newestEmailFirstEnabled` | `false` | `gmailPro.v1.newestEmailFirstEnabled` |
-
-`load()` normalizes missing/malformed values without overwriting storage.
-`save(patch)` validates and writes only supplied properties. One plain email
-address is accepted; display names and recipient lists are rejected. The popup
-requires a nonempty valid address when enabling Auto BCC. The content module also
-checks validity independently. Preferences apply across Gmail accounts in the
-Chrome profile. The existing schema and stored Newest Email First choice are preserved.
-
-`subscribe(listener)` emits normalized patches for relevant Sync changes,
-deduplicates callbacks, and provides idempotent cleanup. There is at most one
-Chrome storage listener per context. Same-key concurrent updates use Chrome's
-last-write-wins behavior. There is no localStorage mirror or parallel cache.
-
-## Privacy and permissions
-
-Gmail Pro has no backend, analytics, tracking, OAuth, Gmail API, remote logging,
-remote code/fonts, or extension-initiated network requests. It does not intercept
-Gmail requests or call undocumented Gmail APIs. It inspects only recipient metadata,
-address inputs, and structural attributes for message wrappers. It does not read subjects, message bodies,
-or attachments. Gmail saves recipient edits as part of its normal draft behavior;
-Gmail Pro does not submit or send messages. Only your configured BCC address and
-two preferences are persisted by the extension.
-
-**Chrome Sync remains the requested exception to strictly device-only storage.**
-`chrome.storage.sync` stores preferences locally and can synchronize them, including
-the configured BCC address, through Google's Chrome Sync service when enabled.
-With syncing disabled it behaves locally; offline edits can sync later. Gmail Pro
-does not operate that service. If strictly device-only preferences are required,
-migrate the single adapter to `chrome.storage.local` instead of adding another store.
+## Permissions
 
 | Capability | Purpose |
 | --- | --- |
-| `storage` | Read and save preferences. |
-| `content_scripts.matches: https://mail.google.com/*` | Automatic DOM access on Gmail over HTTPS, top-level frames only. |
+| `storage` | Load and save extension preferences. |
+| Content-script match: `https://mail.google.com/*` | Run only on Gmail over HTTPS, in the top-level frame. |
 
-No permissions were added for Phases 2 or 3. There are no `tabs`, `activeTab`, `scripting`,
-cookies, history, webRequest, OAuth scopes, broad URL patterns, or redundant host
-permissions. The popup CSP permits bundled resources and disallows connections,
-objects, and form navigation. It does not change Gmail's CSP; code review must
-continue enforcing the no-network architecture. Ordering uses the bundled,
-Gmail-only `content/reverseThreads.css` plus scoped fallback inline order values;
-it loads no remote stylesheet.
+This is a Manifest V3 extension. It has no background service worker, OAuth scopes,
+`tabs`, `activeTab`, `scripting`, `webRequest`, or broad host permissions. The popup's
+content security policy permits bundled resources and disallows network connections.
 
-## Install and develop locally
+## Development
 
-1. Open `chrome://extensions` in the intended Chrome profile and enable Developer mode.
-2. Choose **Load unpacked** and select `~/Documents/GmailPro`.
-3. Open Gmail Pro from Chrome's Extensions menu. Choose preferences and Save.
-4. For an update, click Gmail Pro's **Reload** button in the extensions manager,
-   then refresh Gmail tabs. Close any test drafts first.
-
-There is no build or Web Store publication step. Managed Chrome policies may
-restrict unpacked extensions. Edit the source directly and run Node.js 18+ checks:
+Use Node.js 18 or newer for the local validation suite:
 
 ```sh
-cd ~/Documents/GmailPro
 node scripts/validate.cjs
 ```
 
-These validate manifest capabilities, resource paths, icons, runtime JavaScript
-syntax, prohibited runtime calls, settings normalization/writes/subscriptions,
-initial-read races, lifecycle cleanup, and address normalization. They use Node's
-built-in libraries. They are guardrails, not a comprehensive Chrome/security audit.
+This checks the manifest, referenced assets, icon dimensions, JavaScript syntax,
+permissions, and settings/lifecycle unit tests. There is no package installation.
 
-For browser DOM regression checks, serve the project locally:
+For real-Chrome synthetic DOM tests, run the local development server with Python 3:
 
 ```sh
-python3 -m http.server 8765 --bind 127.0.0.1
+python3 scripts/serve-tests.py
 ```
 
-Open `http://127.0.0.1:8765/tests/autoBcc.html` in Chrome. This development-only page
-runs the actual Auto BCC module against synthetic forms using native DOM events,
-MutationObservers, focus, and timers. It cannot send email and requires no test
-packages. Also open `http://127.0.0.1:8765/tests/reverseThreads.html` for real
-DOM/layout, first-rendered-frame, lifecycle, and simultaneous Auto BCC/thread-ordering
-checks. The ordering fixture counts only observers created by Gmail Pro, excluding
-browser test tooling. If editing while the server is running, ensure Chrome loads
-fresh JS/CSS (disable cache in DevTools or use a development server with no-store
-headers); a normal reload can retain cached subresources.
-Stop the server afterward. No server is needed to use the extension.
+Open these pages in Chrome:
 
-Coverage includes new/reply/reply-all/forward structures; 2/3 simultaneous drafts;
-enabled/disabled/missing/invalid settings; duplicate To/CC/BCC contact chips and
-case differences; unfinished recipient text; manual removal and reopening; live
-settings changes and stale-work cancellation; delayed/rejected commits; mutation
-bursts; SPA pane replacement; detached drafts; repeated start/stop; focus preservation;
-and unknown labels. Synthetic success alone does not prove live Gmail compatibility.
+- `http://127.0.0.1:8765/tests/autoBcc.html`
+- `http://127.0.0.1:8765/tests/reverseThreads.html`
+- `http://127.0.0.1:8765/tests/popup.html`
 
-For live smoke tests, use a test address and drafts only. Never send test mail.
-Confirm one BCC chip for each mode, remove it and keep typing, change settings with
-Gmail open, and create three simultaneous drafts. Check duplicate cases, navigation,
-and popup persistence. Discard test-created drafts and restore your preferences.
-Avoid concurrently enabling another Auto BCC extension: it can modify the same fields.
+The fixtures use synthetic messages and addresses; they cannot send email. The popup
+fixture serves the actual popup with a test-only Chrome storage adapter. This server
+binds only to the loopback interface, disables caching for source edits, and is never
+part of the installed extension. Stop it with Ctrl+C after testing.
 
-Inspect the popup through its context-menu **Inspect** action. For content checks,
-select **Gmail Pro** in Gmail DevTools' execution-context menu. Set `DEBUG = true`
-in `shared/debug.js` temporarily for lifecycle codes such as `compose-detected`,
-`bcc-insertion-attempted`, `bcc-already-present`, `bcc-user-removal`, and
-`bcc-selector-failure`. Never log addresses, recipients, subjects, bodies, nodes,
-or raw exceptions. Restore `DEBUG = false` before committing.
+The regression suites cover duplicate prevention, manual removal, simultaneous
+drafts, settings races, focus, SPA navigation, first-frame ordering, collapsed groups,
+attachments, restoration, and observer cleanup, including threads with 500 synthetic
+messages. Passing fixtures is not a guarantee of compatibility with every Gmail UI.
 
-### Validation record
+### Structure and maintenance
 
-Phase 2 live verification completed September 17, 2026 with installed version
-`0.2.2`, confirmed in Gmail Pro's isolated content-script context. All 12 Node
-tests and 27 real-browser synthetic DOM checks passed, along with manifest,
-resource, syntax, minimal-permission, and whitespace checks.
+- `content/autoBcc.js`: per-composition detection, insertion, and removal state.
+- `content/reverseThreads.js` and `.css`: validated, reversible visual ordering.
+- `content/gmailSelectors.js`: centralized Gmail selectors.
+- `content/content.js`: one settings subscription and shared lifecycle, started early.
+- `content/autoBccStart.js`: preserves Auto BCC's `document_idle` startup.
+- `shared/settings.js`: the sole preference adapter; no parallel preference store.
+- `shared/debug.js`: allowlisted lifecycle logging, off by default.
+- `popup/`: settings UI; `tests/`: synthetic regression fixtures.
 
-Live English Gmail checks passed for new compose, Reply, Reply All, Forward,
-three simultaneous compose windows, one BCC chip per composition, manual removal
-without reinsertion, and a subsequent new composition. Popup OFF prevented BCC in
-a new draft; restoring ON enabled it in a later draft. Preferences persisted when
-the popup was reopened. Inbox/thread/Drafts navigation worked without reloading.
-Reopening a saved draft with the configured address in To (entered in uppercase)
-or BCC skipped insertion and preserved a single recipient.
+Keep changes focused, observers narrow, and operations idempotent. Run all suites
+before contributing. Never commit real Gmail captures, addresses, message content,
+cookies, credentials, or browser profiles. Use disposable drafts for live testing,
+verify recipients yourself, and **never send test mail**. Debug logs must contain
+only lifecycle codes; restore `DEBUG = false` before committing.
 
-Live testing exposed focus-dependent inline reply headers and Gmail's delayed
-editor autofocus. The fix retains focus through BCC entry, serializes header
-activation, and guards caret restoration against intervening user activity or
-focus in another compose. Updated fixtures reproduce those timings. The final
-0.2.2 run detected 11 compositions: eight one-time insertion attempts, two existing
-recipient skips, and one disabled composition; one manual removal stayed removed.
-No selector failures, repeated insertion attempts, or Gmail Pro runtime errors
-were observed. Unrelated Gmail/other-extension console warnings were present.
+## Gmail DOM compatibility and known limitations
 
-Dedicated QA should still exercise CC duplicates directly in Gmail, rapid typing
-and focus changes during insertion, more thread layouts, and longer sessions.
-These edge cases have synthetic coverage where applicable; a finite live run is
-not a guarantee against future Gmail DOM changes or observer leaks. No real email
-was sent. The disposable drafts used in the final run were discarded, temporary
-runtime diagnostics were restored, and the original enabled setting and configured
-address were retained. Newest Email First was still inert at that Phase 2 milestone.
+Gmail's DOM is not a public API. The current implementation targets the English
+desktop interface and relies on accessibility attributes and structural relationships,
+not generated CSS class names. Unknown recipient labels or ambiguous layouts fail
+closed rather than guessing.
 
-## Gmail DOM maintenance
+Composition discovery uses addressing forms, `composeid` markers, labeled recipient
+comboboxes, and recipient chips. Conversation discovery uses the thread heading,
+a nearby message list, and complete message envelopes. Collapsed message slots must
+retain the structural attributes shared with their neighboring messages. Header and
+thread toolbar elements must remain outside the message list. Recheck these assumptions
+when Gmail changes.
 
-Selectors are centralized in `content/gmailSelectors.js`. The September 2026 English
-Gmail desktop UI was inspected directly: both floating compose and inline reply
-have an addressing `form` with `input[name="composeid"]`; message editors are outside
-that form. Recipient inputs have role `combobox` and accessible labels `To recipients`,
-`CC recipients`, or `BCC recipients`. Their enclosing listboxes contain committed
-`role="option"` chips with `data-hovercard-id`. Collapsed reply summaries contain
-recipient spans and a focusable ancestor which must be focused to activate the
-recipient editor (a programmatic click alone does not activate it). BCC reveal links
-have an accessible name beginning with `Add Bcc recipients`. These are observed DOM conventions,
-**not Gmail API contracts**. No generated class names are used.
+Additional limits:
 
-English labels are a deliberate current limitation; other locales and redesigned
-recipient UIs fail closed. Gmail can also change when fields appear, where focus
-lands, which events commit chips, or whether compose nodes are reused. Recheck
-these behaviors after Gmail changes, especially inline replies and form replacement.
-A floating compose which neither focuses nor attaches beneath an already-observed
-compose host may remain undetected until it receives focus. A minimized/unfinished
-layout may time out without an insertion. No attempt is made to enforce BCC at Send.
+- Auto BCC is a convenience, not a send-time guarantee. Check BCC before sending a
+  message that requires a copy. Incomplete layouts, rapid focus changes, and late
+  Gmail rendering can prevent insertion. An isolated first-reply miss during live
+  testing was not reproducible and remains a hardening concern.
+- Removal decisions are in memory per composition, not shared across refreshed pages,
+  reopened drafts, or Gmail tabs. Preferences apply across Gmail accounts in one
+  Chrome profile.
+- Thread ordering assumes Gmail's native message sequence is chronological. No
+  localized timestamp parsing or message-ID decoding is used.
+- CSS changes visual order only. Screen-reader and sequential keyboard order retain
+  Gmail's native DOM order. Focus and scroll positions are not forcibly changed.
+- Early rendering before asynchronous preferences are available is not guaranteed
+  to be flash-free. Unavailable storage leaves Gmail's normal behavior in place.
+- Other recipient or thread-ordering extensions may conflict. Existing competing
+  layout styles are left alone. Full-thread view, attachment interactions, keyboard
+  shortcuts, and assistive technology deserve additional live QA.
 
-Keep observations scoped and bounded, preserve per-compose decisions, and never
-fall back to reading body text, broadly scraping Gmail, or calling private APIs.
-Use synthetic fixtures only; do not commit real mailbox data or session artifacts.
-### Conversation ordering assumptions
+## License and affiliation
 
-The September 17, 2026 English Gmail desktop UI was inspected in a two-message
-conversation and a ten-message conversation with collapsed older messages and
-attachments. A heading `h2[data-thread-perm-id][data-legacy-thread-id]` identifies
-the opened thread. A nearby `role="list"` contains message envelopes with
-`role="listitem"`, `aria-expanded`, `tabindex="-1"`, a `jsaction` attribute, and
-one direct div wrapper. Expanded content inside an envelope carries
-`data-message-id` and `data-legacy-message-id`. The body div is not itself the
-reordering unit. Nested lists inside message content are excluded.
+Released under the [MIT License](LICENSE).
 
-Grouped/hidden older-message slots keep the same single-div envelope, tabindex,
-and action attribute as neighboring messages while temporarily omitting role and
-aria-expanded. Gmail Pro compares that action attribute to a verified sibling;
-it does not hard-code its generated token, invoke handlers directly, or use Gmail
-private APIs. Unknown slots fail closed. Recheck this convention when Gmail changes.
-
-Visible header timestamps confirmed Gmail's native oldest-to-newest sequence in
-both inspected threads. No stable numeric timestamp/date attribute was found in
-those message headers. The implementation therefore reverses Gmail's native sequence;
-it neither decodes message IDs nor parses localized visible dates. Gmail's native
-chronological ordering is an explicit assumption, not a universal DOM guarantee.
-Another extension that already moves/reverses messages may invalidate that assumption.
-An existing flex/order layout is left alone rather than overridden.
-
-CSS visual ordering preserves native focus, node identity, and event handlers, but
-screen-reader and sequential keyboard order remain native. See the
-[CSS Flexbox ordering/accessibility specification](https://www.w3.org/TR/css-flexbox-1/#order-accessibility).
-
-### Phase 3 verification checklist
-
-Automated fixtures cover 1/2/3/25/500 messages; grouped collapsed slots; expansion and
-collapse; fixed controls; attachment ownership; exact style restoration; dynamic
-message insertion/removal/replacement; unknown layouts; unrelated/nested lists;
-mutation bursts and idle behavior; observer cleanup; repeated start/stop; external
-style conflicts; thread switch/Inbox/reopening; hash/popstate/main replacement;
-cancellation; Reply/Reply all/Forward with Auto BCC; and Auto BCC disabled.
-A synthetic popstate event tests lifecycle handling, not Chrome's real history UI.
-
-After reloading Gmail Pro in Chrome's extensions manager and refreshing Gmail:
-
-1. Enable Newest email first and save. Open a 2–3-message thread, then a longer
-   thread with grouped older messages. Verify newest on top, with the subject and
-   toolbar above the messages and Inbox ordering unchanged.
-2. Expand the older-message group; expand/collapse individual messages. Check an
-   attachment stays with its original email and its download/preview controls work.
-3. Toggle ordering off with the thread open: original oldest-first order should
-   return. Toggle on again and verify one reversal, without flicker or focus jumps.
-4. Open another thread, return to Inbox, reopen the same thread, and use Chrome Back
-   and Forward. Confirm ordering without refreshing. Repeat in full-thread view
-   if normally using Gmail's split reading pane, and vice versa.
-5. With Auto BCC enabled, create disposable Reply, Reply all, Forward, and new-compose
-   drafts. Confirm one configured BCC each. Toggle thread ordering while a reply is
-   open; check text, caret, recipients, and controls remain intact. Remove BCC in one
-   draft and confirm it stays removed. Repeat with Auto BCC off: no BCC should appear.
-6. Try normal Gmail keyboard shortcuts and Tab navigation. Their native sequence is
-   retained. Inspect debug events for repeated reorder/failure loops. Discard the
-   disposable drafts. Do not send test messages.
-
-Phase 3 automated validation on September 17, 2026 passed: 12 Node tests, all 27
-existing Auto BCC browser checks, and all 27 new thread-ordering browser checks.
-Manifest, resource, JavaScript syntax, minimal-permission, and whitespace checks
-passed. `content/autoBcc.js`, its browser fixtures, and the settings adapter remain
-unchanged from the live-verified Phase 2 baseline.
-
-### Phase 3 live results (September 17, 2026)
-
-The user reloaded the installed `0.3.0` build. In the logged-in Gmail app's split
-reading pane, a ten-message thread displayed visible message slots in newest-first
-order. All ten original DOM anchors remained in the same native sequence, with
-CSS orders 9 through 0; the subject heading was not styled. The collapsed older
-message group remained between newer and older messages. Expand All produced ten
-expanded messages in descending visual order; Collapse All retained that ordering.
-The popup saved the setting and preserved it when reopened. OFF restored block
-layout, removed every owned order value, and returned native oldest-first display;
-ON reversed it again.
-
-With both features enabled, a live Reply received one committed BCC. A synthetic
-sentence entered into that disposable draft and the editor focus both survived
-switching thread ordering OFF. Reply All and Forward subsequently each received
-one committed BCC with ordering off. All three test drafts were discarded. No
-Gmail Pro runtime errors appeared in captured console output; unrelated Gmail and
-other-extension warnings/errors were present. No email was sent, no attachment
-was downloaded, and source DEBUG remains off.
-
-Further live acceptance remains necessary for navigation/real Chrome Back and
-Forward, Reply All/Forward while ordering is ON, full-thread view, attachment
-preview/download controls, and keyboard workflows. Automated fixtures cover the
-underlying cases, but do not replace those live interactions. The browser security
-policy blocked opening the extension settings page during the final integration
-checks. The user was asked to re-enable Newest email first manually; ordering was
-left OFF after the restoration test, and Auto BCC remains enabled with its original
-configured address. No further extension reload is needed for that preference
-change.
-
-## Chrome references
-
-- [Storage and Chrome Sync](https://developer.chrome.com/docs/extensions/reference/api/storage)
-- [Content scripts and isolated worlds](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
-- [Manifest V3 CSP](https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy)
-- [Load and reload unpacked extensions](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world)
-
-### First-paint improvement (0.3.1)
-
-The 0.3.0 implementation already used CSS; it did not move message nodes. Its
-visible jump came from an 80 ms discovery timer followed by an 80 ms apply timer,
-plus startup at document_idle. It did not wait for all messages. Expansion with
-unchanged wrappers avoided rewrites, but initial discovery and later wrapper
-changes crossed paint boundaries. It read computed styles before writes rather
-than repeatedly measuring layout, so the explicit scheduling delay was the main
-source of the flash.
-
-0.3.1 loads a manifest stylesheet and the settings owner at document_start, as
-supported by [Chrome's content-script lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts#run_time).
-The stylesheet is ready before Gmail renders its thread; a narrow observer verifies
-the container and adds its marker in the same microtask checkpoint, before paint.
-Pure message lists use column-reverse, while mixed controls retain slot ordering.
-No recipients, message data, focus, scroll offsets, or Gmail network behavior are
-changed. CSS ordering retains the previous native DOM/keyboard/screen-reader order;
-this change does not claim to make Gmail's accessibility tree newest-first.
-
-The current two- and ten-message live Gmail structures were re-inspected before
-editing: direct children are complete wrappers or collapsed message slots; the
-subject and toolbar are outside the list; the list itself is not a scroll container.
-The existing DOM assumptions and fail-closed behavior still apply. Preference
-loading remains asynchronous: unavailable storage leaves Gmail native rather than
-guessing the setting or hiding messages indefinitely. Very early cold-page rendering
-before settings are available is not a guaranteed no-flash case; the first-frame
-regressions cover navigation after settings activation.
-
-A real-Chrome synthetic first-frame check reproduced **11 wrong-order frames** on
-0.3.0, then **zero** on 0.3.1 (15 consecutive frames sampled). The expanded suite
-also checks first frames across repeated short/long thread replacement, staged
-headings/wrappers, replacement main panes, dynamic fixed controls, and synchronous
-OFF/ON. Existing attachment, focus, composer, conflict, cleanup, and idle tests
-remain. Validation: **14 Node tests, 27 Auto BCC browser checks, 34 ordering browser
-checks**, manifest/resources/syntax/permissions, and git diff whitespace checks.
-These are synthetic timing results, not a live-Gmail performance recording.
-
-The known-good pre-improvement state remains in Git at `fc24482`; the initial
-Phase 3 feature commit is `8a7d942`. Installed-build live results are recorded below
-after reloading the extension and refreshing Gmail.
-
-#### Installed 0.3.1 smoke results
-
-After the user reloaded the extension, Gmail was refreshed and confirmed to use
-`data-gmail-pro-thread-order="reverse"` / computed `column-reverse`, with zero
-per-message inline order styles. Two-, three-, and ten-message threads displayed
-source indices in reverse order. The ten-message collapsed group remained between
-newer/older messages; Expand All and Collapse All retained the same underlying DOM
-anchors and correct visual order. Direct conversation switching, Inbox/Drafts
-navigation, real browser Back/Forward, and reopening a conversation passed in the
-split reading pane. Final visual inspection found the subject/header above the
-messages, controls intact, and no unexpected blank area. Captured console logs
-contained no Gmail Pro errors. No draft editors remained after cleanup; no email
-was sent.
-
-New compose, Reply, Reply All, and Forward each produced one committed Auto BCC.
-One initial reply after the first refresh had no BCC; a second clean-start test
-and subsequent replies passed, so no unverified change was made to Auto BCC. Its
-implementation and settings adapter remain byte-for-byte unchanged. Treat the
-isolated miss as an outstanding observation for dedicated Auto BCC hardening, not
-as a diagnosed/fixed regression.
-
-Live DOM snapshots confirm final layout, not every rendered frame. The measured
-11-to-zero wrong-frame comparison is from the synthetic Chrome fixture. User
-perception of the live transition and popup OFF/ON are being checked separately;
-automation cannot operate the extension settings page. Attachment ownership has
-synthetic coverage, but attachment preview/download, full-thread view, and native
-Gmail keyboard/screen-reader behavior were not exhaustively exercised in this run.
+Gmail Pro is an independent project and is not affiliated with, endorsed by, or
+sponsored by Google. Gmail is a trademark of Google LLC.
