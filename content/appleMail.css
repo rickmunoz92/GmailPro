@@ -59,6 +59,28 @@
   }
   [role="navigation"] .TO.nZ .TN svg { fill: var(--gp-accent-ui) !important; color: var(--gp-accent-ui) !important; }
   [role="navigation"] .TN svg { fill: var(--gp-text-secondary); }
+  /* Gmail's native .nY drop target can be on the row or its inner wrapper.
+     Keep Gmail in charge of the drag; only replace its yellow feedback. */
+  [role="navigation"] .aim.nY:has(a[href*="#"]),
+  [role="navigation"] .aim:has(a[href*="#"]) :is(.TO, .TN).nY,
+  [role="navigation"] .aim.nY:has(a[href*="#"]) > .TO {
+    background: var(--gp-accent) !important;
+  }
+  [role="navigation"] .aim:has(a[href*="#"]):is(.nY, :has(.nY)) :is(.TN, .n0, .nU, .aio, .bsU) {
+    color: var(--gp-accent-contrast) !important;
+  }
+  [role="navigation"] .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .TN svg {
+    fill: var(--gp-accent-contrast) !important;
+    color: var(--gp-accent-contrast) !important;
+  }
+  /* The legacy Gmail tooltip is portaled outside navigation. Suppress it only
+     while a mailbox row is hovered/targeted; toolbar tooltips stay native.
+     Keep label text and ARIA names intact, including names truncated on screen. */
+  body:has([role="navigation"] .aim > .TO[data-tooltip]:is(:hover, .NQ, .nY)) .T-ays,
+  body:has([role="navigation"] .aim.nY) .T-ays,
+  body:has([role="navigation"] .aim .TN.nY) .T-ays {
+    display: none !important;
+  }
   [role="navigation"] .bsU {
     margin-inline-start: auto;
     padding-inline-start: 8px;

@@ -176,3 +176,17 @@ colors and weights including nested timestamps, exact dark surface colors, and a
 existing contrast and layout cases. Browser fixtures were run in Codex's Chromium
 browser; these refinements were not revalidated in live Gmail. Reload the development
 extension and Gmail to apply the updated bundled styles.
+
+## Label feedback refinement — 0.7.2, 2026-09-18
+
+Inspected live Gmail's label `data-tooltip` attributes, portaled `.T-ays` tooltip
+styles, and native yellow `.nY` drop-target stylesheet. Apple Mail Mode now hides
+that tooltip while a mailbox row is hovered or targeted and colors native sidebar
+drop targets with the selected accent and contrasting text/icons. No listeners,
+DOM changes, or drag interception were added.
+
+Validation: 21/21 Node checks and 36/36 Chromium appearance checks passed, including
+drop-target contrast across all 16 theme/accent pairs, selected/unselected wrapper
+restoration, hover/drag tooltip suppression, and mode-OFF restoration. Existing
+message/editor boundary checks pass. Live hover/drag gestures were not replayed;
+reload the development extension and Gmail to apply and visually verify the update.

@@ -55,6 +55,11 @@
     assert(css(selected.querySelector("svg")).fill === token("--gp-accent-ui"), "accent mailbox icon");
     assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast >= 4.5");
     assert(contrast(css(selected.querySelector(".bsU")).color, css(selected).backgroundColor) >= 4.5, "count contrast >= 4.5");
+    selected.classList.add("nY");
+    assert(css(selected).backgroundColor === token("--gp-accent"), "drop target uses current accent");
+    assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "drop label contrast >= 4.5");
+    assert(css(selected.querySelector("svg")).fill === token("--gp-accent-contrast"), "drop icon matches foreground");
+    selected.classList.remove("nY");
     node.classList.remove("aps"); assert(dot(node).visibility === "visible" && css(node).backgroundColor === token("--gp-bg-primary"), "deselect restores unread");
   });
   await test("list stars and importance markers hide without reserving space and restore on OFF", () => {
@@ -83,6 +88,34 @@
     enable();
     assert(css(workspace).backgroundColor === "rgb(35, 41, 43)", "main is #23292B");
     assert(css(document.getElementById("sidebar")).backgroundColor === "rgb(35, 41, 43)", "sidebar is #23292B");
+  });
+  await test("native label drop wrappers restore on drag exit and mode OFF", () => {
+    const to = document.querySelector("#sidebar .TO"), aim = to.parentElement, tn = to.querySelector(".TN");
+    for (const target of [aim, to, tn]) {
+      enable(); const before = css(target).backgroundColor;
+      target.classList.add("nY");
+      assert(css(target).backgroundColor === token("--gp-accent"), "native target accented");
+      target.classList.remove("nY");
+      assert(css(target).backgroundColor === before, "drag exit restores selection");
+      target.classList.add("nY"); feature.stop();
+      assert(css(target).backgroundColor === "rgb(255, 255, 204)", "mode OFF restores Gmail yellow");
+      target.classList.remove("nY");
+    }
+  });
+  await test("mailbox hover hides the repeated tooltip only while targeted and mode ON", () => {
+    const to = document.querySelector("#sidebar .TO"), tooltip = document.createElement("div");
+    tooltip.className = "T-ays"; tooltip.textContent = "Inbox"; document.body.append(tooltip);
+    to.setAttribute("data-tooltip", "Inbox");
+    try {
+      enable(); assert(css(tooltip).display !== "none", "other native tooltips remain available");
+      to.classList.add("NQ");
+      assert(css(tooltip).display === "none" && to.getAttribute("data-tooltip") === "Inbox", "hover hidden without mutating label name");
+      to.classList.remove("NQ"); to.classList.add("nY");
+      assert(css(tooltip).display === "none", "hidden during drag targeting");
+      feature.stop(); assert(css(tooltip).display !== "none", "OFF restores tooltip");
+      enable(); to.classList.remove("nY");
+      assert(css(tooltip).display !== "none", "leaving label restores toolbar tooltips");
+    } finally { to.classList.remove("NQ", "nY"); to.removeAttribute("data-tooltip"); tooltip.remove(); }
   });
   await test("reading selection follows Gmail instantly; keyboard focus is not selection", () => {
     const a = row({unread:true}), b = row(); enable();

@@ -107,7 +107,9 @@ Dark main surfaces, sidebar, and toolbar use `#23292B`. Conversation-list stars 
 importance chevrons are hidden in this mode, without changing their Gmail state or
 reading-pane actions. Label/conversation hover backgrounds and pointer-following row
 outlines are suppressed; actual selection and keyboard focus remain visible. Native
-hover action buttons remain available. Turning the mode off restores native controls.
+hover action buttons remain available. Mailbox-name hover tooltips are suppressed,
+and native label drop targets use the selected accent with a contrasting foreground.
+Turning the mode off restores native controls and tooltip/drop-target styling.
 
 Turn **Apple Mail Mode OFF** to restore Gmail's native chrome immediately. Other
 independent features remain as configured. If **Apple Mail-style message list** was
