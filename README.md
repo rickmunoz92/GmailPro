@@ -61,7 +61,8 @@ windows and collapsed navigation retain Gmail's sizing. Header geometry stays na
 so Gmail's measured scrolling regions remain correct.
 
 - **Unread:** Gmail's `.zE` state displays a 6px accent dot centered vertically beside the two-line row and
-  identical sender/subject/date text styling for read and unread messages. The dot
+  identical text styling for read and unread messages: bold senders with regular
+  subjects/dates in compact, approximately 46px rows. The dot
   alone indicates unread status; both states share the same background.
 - **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
   the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.

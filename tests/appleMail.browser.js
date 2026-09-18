@@ -52,6 +52,8 @@
     const node = row(); enable(); const bg = css(node).backgroundColor;
     const textStyle = () => [".sender", ".bqe", ".xW span"].map(selector => { const style = css(node.querySelector(selector)); return [style.color, style.fontWeight]; });
     const readText = JSON.stringify(textStyle());
+    assert(css(node.querySelector(".sender")).fontWeight === "700", "read sender bold");
+    assert(css(node.querySelector(".bqe")).fontWeight === "400", "subject remains regular");
     assert(dot(node).content === "none", "read has no dot");
     node.classList.add("zE");
     assert(dot(node).content === '""' && dot(node).backgroundColor === token("--gp-accent"), "unread accent dot");
@@ -61,7 +63,7 @@
   });
   await test("unread dot stays centered across both lines at different row sizes", () => {
     const node = row({unread:true}); enable();
-    for (const height of [56, 80]) for (const width of [320, 700]) {
+    for (const height of [46, 80]) for (const width of [320, 700]) {
       workspace.style.width = `${width}px`; node.style.minHeight = `${height}px`;
       const style = dot(node), bounds = rect(node);
       const center = parseFloat(style.top) + parseFloat(style.height) / 2;
@@ -166,7 +168,9 @@
   });
   for (const width of [320, 380, 680, 1200]) await test(`compact geometry, ellipsis, stable hover metadata at ${width}px`, () => {
     workspace.style.width = `${width}px`; const node = row({sender:"A very long sender ".repeat(12),subject:"A long subject ".repeat(20),label:"Project",attachment:true}); enable();
-    const h = rect(node).height; assert(h >= 50 && h <= 64, `compact row (${h})`);
+    const h = rect(node).height; assert(h >= 44 && h <= 48, `compact row (${h})`);
+    const gap = rect(node.querySelector(".a4W")).top - rect(node.querySelector(".yX")).bottom;
+    assert(gap >= 0 && gap <= 2, `tight non-overlapping text lines (${gap})`);
     assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".xW")).left, "sender date don't overlap");
     assert(node.querySelector(".bog").scrollWidth > node.querySelector(".bog").clientWidth, "subject ellipsized");
     node.classList.add("aqw");

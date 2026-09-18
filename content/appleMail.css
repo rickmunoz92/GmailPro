@@ -195,9 +195,13 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     box-shadow: none !important;
     font-family: var(--gp-font) !important;
     grid-template-columns: 3px 0 0 0 minmax(0, 1fr) auto auto auto;
+    grid-template-rows: minmax(18px, auto) minmax(18px, auto);
+    min-height: 46px;
+    padding-block: 4px !important;
+    row-gap: 0;
     position: relative;
   }
-  :scope > td { background: transparent !important; color: inherit !important; font: 13px/20px var(--gp-font) !important; }
+  :scope > td { background: transparent !important; color: inherit !important; font: 13px/18px var(--gp-font) !important; }
   /* Hide only the native list star/importance cells. Keep their state and the
      reading-pane actions intact; disabling the mode restores both controls. */
   :scope > td.apU:has(> [role="button"]), :scope > td.WA:has(> [role="switch"]) { display: none !important; }
@@ -212,9 +216,9 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
   :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }
   :scope .yW :is(span, .bA4), :scope .bog span, :scope .xW span { color: inherit !important; }
-  /* The unread dot is the only read-state emphasis, including Gmail's nested
-     sender/subject/date spans that otherwise retain native bold weights. */
-  :scope :is(.yW, .yW span, .bog, .bog span, .xW, .xW span) { font-weight: 400 !important; }
+  /* Sender emphasis is identical for read/unread rows; only the dot changes. */
+  :scope :is(.yW, .yW span) { font-weight: 700 !important; }
+  :scope :is(.bog, .bog span, .xW, .xW span) { font-weight: 400 !important; }
   :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
   :scope .yi .at { border-radius: 3px !important; font: 10px/16px var(--gp-font) !important; max-height: 16px; }
   :scope:hover, :scope.aqw { background: var(--gp-bg-primary) !important; }
