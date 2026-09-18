@@ -45,6 +45,7 @@
     assert(css(node).backgroundColor === token("--gp-accent"), "native open row uses accent");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= 4.5, "subject contrast >= 4.5");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= 4.5, "date contrast >= 4.5");
+    assert(contrast(css(node).backgroundColor, css(node.querySelector(".at .av")).color) >= 4.5, "nested Gmail label text contrast >= 4.5");
     assert(dot(node).visibility === "hidden" && node.classList.contains("zE"), "selected unread state retained, redundant dot hidden");
     const selected = document.querySelector(".TO.nZ"), link = selected.querySelector("a");
     assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");

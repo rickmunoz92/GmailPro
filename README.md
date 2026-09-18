@@ -8,6 +8,10 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 
 ## Features
 
+- **Apple Mail Mode:** a cleaner macOS-inspired Gmail interface, with dark/light/system
+  themes, eight accent colors, unread dots, accent-selected conversations, and a
+  neutral selected mailbox with accent text/icons. Gmail remains the mail engine.
+
 - **Auto BCC:** automatically add a configured address to new messages, replies,
   reply-all messages, and forwards. Each composition is handled independently.
 - **Newest Email First:** show the newest message at the top of an opened Gmail
@@ -21,8 +25,9 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Custom Label Order:** choose the visual order of custom Gmail labels without
   renaming or modifying those labels in Gmail.
 
-All features are off by default. Open the extension popup, choose your settings,
-and select **Save preferences**.
+All features are off by default. Open the extension popup to enable **Apple Mail
+Mode**. Appearance settings save and apply immediately. Other features live under
+**Mail tools & advanced appearance** and use **Save preferences**.
 
 ## Installation
 
@@ -36,6 +41,86 @@ Gmail, and reopen the popup. The repository contains the unpacked extension; no
 Chrome Web Store installation or OAuth sign-in is required.
 
 ## How it works
+
+### Apple Mail Mode
+
+Provides a cleaner macOS-inspired Gmail interface while retaining Gmail as the
+underlying mail engine. This is a presentation layer, not a separate mail client.
+
+Under **APPEARANCE**, turn on **Apple Mail Mode**. Choose **Dark** (default),
+**Light**, or **Follow system**, independently of **Accent color**: Blue (default),
+Purple, Pink, Red, Orange, Yellow, Green, or Graphite. Changes persist through the
+existing `chrome.storage.sync` adapter and reach open Gmail tabs without a reload.
+No Gmail permissions, API calls, data stores, analytics, or dependencies are added.
+
+For the three-pane layout, use Gmail's own **Settings → Reading pane → Right of
+inbox**. Gmail Pro styles the existing panes; it does not enable a Gmail preference
+behind your back or simulate a reading pane. Gmail owns splitters and saved pane
+widths. The expanded mailbox sidebar is about 216px on wide desktop windows; narrow
+windows and collapsed navigation retain Gmail's sizing. Header geometry stays native
+so Gmail's measured scrolling regions remain correct.
+
+- **Unread:** Gmail's `.zE` state displays a 6px accent dot before the sender and
+  stronger sender/subject text. Read/unread rows share the same background.
+- **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
+  the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
+  The dot is hidden while selected, without changing the native unread state.
+  Checkbox multi-selection follows Gmail's `aria-checked` state. Keyboard focus
+  (`.btb`) keeps an outline and is not mistaken for an opened conversation.
+- **Current mailbox/label:** Gmail's `.TO.nZ` state gets neutral gray selection
+  chrome with an accent-tinted icon/text. Counts stay readable; nesting and
+  disclosure controls retain Gmail's hierarchy and behavior.
+
+JavaScript in `content/appearance.js` applies one root class,
+`gmail-pro-apple-mail-mode`, and two preference attributes. It has no row scans,
+message parsing, navigation listeners, layout reads, per-node writes, polling, or
+ongoing DOM observers. A one-shot direct-child observer handles document-start
+before `<html>` exists. One media-query listener is installed only for Follow system
+while the mode is active. Disabling/page exit removes the marker, attributes, and
+listener. CSS handles rerenders, native selection changes, and navigation directly.
+
+`shared/theme.css` is the single token/palette definition for Gmail chrome and the
+popup. It supplies surface, text, border, focus, sidebar, and accent variables.
+Precomputed luminance-based foreground choices use dark text for Orange/Yellow and
+white for the other six accents. Sidebar tint variants account for the neutral
+background in each theme. Browser tests require at least **4.5:1** for selected
+subject/date/label text and selected sidebar text/counts across all 16 theme/accent
+pairs. `content/appleMail.css` documents the native selector contract and scopes
+chrome styling away from message HTML and editable content.
+
+The existing `messageList.css` supplies the two-line layout. Auto BCC, Newest Email
+First, Message-only Zoom, and Custom Label Order keep their existing implementations
+and independent settings. Reorder controls adopt the selected appearance. Native
+reply, forwarding, attachments, warnings, search, message actions, compose and
+Shift-pop-out handlers remain Gmail's. No separate Pop-out Compose, full timestamp,
+or conversation-cleanup feature existed in this baseline, so none is duplicated.
+
+Message fonts, HTML, images and tables are not rewritten or inverted. A light Gmail
+message-wrapper canvas keeps transparent documents readable beside dark chrome.
+If Dark Reader advertises ownership of document colors, its canvas is left alone.
+Compose title chrome is styled; the editable message, its formatting, addressing,
+and outgoing HTML are untouched. The composer may therefore retain a light editor.
+Gmail Pro cannot recolor Chrome's own tab/address bars or a separate window's frame.
+
+Turn **Apple Mail Mode OFF** to restore Gmail's native chrome immediately. Other
+independent features remain as configured. If **Apple Mail-style message list** was
+already enabled, it remains on; switch it off under advanced settings for fully
+native rows. No uninstall or Gmail refresh is needed for preference changes.
+
+Compatibility is intentionally conservative: desktop Gmail/Chrome 118+ only. Native
+roles and structure are used where available; Gmail's undocumented presentation
+classes remain necessary for unread/selection and some chrome. Unknown row layouts
+retain native presentation. Some menus/dialog interiors and Workspace/Chat/Meet
+controls stay native; the Workspace rail remains reachable, including installed
+security add-ons. Standalone Gemini and Google app-launcher buttons are hidden;
+Gmail's search (including an Ask Gmail-branded field), advanced search, account and
+settings controls remain available. Other theme extensions can recolor the result;
+turn them off for Gmail when evaluating Gmail Pro's own theme and palette.
+
+See [Apple Mail Mode QA and handoff](tests/appleMail-QA.md) for verification, remaining
+manual checks, performance boundaries and the implementation file map. The visual
+reference is [Apple's Mail viewing settings](https://support.apple.com/en-nz/guide/mail/cpmlprefview);
+this implementation is independently designed and does not bundle Apple fonts.
 
 ### Auto BCC
 
@@ -71,7 +156,7 @@ or downloaded by the extension.
 
 ### Apple Mail-style Message List
 
-Under **MESSAGE LIST**, enable **Apple Mail-style message list** and select
+Under **Mail tools & advanced appearance → MESSAGE LIST**, enable **Apple Mail-style message list** and select
 **Save preferences**. Sender and date appear on the first line; labels and the
 actual subject appear on the second. Known snippet elements are hidden visually,
 with their DOM and preview data preserved. Long text truncates with an ellipsis.
@@ -89,7 +174,8 @@ Gmail navigation and inserted/replaced rows automatically. There are no row scan
 polling, layout reads, event interception or ongoing MutationObservers. If startup
 precedes `<html>`, a one-shot observer watches only the document's direct children
 and disconnects as soon as that element exists. Colors and fonts remain Gmail's,
-including existing dark themes; this feature does not implement a dark mode.
+including existing dark themes; this standalone feature does not implement a dark mode. Apple Mail Mode adds the
+separate optional color system described above.
 
 ### Message-only Zoom
 
@@ -124,8 +210,7 @@ The existing thread-discovery observer also reports conversation identity change
 for resetting zoom, independently of whether Newest Email First is enabled. There
 is no second broad observer, polling, or observation within message bodies. CSS
 covers message insertion/expansion. A one-shot document-start observer is used only
-if `<html>` does not exist yet. Temporary discovery watches disconnect after the
-existing bootstrap window; idle pages do not run timers repeatedly.
+if `<html>` does not exist yet. Discovery watches disconnect once a supported thread is validated; idle pages do not run timers repeatedly.
 
 Native macOS shortcuts were verified in Chrome **153.0.8010.48** on macOS **26.6.2**,
 including the installed Gmail app window and full conversation view. Local reading
@@ -189,7 +274,7 @@ Gmail Pro selector updates; unsupported structures retain native presentation.
 - Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
   Gmail network traffic or call undocumented Gmail APIs.
 - Preferences are stored through **`chrome.storage.sync`**. This includes the configured
-  BCC address, feature toggles, and custom-label navigation paths/order. Chrome can
+  BCC address, feature toggles, theme/accent choices, and custom-label navigation paths/order. Chrome can
   synchronize those preferences through Google's Chrome Sync service when enabled;
   this is not strictly device-only storage.
 - Gmail may save recipient changes as part of its normal draft behavior. If you send
@@ -234,6 +319,10 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/messageList.html`
 - `http://127.0.0.1:8765/tests/labelOrder.html`
 - `http://127.0.0.1:8765/tests/messageZoom.html`
+- `http://127.0.0.1:8765/tests/appleMail.html`
+
+Repeat Auto BCC, reverseThreads, messageZoom, and labelOrder with `?appearance=1`
+to run the same regressions with Apple Mail Mode active.
 
 The fixtures use synthetic messages and addresses; they cannot send email. The popup
 fixture serves the actual popup with a test-only Chrome storage adapter. This server
@@ -252,6 +341,9 @@ the checks intentionally limited to synthetic data.
 
 ### Structure and maintenance
 
+- `content/appearance.js`: root appearance lifecycle and optional system-theme listener.
+- `content/appleMail.css`: gated native chrome, sidebar and message state presentation.
+- `shared/theme.css`: shared light/dark tokens, palette and contrast variants.
 - `content/autoBcc.js`: per-composition detection, insertion, and removal state.
 - `content/reverseThreads.js` and `.css`: shared conversation discovery and reversible visual ordering.
 - `content/messageZoom.js` and `.css`: scoped reading magnification, shortcut guards, and per-conversation reset.
@@ -338,4 +430,5 @@ Additional limits:
 Released under the [MIT License](LICENSE).
 
 Gmail Pro is an independent project and is not affiliated with, endorsed by, or
-sponsored by Google. Gmail is a trademark of Google LLC.
+sponsored by Apple or Google. Gmail is a trademark of Google LLC; Apple Mail and
+macOS are trademarks of Apple Inc. “Apple Mail-inspired” describes visual inspiration.

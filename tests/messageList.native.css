@@ -37,3 +37,5 @@ table[role="grid"], tbody { display: block; width: 100%; }
 .zA.aqw > .xW, .zA.aqw > .yf { display: none; }
 [role="checkbox"], [role="switch"], .apU > [role="button"] { width: 20px; height: 20px; }
 .dark .zA { background: #222; color: #eee; }
+
+.at .av { color: #444746; overflow: hidden; text-overflow: ellipsis; }

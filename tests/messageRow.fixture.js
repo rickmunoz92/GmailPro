@@ -18,7 +18,8 @@ window.GmailProTestRow = function row({ unread = false, label = "", attachment =
     node.querySelector(".bqe").textContent = subject;
     if (label) {
       const labels = document.createElement("div"); labels.className = "yi";
-      const badge = document.createElement("div"); badge.className = "at"; badge.title = label; badge.textContent = label;
+      const badge = document.createElement("div"); badge.className = "at"; badge.title = label;
+      const text = document.createElement("div"); text.className = "av"; text.textContent = label; badge.append(text);
       labels.append(badge); node.querySelector(".xT").prepend(labels);
     }
     if (attachment) {

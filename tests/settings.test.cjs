@@ -154,6 +154,9 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let appearanceStarted, appearanceStops = 0;
+  const appearancePatches = [];
+  f.context.GmailPro.appearance = { start: value => { appearanceStarted = value; }, update: patch => appearancePatches.push(plain(patch)), stop: () => appearanceStops++ };
   let zoomStarted, zoomStops = 0;
   const zoomPatches = [];
   f.context.GmailPro.messageZoom = { start: value => { zoomStarted = value; }, update: patch => zoomPatches.push(plain(patch)), stop: () => zoomStops++ };
@@ -181,6 +184,7 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.equal(listStarted.appleMailMessageListEnabled, true);
   assert.deepEqual(plain(listStarted), plain(started));
   assert.deepEqual(plain(zoomStarted), plain(started));
+  assert.deepEqual(plain(appearanceStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
@@ -188,7 +192,8 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(reversePatches, [{ bccAddress: "next@example.com" }, { newestEmailFirstEnabled: true }]);
   assert.deepEqual(listPatches, reversePatches);
   assert.deepEqual(zoomPatches, reversePatches);
-  pagehide(); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
+  assert.deepEqual(appearancePatches, reversePatches);
+  pagehide(); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {
@@ -367,7 +372,8 @@ test("appearance root lifecycle follows system only when enabled and never scans
   feature.update({ appearanceTheme: "light" });
   assert.equal(listeners.size, 0); assert.equal(rootElement.dataset.gpTheme, "light");
   feature.update({ appearanceTheme: "system" });
-  feature.stop();
+  const lateChange = [...listeners][0];
+  feature.stop(); lateChange();
   assert.equal(classes.size, 0); assert.deepEqual(rootElement.dataset, {}); assert.equal(listeners.size, 0);
   f.run("content/appearance.js"); assert.equal(feature, f.context.GmailPro.appearance);
 });

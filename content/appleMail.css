@@ -9,7 +9,7 @@
    Scope limits explicitly exclude read bodies and editable document content. */
 @scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable="true"]) {
   body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
-  [role="banner"], [role="navigation"], [role="main"], [gh="tm"], [gh="tl"],
+  [role="banner"], [role="navigation"], [role="main"], :is(.AO, .aeF, .bkK):has([role="main"]), [gh="tm"], [gh="tl"],
   [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY, .ao9, .aia) {
     background: var(--gp-bg-primary) !important;
     border-radius: 0 !important;
@@ -195,8 +195,8 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     color: var(--gp-accent-contrast) !important;
     border-bottom-color: transparent !important;
   }
-  :scope.aps :is(.yW, .bog, .xW, .yi, .at, .at span),
-  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at, .at span) {
+  :scope.aps :is(.yW, .bog, .xW, .yi, .at, .at span, .at .av),
+  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at, .at span, .at .av) {
     color: var(--gp-accent-contrast) !important;
     background: transparent !important;
   }
