@@ -9,6 +9,7 @@
   let media;
 
   function apply() {
+    if (!current.appleMailModeEnabled) return;
     const root = document.documentElement;
     if (!root) return;
     bootstrap?.disconnect();

@@ -3,6 +3,8 @@
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview) {
   --gp-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   --gp-bg-primary: #ffffff;
+  --gp-document-bg: #ffffff;
+  --gp-document-text: #202124;
   --gp-bg-secondary: #f4f4f6;
   --gp-bg-tertiary: #eaeaec;
   --gp-text-primary: #202124;

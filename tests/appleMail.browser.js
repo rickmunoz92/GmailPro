@@ -35,6 +35,7 @@
     assert(dot(node).content === "none", "read has no dot");
     node.classList.add("zE");
     assert(dot(node).content === '""' && dot(node).backgroundColor === token("--gp-accent"), "unread accent dot");
+    assert(rect(node.querySelector(".yW")).left >= rect(node.querySelector(".yX")).left + 12, "dot never overlaps sender text");
     assert(css(node.querySelector(".sender")).fontWeight === "600" && css(node).backgroundColor === bg, "weight not background");
     node.classList.remove("zE"); assert(dot(node).content === "none", "read clears dot synchronously");
   });
@@ -86,12 +87,19 @@
     assert(css(next).display === "grid" && css(next).backgroundColor === token("--gp-accent"), "replacement styled immediately");
   });
   await test("message HTML and editor formatting stay byte-for-byte and visually unchanged", () => {
-    const nodes = [...document.querySelectorAll(".ii, .ii *, [contenteditable], [contenteditable] *")];
+    const nodes = [...document.querySelectorAll(".ii > .a3s, .a3s *, [contenteditable], [contenteditable] *")];
     const snapshot = () => nodes.map(e => ({html:e.innerHTML,font:css(e).font,color:css(e).color,bg:css(e).backgroundColor,filter:css(e).filter}));
     const before = JSON.stringify(snapshot()); enable();
     assert(JSON.stringify(snapshot()) === before, "read documents and editor formatting unchanged");
+    assert(css(document.querySelector(".ii")).backgroundColor === token("--gp-document-bg"), "transparent email gets light canvas");
     feature.update({accentColor:"yellow",appearanceTheme:"light"});
     assert(JSON.stringify(snapshot()) === before, "theme changes don't change formatting");
+  });
+  await test("external Dark Reader retains ownership of its document canvas", () => {
+    const wrapper = document.querySelector(".ii"), before = css(wrapper).backgroundColor;
+    root.setAttribute("data-darkreader-mode", "dynamic"); enable();
+    assert(css(wrapper).backgroundColor === before, "external canvas left alone");
+    root.removeAttribute("data-darkreader-mode");
   });
   await test("legacy list preference remains independent of master mode", () => {
     const node = row(); GmailPro.messageList.start({appleMailMessageListEnabled:true}); enable(); feature.stop();

@@ -120,7 +120,7 @@
   [role="main"] .gE .gD { color: var(--gp-text-primary) !important; }
   [role="main"] [role="list"] > [role="listitem"] { border-color: var(--gp-border) !important; box-shadow: none !important; }
   /* Native menu surfaces, not arbitrary email tables or modal content. */
-  body > [role="menu"], body > .J-M[role="menu"], [role="dialog"] {
+  body > [role="menu"], body > .J-M[role="menu"], [role="dialog"]:not(:has([contenteditable="true"])) {
     background-color: var(--gp-bg-secondary) !important;
     color: var(--gp-text-primary) !important;
     border-color: var(--gp-border) !important;
@@ -141,6 +141,14 @@
     outline: 2px solid var(--gp-accent-ui) !important;
     outline-offset: 2px;
   }
+}
+/* Give transparent email HTML its original light document canvas. This is the
+   Gmail wrapper, not the email HTML. When Dark Reader owns document colors,
+   leave its canvas alone. Explicit email fonts/colors/images remain
+   intact. Without a canvas, native black text could land on dark chrome. */
+html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="list"] [data-message-id][data-legacy-message-id] .ii:has(> .a3s):not([contenteditable="true"] *) {
+  background-color: var(--gp-document-bg) !important;
+  color: var(--gp-document-text) !important;
 }
 /* Respect native collapse/expand and small windows. Gmail's flex shell can
    accommodate this width without overriding either native split-pane width. */
@@ -164,8 +172,8 @@
     grid-template-columns: 3px auto auto auto minmax(0, 1fr) auto auto auto;
   }
   :scope > td { background: transparent !important; color: inherit !important; font: 13px/20px var(--gp-font) !important; }
-  :scope > .yX { position: relative; padding-inline-start: 13px !important; }
-  :scope > td:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
+  :scope > td.yX[role="gridcell"] { position: relative; padding-inline-start: 13px !important; }
+  :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
   :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }
   :scope .yW :is(span, .bA4), :scope .xW span { color: inherit !important; }
   :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
@@ -187,8 +195,8 @@
     color: var(--gp-accent-contrast) !important;
     border-bottom-color: transparent !important;
   }
-  :scope.aps :is(.yW, .bog, .xW, .yi, .at),
-  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at) {
+  :scope.aps :is(.yW, .bog, .xW, .yi, .at, .at span),
+  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at, .at span) {
     color: var(--gp-accent-contrast) !important;
     background: transparent !important;
   }
