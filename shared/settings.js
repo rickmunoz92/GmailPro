@@ -5,6 +5,9 @@
   if (app.settings) return;
 
   const defaults = Object.freeze({
+    appleMailModeEnabled: false,
+    appearanceTheme: "dark",
+    accentColor: "blue",
     autoBccEnabled: false,
     bccAddress: "",
     newestEmailFirstEnabled: false,
@@ -16,6 +19,9 @@
   // Independent, versioned keys avoid overwriting unrelated preferences when
   // different extension contexts save changes. Same-key conflicts are last-write-wins.
   const keys = Object.freeze({
+    appleMailModeEnabled: "gmailPro.v1.appleMailModeEnabled",
+    appearanceTheme: "gmailPro.v1.appearanceTheme",
+    accentColor: "gmailPro.v1.accentColor",
     autoBccEnabled: "gmailPro.v1.autoBccEnabled",
     bccAddress: "gmailPro.v1.bccAddress",
     newestEmailFirstEnabled: "gmailPro.v1.newestEmailFirstEnabled",
@@ -23,6 +29,10 @@
     messageZoomEnabled: "gmailPro.v1.messageZoomEnabled",
     customLabelOrderEnabled: "gmailPro.v1.customLabelOrderEnabled",
     customLabelOrder: "gmailPro.v1.customLabelOrder"
+  });
+  const choices = Object.freeze({
+    appearanceTheme: Object.freeze(["dark", "light", "system"]),
+    accentColor: Object.freeze(["blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"])
   });
   const subscribers = new Map();
   const emailPattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -39,6 +49,7 @@
   }
 
   function normalize(name, value) {
+    if (choices[name]) return choices[name].includes(value) ? value : defaults[name];
     if (name === "customLabelOrder") return validOrder(value) ? [...new Set(value)] : [];
     if (name === "bccAddress") {
       const address = typeof value === "string" ? value.trim() : "";
@@ -61,7 +72,9 @@
     const stored = {};
     for (const [name, value] of Object.entries(patch)) {
       if (!Object.hasOwn(keys, name)) throw new TypeError("Unknown setting.");
-      if (name === "bccAddress") {
+      if (choices[name]) {
+        if (!choices[name].includes(value)) throw new TypeError("Unknown appearance choice.");
+      } else if (name === "bccAddress") {
         if (typeof value !== "string" || (value.trim() !== "" && !isValidEmail(value.trim()))) {
           throw new TypeError("Enter one valid email address.");
         }
@@ -104,5 +117,5 @@
     return unsubscribe;
   }
 
-  app.settings = Object.freeze({ defaults, load, save, subscribe, isValidEmail });
+  app.settings = Object.freeze({ defaults, choices, load, save, subscribe, isValidEmail });
 })();

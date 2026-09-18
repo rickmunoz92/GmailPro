@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="gmail-pro-appearance-preview" data-gp-theme="dark" data-gp-accent="blue">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <title>Gmail Pro</title>
+    <link rel="stylesheet" href="../shared/theme.css">
     <link rel="stylesheet" href="popup.css">
     <script src="../shared/debug.js" defer></script>
     <script src="../shared/settings.js" defer></script>
@@ -20,16 +21,24 @@
         </div>
       </header>
 
-      <aside class="preview-note" aria-labelledby="preview-title">
-        <span class="preview-dot" aria-hidden="true"></span>
-        <div><h2 id="preview-title">Your copy, taken care of.</h2>
-          <p>Auto BCC applies to future drafts. Removing it from a draft keeps it removed.</p></div>
-      </aside>
-
       <form id="settings-form" novalidate>
         <fieldset id="settings-fields" disabled>
           <legend class="sr-only">Gmail Pro preferences</legend>
 
+          <section class="feature-card appearance-card" aria-labelledby="appearance-title">
+            <div class="feature-heading">
+              <div class="feature-copy"><span class="eyebrow">APPEARANCE</span><h2 id="appearance-title">Apple Mail Mode</h2></div>
+              <label class="switch">
+                <input id="apple-mail-mode" type="checkbox" role="switch" aria-labelledby="appearance-title" aria-describedby="appearance-description">
+                <span class="switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <p class="feature-description" id="appearance-description">A cleaner macOS-inspired Gmail. Appearance changes save and apply immediately.</p>
+            <div class="appearance-setting"><label for="appearance-theme">Theme</label><select id="appearance-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow system</option></select></div>
+            <div class="appearance-setting"><label for="accent-color">Accent color</label><select id="accent-color"><option value="blue">Blue</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="red">Red</option><option value="orange">Orange</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="graphite">Graphite</option></select></div>
+            <p class="field-hint">For three panes, choose Gmail Settings → Reading pane → Right of inbox. Gmail keeps control of pane resizing.</p>
+          </section>
+          <details class="advanced-settings"><summary>Mail tools &amp; advanced appearance</summary>
           <section class="feature-card" aria-labelledby="bcc-title">
             <div class="feature-heading">
               <div class="feature-copy"><span class="eyebrow">COMPOSE</span><h2 id="bcc-title">Auto BCC</h2></div>
@@ -76,7 +85,7 @@
                 <span class="switch-track" aria-hidden="true"></span>
               </label>
             </div>
-            <p class="feature-description" id="message-list-description">A cleaner two-line sender and subject layout, with labels and controls kept in place. Especially useful beside the reading pane.</p>
+            <p class="feature-description" id="message-list-description">Keep the two-line layout when Apple Mail Mode is off. Apple Mail Mode includes this layout automatically.</p>
           </section>
           <section class="feature-card" aria-labelledby="label-order-title">
             <div class="feature-heading">
@@ -93,6 +102,7 @@
             </div>
             <p class="field-hint">Save the switch first. Open Gmail to edit; drag a handle or use its ↑ / ↓ keys. Gmail’s More section stays separate.</p>
           </section>
+          </details>
         </fieldset>
 
         <div class="save-row">

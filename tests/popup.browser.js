@@ -96,6 +96,21 @@
     assert(store.values[key("messageZoomEnabled")] === false, "zoom disabled");
     assert(!Object.hasOwn(store.values,key("messageZoom")), "temporary level never stored");
   });
+  await test("appearance changes save immediately without saving an invalid BCC edit", async () => {
+    edit(address, "invalid-unsaved");
+    const mode = byId("apple-mail-mode"), theme = byId("appearance-theme"), accent = byId("accent-color");
+    for (const [control, value, name] of [[mode, true, "appleMailModeEnabled"], [theme, "light", "appearanceTheme"], [accent, "yellow", "accentColor"]]) {
+      edit(control, value); control.dispatchEvent(new Event("change", { bubbles: true })); await settle();
+      assert(store.values[key(name)] === value, "appearance saved immediately");
+      assert(address.value === "invalid-unsaved" && store.values[key("bccAddress")] === "", "BCC edit stays local");
+    }
+    assert(document.documentElement.dataset.gpTheme === "light" && document.documentElement.dataset.gpAccent === "yellow", "preview updated");
+    store.failWrite = true; edit(accent, "purple"); accent.dispatchEvent(new Event("change", { bubbles: true })); await settle(); store.failWrite = false;
+    assert(accent.value === "yellow" && byId("save-status").dataset.state === "error", "failure rolls back and announces");
+    edit(address, "");
+    store.emit({ [key("appearanceTheme")]: "system", [key("accentColor")]: "pink" });
+    assert(theme.value === "system" && accent.value === "pink", "incoming sync updates appearance");
+  });
   await test("popup exit releases its storage subscription", async () => {
     window.dispatchEvent(new Event("pagehide"));
     assert(store.listeners.size === 0, "subscription removed");

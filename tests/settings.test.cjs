@@ -35,6 +35,7 @@ function fixture(initial = {}) {
   });
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
+  context.GmailPro.appearance = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
@@ -44,7 +45,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -60,7 +61,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -314,4 +315,59 @@ test("message zoom toggle round-trips independently; temporary levels are not st
   assert.equal((await f.settings.load()).autoBccEnabled, true);
   await assert.rejects(f.settings.save({messageZoom:125}));
   await assert.rejects(f.settings.save({messageZoomEnabled:"true"}));
+});
+
+test("appearance settings validate, sync independently, and reset safely on deletion", async () => {
+  const f = fixture({ [prefix + "autoBccEnabled"]: true });
+  for (const theme of f.settings.choices.appearanceTheme) {
+    for (const accent of f.settings.choices.accentColor) {
+      await f.settings.save({ appleMailModeEnabled: true, appearanceTheme: theme, accentColor: accent });
+      const value = await f.settings.load();
+      assert.equal(value.appearanceTheme, theme);
+      assert.equal(value.accentColor, accent);
+      assert.equal(value.autoBccEnabled, true);
+    }
+  }
+  for (const patch of [{ appearanceTheme: true }, { accentColor: "#123456" }, { appleMailModeEnabled: 1 }, { appearanceTheme: "auto" }]) {
+    await assert.rejects(f.settings.save(patch));
+  }
+  const changes = [];
+  const stop = f.settings.subscribe(patch => changes.push(plain(patch)));
+  [...f.listeners][0]({ [prefix + "accentColor"]: {}, [prefix + "appearanceTheme"]: { newValue: "invalid" } }, "sync");
+  assert.deepEqual(changes, [{ appearanceTheme: "dark", accentColor: "blue" }]);
+  stop();
+});
+
+test("appearance root lifecycle follows system only when enabled and never scans Gmail", () => {
+  const f = fixture();
+  const classes = new Set(), listeners = new Set();
+  let watches = 0, disconnects = 0, deliver;
+  const rootElement = { dataset: {}, classList: { add: n => classes.add(n), remove: n => classes.delete(n) } };
+  const media = { matches: false, addEventListener: (_, fn) => listeners.add(fn), removeEventListener: (_, fn) => listeners.delete(fn) };
+  f.context.matchMedia = () => media;
+  f.context.document = { documentElement: null };
+  f.context.MutationObserver = class {
+    constructor(fn) { deliver = fn; }
+    observe(target, options) { assert.equal(target, f.context.document); assert.deepEqual(plain(options), { childList: true }); watches++; }
+    disconnect() { disconnects++; }
+  };
+  delete f.context.GmailPro.appearance;
+  f.run("content/appearance.js");
+  const feature = f.context.GmailPro.appearance;
+  feature.start(f.settings.defaults);
+  assert.equal(watches, 0);
+  feature.update({ appleMailModeEnabled: true, appearanceTheme: "system", accentColor: "yellow" });
+  feature.update({ autoBccEnabled: true });
+  assert.equal(watches, 1); assert.equal(listeners.size, 1);
+  f.context.document.documentElement = rootElement; deliver();
+  assert.equal(disconnects, 1); assert.equal(rootElement.dataset.gpTheme, "light");
+  assert.equal(rootElement.dataset.gpAccent, "yellow");
+  media.matches = true; [...listeners][0]();
+  assert.equal(rootElement.dataset.gpTheme, "dark");
+  feature.update({ appearanceTheme: "light" });
+  assert.equal(listeners.size, 0); assert.equal(rootElement.dataset.gpTheme, "light");
+  feature.update({ appearanceTheme: "system" });
+  feature.stop();
+  assert.equal(classes.size, 0); assert.deepEqual(rootElement.dataset, {}); assert.equal(listeners.size, 0);
+  f.run("content/appearance.js"); assert.equal(feature, f.context.GmailPro.appearance);
 });

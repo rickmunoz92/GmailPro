@@ -1,0 +1,54 @@
+/* Shared Gmail chrome / popup tokens. Never set inherited fonts or color-scheme
+   on Gmail's root: those would leak into email HTML and composition defaults. */
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview) {
+  --gp-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --gp-bg-primary: #ffffff;
+  --gp-bg-secondary: #f4f4f6;
+  --gp-bg-tertiary: #eaeaec;
+  --gp-text-primary: #202124;
+  --gp-text-secondary: #4f535a;
+  --gp-text-muted: #656a73;
+  --gp-border: #d9dadd;
+  --gp-hover: #e9eaed;
+  --gp-selection-sidebar-bg: #dedfe3;
+  --gp-sidebar-width: 216px;
+  --gp-message-list-width: 380px; /* design reference; native splitter owns width */
+  --gp-accent: #176ac5;
+  --gp-accent-contrast: #ffffff;
+  --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 80%, black);
+  --gp-accent-hover: color-mix(in srgb, var(--gp-accent) 88%, black);
+  --gp-accent-active: color-mix(in srgb, var(--gp-accent) 76%, black);
+  --gp-icon-filter: none;
+  --gp-selected-icon-filter: brightness(0) invert(1);
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"] {
+  --gp-bg-primary: #202124;
+  --gp-bg-secondary: #27282b;
+  --gp-bg-tertiary: #303236;
+  --gp-text-primary: #f1f2f4;
+  --gp-text-secondary: #c4c6cc;
+  --gp-text-muted: #a4a8b0;
+  --gp-border: #3b3d42;
+  --gp-hover: #34363b;
+  --gp-selection-sidebar-bg: #3c3e43;
+  --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 48%, white);
+  --gp-icon-filter: brightness(0) invert(.86);
+}
+/* Foregrounds chosen by relative luminance, verified >= 4.5:1 for every pair.
+   Orange/yellow use a dark foreground; sidebar accents have separate contrast. */
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="purple"] { --gp-accent: #8050bd; }
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="pink"] { --gp-accent: #b53675; }
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="red"] { --gp-accent: #c1363c; }
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="orange"] {
+  --gp-accent: #ed942b; --gp-accent-contrast: #202124;
+  --gp-selected-icon-filter: brightness(0); --gp-accent-ui: #7c4400;
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="yellow"] {
+  --gp-accent: #edce43; --gp-accent-contrast: #202124;
+  --gp-selected-icon-filter: brightness(0); --gp-accent-ui: #685600;
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="green"] { --gp-accent: #287b46; }
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="graphite"] { --gp-accent: #626a73; }
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"]:is([data-gp-accent="orange"], [data-gp-accent="yellow"]) {
+  --gp-accent-ui: var(--gp-accent);
+}

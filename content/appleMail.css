@@ -1,0 +1,205 @@
+/* Apple Mail Mode selector contract — desktop Gmail, inspected 2026-09-18.
+   CSS owns this map; gmailSelectors.js deliberately does not duplicate it.
+   Native states: .zE unread; .aps open in split pane; checkbox aria-checked
+   multi-select; .TO.nZ selected mailbox. .btb is keyboard focus, NOT selection.
+   Layout: [role=navigation] .aeN, [gh=tm] toolbar, [gh=tl] list/split host,
+   .Nu scroll panes, .Nt native splitter, .iY thread shell, .gE message header.
+   Gmail exposes no semantic equivalents for these presentation/state hooks.
+   Every rule is gated by our single root switch. No DOM or email mutation.
+   Scope limits explicitly exclude read bodies and editable document content. */
+@scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable="true"]) {
+  body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
+  [role="banner"], [role="navigation"], [role="main"], [gh="tm"], [gh="tl"],
+  [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY, .ao9, .aia) {
+    background: var(--gp-bg-primary) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  [role="banner"], [role="navigation"], [gh="tm"] {
+    background: var(--gp-bg-secondary) !important;
+    color: var(--gp-text-primary) !important;
+    font-family: var(--gp-font) !important;
+  }
+  [role="navigation"] { border-inline-end: 1px solid var(--gp-border); }
+  [role="banner"] { border-bottom: 1px solid var(--gp-border); box-shadow: none !important; }
+  /* Retain the native header height so Gmail's measured viewport/scroll regions
+     stay correct. Compact controls inside it, not Gmail's JS geometry contract. */
+  [role="banner"] a[aria-label="Gmail"] { opacity: .65; }
+  [role="banner"] :is([aria-label="Ask Gemini"], [aria-label="Google apps"]) { display: none !important; }
+  /* Keep Workspace apps and Chat/Meet reachable: quiet the rail, don't remove
+     security extensions, account controls, or navigation to other products. */
+  [role="complementary"][aria-label="Side panel"] { background: var(--gp-bg-secondary) !important; }
+
+  [role="navigation"] :is(.TN, .n0, .bsU, [gh="mll"], h2) {
+    font-family: var(--gp-font) !important;
+    color: var(--gp-text-secondary) !important;
+    font-size: 13px !important;
+  }
+  [role="navigation"] .aim:has(a[href*="#"]) > .TO {
+    margin-inline: 6px !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+  }
+  [role="navigation"] .aim:has(a[href*="#"]) .TN {
+    min-height: 28px;
+    height: 28px !important;
+    padding-inline-end: 10px;
+    /* Native inline start padding is the folder-depth source of truth. */
+  }
+  [role="navigation"] .aim:has(a[href*="#"]) > .TO:hover { background: var(--gp-hover) !important; }
+  [role="navigation"] .aim:has(a[href*="#"]) > .TO.nZ {
+    background: var(--gp-selection-sidebar-bg) !important;
+  }
+  [role="navigation"] .TO.nZ :is(.TN, .n0, .aio) {
+    color: var(--gp-accent-ui) !important;
+    font-weight: 600;
+  }
+  [role="navigation"] .TO.nZ .TN svg { fill: var(--gp-accent-ui) !important; color: var(--gp-accent-ui) !important; }
+  [role="navigation"] .TN svg { fill: var(--gp-text-secondary); }
+  [role="navigation"] .bsU {
+    margin-inline-start: auto;
+    padding-inline-start: 8px;
+    font-size: 11px !important;
+    font-variant-numeric: tabular-nums;
+    color: var(--gp-text-secondary) !important;
+  }
+  [role="navigation"] .aio { min-width: 0; }
+  [role="navigation"] .nU { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  [role="navigation"] [gh="cm"][role="button"] {
+    min-width: 0 !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    padding-inline: 12px !important;
+    border-radius: 6px !important;
+    background: var(--gp-bg-tertiary) !important;
+    color: var(--gp-text-primary) !important;
+    font: 500 13px/32px var(--gp-font) !important;
+    box-shadow: none !important;
+  }
+  [role="navigation"] [gh="cm"][role="button"]:hover { background: var(--gp-hover) !important; }
+  [role="navigation"] .z0 { margin-block: 10px !important; }
+  .gmail-pro-label-toolbar { background: var(--gp-bg-tertiary); color: var(--gp-text-secondary); border-color: var(--gp-border); border-radius: 5px; }
+  .gmail-pro-label-handle { color: var(--gp-text-muted); }
+  :is(.gmail-pro-label-before, .gmail-pro-label-after) { color: var(--gp-accent-ui); }
+
+  [gh="tm"] { border-bottom: 1px solid var(--gp-border); }
+  [gh="tm"] [role="button"] {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    color: var(--gp-text-secondary) !important;
+  }
+  [gh="tm"] [role="button"]:hover { background-color: var(--gp-hover) !important; }
+  [gh="tm"] :is(svg, .T-I-J3) { filter: var(--gp-icon-filter); }
+  [role="search"] {
+    background: var(--gp-bg-tertiary) !important;
+    border: 1px solid var(--gp-border) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+  }
+  [role="search"] input {
+    font: 13px var(--gp-font) !important;
+    color: var(--gp-text-primary) !important;
+    background: transparent !important;
+  }
+  [role="search"] input::placeholder { color: var(--gp-text-muted) !important; }
+  [role="search"] :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }
+  [role="search"]:focus-within { outline: 2px solid var(--gp-accent-ui); outline-offset: -2px; }
+  [role="main"] [gh="tl"] > .Nt { background: var(--gp-border) !important; }
+  /* Thread surroundings/headers only. No descendant wildcard, inversion, or
+     typography changes on the message envelope or its .ii/.a3s document. */
+  [role="main"] .iY:has(h2[data-thread-perm-id]) { margin: 0 !important; border: 0 !important; }
+  [role="main"] :is(.gE, .ha, .hj, .ajx) {
+    background: var(--gp-bg-primary) !important;
+    color: var(--gp-text-primary) !important;
+    font-family: var(--gp-font) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  [role="main"] h2[data-thread-perm-id] { color: var(--gp-text-primary) !important; font: 600 19px/1.4 var(--gp-font) !important; }
+  [role="main"] .gE :is(h3, .gD, .g2, .g3, .gK, .go) { color: var(--gp-text-secondary) !important; font-family: var(--gp-font) !important; }
+  [role="main"] .gE .gD { color: var(--gp-text-primary) !important; }
+  [role="main"] [role="list"] > [role="listitem"] { border-color: var(--gp-border) !important; box-shadow: none !important; }
+  /* Native menu surfaces, not arbitrary email tables or modal content. */
+  body > [role="menu"], body > .J-M[role="menu"], [role="dialog"] {
+    background-color: var(--gp-bg-secondary) !important;
+    color: var(--gp-text-primary) !important;
+    border-color: var(--gp-border) !important;
+  }
+  [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
+    color: var(--gp-text-primary) !important;
+    font-family: var(--gp-font) !important;
+  }
+  [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):hover { background: var(--gp-hover) !important; }
+  /* Compose chrome only: never touch editor colors/fonts, innerHTML or style
+     attributes. Gmail can serialize computed editor formatting on send. */
+  [role="dialog"] :is(.aYF, .aZ, .aoI), .AD:has(input[name="composeid"]) .aYF {
+    background: var(--gp-bg-tertiary) !important;
+    color: var(--gp-text-primary) !important;
+    font-family: var(--gp-font) !important;
+  }
+  :is([role="navigation"], [gh="tm"], [role="search"], [data-gmail-pro-label-ui]) :focus-visible {
+    outline: 2px solid var(--gp-accent-ui) !important;
+    outline-offset: 2px;
+  }
+}
+/* Respect native collapse/expand and small windows. Gmail's flex shell can
+   accommodate this width without overriding either native split-pane width. */
+@media (min-width: 1000px) {
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) [role="navigation"].aeN {
+    width: var(--gp-sidebar-width) !important;
+    min-width: var(--gp-sidebar-width) !important;
+    max-width: var(--gp-sidebar-width) !important;
+  }
+}
+/* Same structural gate as messageList.css; unknown rows stay native. Native
+   read/unread/selection changes and SPA replacements need no JS observer. */
+@scope (html.gmail-pro-apple-mail-mode [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
+  :scope {
+    background: var(--gp-bg-primary) !important;
+    color: var(--gp-text-secondary) !important;
+    border-radius: 0 !important;
+    border-bottom: 1px solid var(--gp-border) !important;
+    box-shadow: none !important;
+    font-family: var(--gp-font) !important;
+    grid-template-columns: 3px auto auto auto minmax(0, 1fr) auto auto auto;
+  }
+  :scope > td { background: transparent !important; color: inherit !important; font: 13px/20px var(--gp-font) !important; }
+  :scope > .yX { position: relative; padding-inline-start: 13px !important; }
+  :scope > td:has([role="link"] [data-thread-id]) { padding-inline-start: 13px !important; }
+  :scope .yW, :scope .bog { color: inherit !important; font-family: var(--gp-font) !important; }
+  :scope .yW :is(span, .bA4), :scope .xW span { color: inherit !important; }
+  :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
+  :scope .yi .at { border-radius: 3px !important; font: 10px/16px var(--gp-font) !important; max-height: 16px; }
+  :scope:hover { background: var(--gp-hover) !important; }
+  :scope.zE { color: var(--gp-text-primary) !important; }
+  :scope.zE :is(.yW, .yW span, .bog) { font-weight: 600 !important; }
+  :scope.zE > .yX::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 1px;
+    top: calc(50% - 3px);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gp-accent);
+    pointer-events: none;
+  }
+  :scope.aps, :scope:has(> td > [role="checkbox"][aria-checked="true"]) {
+    background: var(--gp-accent) !important;
+    color: var(--gp-accent-contrast) !important;
+    border-bottom-color: transparent !important;
+  }
+  :scope.aps :is(.yW, .bog, .xW, .yi, .at),
+  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at) {
+    color: var(--gp-accent-contrast) !important;
+    background: transparent !important;
+  }
+  :scope.aps > .yX::before, :scope:has(> td > [role="checkbox"][aria-checked="true"]) > .yX::before { visibility: hidden; }
+  :scope :is(.T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-icon-filter); }
+  :scope.aps :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE),
+  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-selected-icon-filter); }
+  :scope :is([role="button"], [role="switch"], [role="checkbox"]) { color: inherit !important; }
+  :scope:focus-visible, :scope.btb { outline: 2px solid var(--gp-accent-ui) !important; outline-offset: -2px; }
+  :scope :focus-visible { outline: 2px solid currentColor !important; outline-offset: 1px; }
+}
+@media (forced-colors: active) {
+  html.gmail-pro-apple-mail-mode { --gp-accent: Highlight; --gp-accent-contrast: HighlightText; --gp-accent-ui: LinkText; --gp-selection-sidebar-bg: ButtonFace; }
+}

@@ -12,7 +12,12 @@
   const status = document.getElementById("save-status");
   const saveButton = document.getElementById("save-button");
   const retryButton = document.getElementById("retry-button");
+  const appearanceNames = new Set(["appleMailModeEnabled", "appearanceTheme", "accentColor"]);
+  const systemTheme = matchMedia("(prefers-color-scheme: dark)");
   const controls = {
+    appleMailModeEnabled: document.getElementById("apple-mail-mode"),
+    appearanceTheme: document.getElementById("appearance-theme"),
+    accentColor: document.getElementById("accent-color"),
     autoBccEnabled: document.getElementById("auto-bcc"),
     bccAddress: address,
     newestEmailFirstEnabled: document.getElementById("newest-first"),
@@ -28,6 +33,9 @@
 
   function values() {
     return {
+      appleMailModeEnabled: controls.appleMailModeEnabled.checked,
+      appearanceTheme: controls.appearanceTheme.value,
+      accentColor: controls.accentColor.value,
       autoBccEnabled: controls.autoBccEnabled.checked,
       bccAddress: address.value.trim(),
       newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked,
@@ -40,11 +48,19 @@
   function render(names = Object.keys(controls)) {
     for (const name of names) {
       if (!controls[name]) continue;
-      if (name === "bccAddress") address.value = saved[name];
+      if (controls[name].type !== "checkbox") controls[name].value = saved[name];
       else controls[name].checked = saved[name];
     }
     address.required = controls.autoBccEnabled.checked;
+    renderAppearance();
   }
+
+  function renderAppearance() {
+    document.documentElement.dataset.gpTheme = saved.appearanceTheme === "system"
+      ? (systemTheme.matches ? "dark" : "light") : saved.appearanceTheme;
+    document.documentElement.dataset.gpAccent = saved.accentColor;
+  }
+  systemTheme.addEventListener("change", renderAppearance);
 
   function setStatus(message, state = "ready") {
     status.textContent = message;
@@ -117,6 +133,29 @@
     setStatus(dirty.size ? "Unsaved preferences" : "Preferences up to date");
   });
 
+  // Immediate writes use the existing adapter, one setting at a time. Unrelated
+  // unsaved tools (including an invalid BCC edit) never block appearance changes.
+  for (const name of appearanceNames) controls[name].addEventListener("change", async () => {
+    if (!loaded || saving) return;
+    const patch = { [name]: values()[name] };
+    saving = true;
+    fields.disabled = true;
+    updateDirty();
+    try {
+      await app.settings.save(patch);
+      Object.assign(saved, patch);
+      render([name]);
+      setStatus("Appearance saved");
+    } catch {
+      render([name]);
+      setStatus("Couldn’t save appearance. Please try again.", "error");
+    } finally {
+      saving = false;
+      fields.disabled = false;
+      updateDirty();
+    }
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!loaded || saving || dirty.size === 0) return;
@@ -179,6 +218,9 @@
   });
 
   retryButton.addEventListener("click", load);
-  window.addEventListener("pagehide", unsubscribe, { once: true });
+  window.addEventListener("pagehide", () => {
+    unsubscribe();
+    systemTheme.removeEventListener("change", renderAppearance);
+  }, { once: true });
   void load();
 })();

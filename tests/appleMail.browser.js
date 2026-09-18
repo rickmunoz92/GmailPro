@@ -1,0 +1,108 @@
+(async () => {
+  "use strict";
+  const feature = GmailPro.appearance, row = GmailProTestRow, result = document.getElementById("results");
+  const root = document.documentElement, workspace = document.getElementById("workspace"), reports = [];
+  const css = node => getComputedStyle(node), rect = node => node.getBoundingClientRect();
+  const assert = (value, message) => { if (!value) throw new Error(message); };
+  const enable = (patch = {}) => feature.start({ appleMailModeEnabled: true, appearanceTheme: "dark", accentColor: "blue", ...patch });
+  const color = value => { const e = document.createElement("i"); e.style.color = value; root.append(e); const c = css(e).color; e.remove(); return c; };
+  const token = name => color(css(root).getPropertyValue(name).trim());
+  const dot = node => getComputedStyle(node.querySelector(".yX"), "::before");
+  const luminance = c => {
+    // Resolve modern color-mix through a canvas for stable sRGB channel values.
+    const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
+    ctx.fillStyle = c; ctx.fillRect(0, 0, 1, 1);
+    const channels = [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
+    return channels.reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+  };
+  const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  async function test(name, run) {
+    try { await run(); reports.push(`PASS ${name}`); }
+    catch (error) { reports.push(`FAIL ${name}: ${error.message}`); }
+    feature.stop(); GmailPro.messageList.stop(); workspace.replaceChildren(); workspace.style.width = "";
+    result.textContent = reports.join("\n");
+  }
+  await test("off has no styles or DOM changes; on includes existing two-line list", () => {
+    const node = row(), html = workspace.innerHTML, baseline = css(node).backgroundColor;
+    feature.start(GmailPro.settings.defaults);
+    assert(css(node).display === "flex" && css(node).backgroundColor === baseline, "native layout");
+    enable(); assert(css(node).display === "grid", "existing grid reused");
+    feature.stop(); assert(css(node).display === "flex" && css(node).backgroundColor === baseline && workspace.innerHTML === html, "exact restoration");
+    assert(!root.hasAttribute("data-gp-theme") && !root.hasAttribute("data-gp-accent"), "root cleaned");
+  });
+  await test("native unread class controls dot and sender emphasis without changing background", () => {
+    const node = row(); enable(); const bg = css(node).backgroundColor;
+    assert(dot(node).content === "none", "read has no dot");
+    node.classList.add("zE");
+    assert(dot(node).content === '""' && dot(node).backgroundColor === token("--gp-accent"), "unread accent dot");
+    assert(css(node.querySelector(".sender")).fontWeight === "600" && css(node).backgroundColor === bg, "weight not background");
+    node.classList.remove("zE"); assert(dot(node).content === "none", "read clears dot synchronously");
+  });
+  for (const theme of ["dark", "light"]) for (const accent of GmailPro.settings.choices.accentColor) await test(`${theme} / ${accent}: selected row, dot, neutral sidebar and accessible contrast`, () => {
+    const node = row({unread:true,label:"Projects/Example",attachment:true}); enable({appearanceTheme:theme,accentColor:accent});
+    node.classList.add("aps");
+    assert(css(node).backgroundColor === token("--gp-accent"), "native open row uses accent");
+    assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= 4.5, "subject contrast >= 4.5");
+    assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= 4.5, "date contrast >= 4.5");
+    assert(dot(node).visibility === "hidden" && node.classList.contains("zE"), "selected unread state retained, redundant dot hidden");
+    const selected = document.querySelector(".TO.nZ"), link = selected.querySelector("a");
+    assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");
+    assert(css(link).color === token("--gp-accent-ui"), "accent mailbox text");
+    assert(css(selected.querySelector("svg")).fill === token("--gp-accent-ui"), "accent mailbox icon");
+    assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast >= 4.5");
+    assert(contrast(css(selected.querySelector(".bsU")).color, css(selected).backgroundColor) >= 4.5, "count contrast >= 4.5");
+    node.classList.remove("aps"); assert(dot(node).visibility === "visible" && css(node).backgroundColor === token("--gp-bg-primary"), "deselect restores unread");
+  });
+  await test("reading selection follows Gmail instantly; keyboard focus is not selection", () => {
+    const a = row({unread:true}), b = row(); enable();
+    a.classList.add("aps"); a.classList.remove("aps"); b.classList.add("aps"); a.classList.add("btb");
+    assert(css(b).backgroundColor === token("--gp-accent") && css(a).backgroundColor !== css(b).backgroundColor, "only current Gmail row selected");
+    assert(dot(a).visibility === "visible", "prior unread dot restored");
+  });
+  await test("checkbox multiselect and native handlers remain functional", () => {
+    const node = row(); const box = node.querySelector('[role="checkbox"]'); let clicks = 0;
+    box.addEventListener("click", () => { clicks++; box.setAttribute("aria-checked", box.getAttribute("aria-checked") === "true" ? "false" : "true"); });
+    enable(); box.click(); assert(clicks === 1 && css(node).backgroundColor === token("--gp-accent"), "checkbox selection visible");
+    box.click(); assert(clicks === 2 && css(node).backgroundColor === token("--gp-bg-primary"), "uncheck restores");
+  });
+  await test("mailbox selection follows Gmail and nesting/counts survive", () => {
+    enable(); const rows = document.querySelectorAll("#sidebar .TO");
+    rows[0].classList.remove("nZ"); rows[1].classList.add("nZ");
+    assert(css(rows[1]).backgroundColor === token("--gp-selection-sidebar-bg") && css(rows[0]).backgroundColor !== css(rows[1]).backgroundColor, "new mailbox selected");
+    assert(css(rows[1].querySelector(".TN")).paddingLeft === "32px" && rows[1].querySelector(".bsU").textContent === "2", "nesting and count intact");
+    rows[1].classList.remove("nZ"); rows[0].classList.add("nZ");
+  });
+  for (const width of [320, 380, 680, 1200]) await test(`compact geometry, ellipsis, hover controls at ${width}px`, () => {
+    workspace.style.width = `${width}px`; const node = row({sender:"A very long sender ".repeat(12),subject:"A long subject ".repeat(20),label:"Project",attachment:true}); enable();
+    const h = rect(node).height; assert(h >= 50 && h <= 64, `compact row (${h})`);
+    assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".xW")).left, "sender date don't overlap");
+    assert(node.querySelector(".bog").scrollWidth > node.querySelector(".bog").clientWidth, "subject ellipsized");
+    node.classList.add("aqw");
+    assert(rect(node).height === h && rect(node.querySelector('[role="toolbar"]')).width > 0, "hover toolbar visible without height jump");
+    assert(rect(node.querySelector(".yX")).right <= rect(node.querySelector(".bq4")).left, "hover actions don't overlap sender");
+  });
+  await test("SPA replacement receives styles without discovery, listeners, or cached row state", () => {
+    enable(); row().closest("table").remove(); const next = row({unread:true}); next.classList.add("aps");
+    assert(css(next).display === "grid" && css(next).backgroundColor === token("--gp-accent"), "replacement styled immediately");
+  });
+  await test("message HTML and editor formatting stay byte-for-byte and visually unchanged", () => {
+    const nodes = [...document.querySelectorAll(".ii, .ii *, [contenteditable], [contenteditable] *")];
+    const snapshot = () => nodes.map(e => ({html:e.innerHTML,font:css(e).font,color:css(e).color,bg:css(e).backgroundColor,filter:css(e).filter}));
+    const before = JSON.stringify(snapshot()); enable();
+    assert(JSON.stringify(snapshot()) === before, "read documents and editor formatting unchanged");
+    feature.update({accentColor:"yellow",appearanceTheme:"light"});
+    assert(JSON.stringify(snapshot()) === before, "theme changes don't change formatting");
+  });
+  await test("legacy list preference remains independent of master mode", () => {
+    const node = row(); GmailPro.messageList.start({appleMailMessageListEnabled:true}); enable(); feature.stop();
+    assert(css(node).display === "grid", "standalone list preference retained");
+    GmailPro.messageList.stop(); assert(css(node).display === "flex", "all visual overrides removed");
+  });
+  await test("follow-system resolves live OS preference", () => {
+    enable({appearanceTheme:"system"});
+    assert(root.dataset.gpTheme === (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"), "system theme resolved");
+  });
+  const failures = reports.filter(line => line.startsWith("FAIL")).length;
+  result.textContent = `${reports.join("\n")}\n\n${reports.length - failures}/${reports.length} checks passed.`;
+  result.dataset.failures = String(failures);
+})();
