@@ -19,3 +19,14 @@ html.gmail-pro-message-zoom [role="main"]:has(h2[data-thread-perm-id][data-legac
   overflow-x: auto;
   overflow-wrap: anywhere;
 }
+
+/* Gmail recalculates the split pane's inner width from clientWidth. Near the
+   vertical overflow threshold, classic scrollbars can make that width alternate
+   by 16px on every resize pass. Keep its scrollbar space constant while reading
+   zoom is active; the pane's allocated width and the message list never change. */
+html.gmail-pro-message-zoom [role="main"] .Nu.S3:has(
+  [role="list"] [role="listitem"][aria-expanded="true"]
+  [data-message-id][data-legacy-message-id] .ii > .a3s
+) {
+  scrollbar-gutter: stable;
+}

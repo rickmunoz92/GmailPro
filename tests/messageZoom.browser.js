@@ -79,6 +79,43 @@
     workspace.style.width = "900px"; setLevel(100);
     assert(rect(byId("pane")).width === pane, "original width restored");
   });
+  await test("maximum zoom stabilizes Gmail's scrollbar-width feedback at the overflow threshold", async () => {
+    workspace.innerHTML = `<div role="main"><h2 data-thread-perm-id="gutter-test" data-legacy-thread-id="gutter-test">Conversation</h2>
+      <div class="Nu S3" id="gutter-pane"><div id="native-sizer"><div role="list">
+        <div role="listitem" tabindex="-1" jsaction="synthetic" aria-expanded="true"><div>
+          <div data-message-id="gutter-message" data-legacy-message-id="gutter-message"><div class="ii">
+            <div class="a3s" id="body1" tabindex="0" style="height:145px">Threshold message</div>
+          </div></div>
+        </div></div></div></div></div></div>`;
+    const pane=byId("gutter-pane"), sizer=byId("native-sizer");
+    const style=document.createElement("style");
+    style.textContent="#gutter-pane { width:500.75px; height:300px; overflow:auto; } #gutter-pane::-webkit-scrollbar { width:16px; height:16px; }";
+    document.head.append(style);
+    await settle(); setLevel(200);
+    const outer=rect(pane).width;
+    const sample=async()=>{
+      // Model the native sizing feedback with a one-pixel overflow. The live
+      // fractional-width case is platform-dependent; this makes the same
+      // scrollbar cycle deterministic across Chrome rasterization settings.
+      sizer.style.width=`${pane.clientWidth + 1}px`;
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      return `${pane.clientWidth},${pane.clientHeight},${rect(byId("body1")).width}`;
+    };
+    try {
+      pane.style.scrollbarGutter="auto";
+      const before=[]; for(let i=0;i<12;i++) before.push(await sample());
+      assert(new Set(before.slice(4)).size>1,`fixture reproduces the original bounce: ${before.join(" / ")}; zoom=${zoom(byId("body1"))}; scroll=${pane.scrollWidth},${pane.scrollHeight}`);
+      pane.style.removeProperty("scrollbar-gutter");
+      assert(getComputedStyle(pane).scrollbarGutter==="stable","production rule matches reading pane");
+      const after=[]; for(let i=0;i<120;i++) after.push(await sample());
+      assert(new Set(after.slice(4)).size===1,"width/height stable for 120 animation frames");
+      assert(rect(pane).width===outer,"allocated pane width unchanged");
+      assert(zoom(byId("body1"))===2,"maximum magnification retained");
+      key("0"); assert(getComputedStyle(pane).scrollbarGutter==="auto","100% restores native gutter");
+    } finally {
+      style.remove(); fixture(); await settle(); setLevel(100);
+    }
+  });
   await test("search, ordinary inputs, selects, compose and editable descendants pass through", () => {
     enabled();
     const controls = [byId("search"), workspace.querySelector('[contenteditable]')];

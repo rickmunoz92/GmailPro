@@ -110,3 +110,32 @@ Runtime: `content/messageZoom.js`, `content/messageZoom.css`, `content/content.j
 Validation/docs: `tests/messageZoom.html`, `tests/messageZoom.browser.js`,
 `tests/settings.test.cjs`, `tests/popup.browser.js`, `scripts/validate.cjs`,
 `README.md`, and this QA record.
+
+
+## Follow-up: maximum-zoom scrollbar bounce
+
+The reported recording exposed a height-dependent case missed by the initial QA.
+At a 1710 × 970 CSS-pixel viewport and 200% message zoom, the right reading pane
+alternated between 908px and 892px of available width. Gmail rounded and rewrote
+its inner width as scrollbars appeared/disappeared; message width oscillated
+between 820px and 804px even though the zoom level stayed at 200%.
+
+A scoped `scrollbar-gutter: stable` on Gmail's identified `.Nu.S3` reading scroller
+reserves its scrollbar space during non-100% message zoom. It leaves the allocated
+pane width, message-list width, and zoom levels unchanged, and native gutter rules
+return at 100% or when disabled. It does not alter thread discovery or ordering.
+
+The regression fixture deliberately reproduces the original alternating scrollbar
+geometry with the gutter set to auto, then requires stable geometry over 120
+animation frames with the production rule. Live retesting on the affected email
+at the recorded height settled at a consistent 804px message width, with no outer
+horizontal overflow. The recording and extracted frames stay outside the repository.
+
+Follow-up validation: 19 settings/lifecycle checks and all browser suites passed:
+zoom 16/16, thread ordering 41/41 (including pre-existing workspace changes),
+Auto BCC 27/27, message list 20/20, label order 14/14, popup 13/13. An Auto BCC
+focus case failed during the parallel run and passed when rerun independently.
+Chrome logged generic asynchronous message-channel closure errors during the
+extension reload; no zoom-script stack trace was reported. Normal viewport and
+100% message zoom were restored after live testing. Pre-existing thread-ordering
+and README changes were preserved and are not part of this fix commit.
