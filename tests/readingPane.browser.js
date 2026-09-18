@@ -33,6 +33,23 @@
     const f=fixture(), before=f.main.innerHTML; app.readingPane.start({appleMailModeEnabled:false}); await settle();
     assert(f.main.innerHTML===before && !button('reply'), 'OFF inert');
   });
+  await test('recipient labels use requested casing/colors and restore without replacing contacts', async () => {
+    const f=fixture(), header=f.main.querySelector('.gE .ajw');
+    const summary=document.createElement('span'); summary.className='hb';
+    summary.innerHTML='to <span class="g2" email="one@example.test">One</span>, cc: <span class="g2">Two</span>, bcc: <span class="g2">Three</span>';
+    header.prepend(summary);
+    const original=summary.innerHTML, contact=summary.querySelector('.g2');
+    const decoy=summary.cloneNode(true); f.body.append(decoy); const bodyBefore=f.body.innerHTML;
+    let clicked=0; contact.addEventListener('click',()=>clicked++);
+    start(); await settle();
+    assert(summary.textContent==='To: One, CC: Two, BCC: Three','all labels normalized');
+    assert(css(summary).color==='rgb(222, 224, 226)' && css(contact).color==='rgb(156, 158, 160)','exact label and recipient colors');
+    contact.click(); assert(clicked===1 && summary.querySelector('.g2')===contact,'native contact node/handler retained');
+    assert(f.body.innerHTML===bodyBefore,'received HTML untouched');
+    summary.firstChild.data='to '; await settle();
+    assert(summary.firstChild.data==='To: ','native text refresh normalized');
+    app.readingPane.stop(); assert(summary.innerHTML===original,'native labels restored on OFF');
+  });
   await test('idempotent group follows hook, precedes More, delegates all native actions', async () => {
     const f=fixture(); start(); start(); await settle();
     const group=workspace.querySelector('.gmail-pro-message-actions');

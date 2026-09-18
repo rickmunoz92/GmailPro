@@ -13,9 +13,33 @@
   let queued = false;
   let observedContext;
   const markedFooters = new Set();
+  const recipientLabels = new Map();
   const visible = node => !!node?.isConnected && node.checkVisibility({ visibilityProperty: true }) && !node.closest('[hidden], [aria-hidden="true"], [inert]');
   const usable = node => node && !node.matches('[disabled], [aria-disabled="true"]');
   const ownsChrome = node => !node.closest(S.readingExcluded);
+
+  function updateRecipientLabels(shell) {
+    for (const [node, change] of recipientLabels) {
+      if (!shell?.contains(node) || node.data !== change.after) {
+        if (node.data === change.after) node.data = change.before;
+        recipientLabels.delete(node);
+      }
+    }
+    for (const summary of shell?.querySelectorAll(S.readingRecipients) || []) {
+      if (!ownsChrome(summary)) continue;
+      // Only Gmail's direct English label fragments, never recipient nodes or
+      // received HTML. Preserve native nodes, contact handlers and punctuation.
+      for (const node of summary.childNodes) {
+        if (node.nodeType !== Node.TEXT_NODE || recipientLabels.has(node)) continue;
+        const match = /^(\s*(?:,\s*)?)(to|cc|bcc):?(\s*)$/i.exec(node.data);
+        if (!match) continue;
+        const after = match[1] + ({ to: "To:", cc: "CC:", bcc: "BCC:" })[match[2].toLowerCase()] + match[3];
+        if (node.data === after) continue;
+        recipientLabels.set(node, { before: node.data, after });
+        node.data = after;
+      }
+    }
+  }
 
   function restore() {
     markedShell?.removeAttribute("data-gp-actions-ready");
@@ -97,6 +121,9 @@
     // the thread or removes its toolbar, so restoration needs no polling.
     if (!observedContext?.shell.isConnected) return;
     const { shell, toolbar, toolbarHost } = observedContext;
+    for (const summary of shell.querySelectorAll(S.readingRecipients)) {
+      if (ownsChrome(summary)) observer.observe(summary, { childList: true, subtree: true, characterData: true });
+    }
     const watched = new Set();
     const watchNode = node => {
       if (!node || watched.has(node) || !ownsChrome(node)) return;
@@ -128,6 +155,7 @@
     observer.disconnect();
     restore();
     const current = context();
+    updateRecipientLabels(current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell));
     if (!current?.actions.size) { group?.remove(); watch(current); return; }
     if (!group) group = createGroup();
     for (const button of group.children) button.hidden = !current.actions.has(button.dataset.gpMessageAction);
@@ -151,6 +179,7 @@
     enabled = false;
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
+    updateRecipientLabels(null);
     window.removeEventListener("resize", schedule);
     group?.remove(); group = undefined;
     observedContext = undefined;

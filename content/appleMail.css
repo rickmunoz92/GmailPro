@@ -226,8 +226,8 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     content: "";
     position: absolute;
     inset-inline-start: 1px;
-    top: calc(50% - 3px);
-    width: 6px; height: 6px; border-radius: 50%;
+    top: calc(50% - 4px);
+    width: 8px; height: 8px; border-radius: 50%;
     background: var(--gp-accent);
     pointer-events: none;
   }
@@ -293,6 +293,8 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   .gE h3 { margin: 0; }
   .gE .gD { font-weight: 600; font-size: 14px; }
   .gE :is(.g3, .g2, .go, .ajw) { font-size: 12px; }
+  .gE .hb { color: #DEE0E2 !important; }
+  .gE .hb .g2 { color: #9C9EA0 !important; }
   .gE .gH { vertical-align: top; }
   .gE button:has(svg) { width: 30px !important; height: 30px !important; }
   .gE :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }

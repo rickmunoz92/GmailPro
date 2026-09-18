@@ -56,6 +56,7 @@
     readingShell: '.iY:has(h2[data-thread-perm-id][data-legacy-thread-id])',
     readingExcluded: '.ii, .a3s, [contenteditable], [role="dialog"], form',
     readingChrome: '.gE, .gA, .gB, .ip, .amr, .nr, .amn, .btDi4d',
+    readingRecipients: '.gE .hb',
     primaryToolbar: '[gh="tm"] [gh="mtb"]',
     toolbarMore: '[role="button"][aria-label="More email options"]',
     nativeFooter: '.btDi4d .amn, .gA .amn',
