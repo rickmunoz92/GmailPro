@@ -196,9 +196,19 @@
 
   function schedule(state) {
     if (state.timer || !active.has(state.form)) return;
-    // One coalesced reaction to DOM changes, not a polling loop. The independent
-    // deadline bounds incomplete layouts, hidden drafts, and failed commits.
-    state.timer = setTimeout(() => step(state), 80);
+    // Let a new compose settle before touching focus. Once we open its header,
+    // drain ready recipient work before the next paint instead of displaying
+    // each intermediate To/CC/BCC layout for another 80 ms. Gmail's deferred
+    // rendering still resumes through the form observer; this is not polling.
+    if (state.expanded || state.revealed || state.attempted) {
+      const pending = {};
+      state.timer = pending;
+      queueMicrotask(() => {
+        if (state.timer === pending && active.has(state.form)) step(state);
+      });
+    } else {
+      state.timer = setTimeout(() => step(state), 80);
+    }
   }
 
   function discover(form) {
@@ -215,7 +225,7 @@
     form.addEventListener("input", state.onInput);
     state.observer = new MutationObserver(() => schedule(state));
     state.observer.observe(form, { childList: true, subtree: true, attributes: true,
-      attributeFilter: ["style", "class", "aria-label", "data-hovercard-id", "email"] });
+      attributeFilter: ["style", "class", "hidden", "aria-label", "data-hovercard-id", "email"] });
     state.deadline = setTimeout(() => {
       if (state.status !== "inserted") {
         app.debug.log("bcc-selector-failure");

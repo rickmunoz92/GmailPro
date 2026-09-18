@@ -160,7 +160,9 @@ The extension observes Gmail's composition and recipient controls. A composition
 captures the settings when it is first detected. If the address is valid and not
 already in To, CC, or BCC, Gmail Pro reveals BCC and commits one recipient through
 Gmail's normal interface. Address matching ignores case and surrounding whitespace,
-including contact chips; dots and plus tags are preserved.
+including contact chips; dots and plus tags are preserved. Once recipient controls
+are ready, expansion, BCC reveal, and insertion run without a separate visual pause
+between each step. The original draft focus and caret are restored.
 
 Manually removing the inserted BCC keeps it removed for that composition. Settings
 changes affect future compositions, and disabling Auto BCC cancels pending additions.

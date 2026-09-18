@@ -16,7 +16,7 @@
     for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
     return node;
   }
-  function compose({ mode = "new", initial = {}, floating = false, delayed = false, reject = false, focus = true } = {}) {
+  function compose({ mode = "new", initial = {}, floating = false, delayed = false, reject = false, focus = true, onExpand } = {}) {
     const region = element("section", { role: "region" });
     const form = element("form");
     const marker = element("input", { name: "composeid", type: "hidden" });
@@ -66,9 +66,12 @@
       setTimeout(() => {
         if (!summary.isConnected || document.activeElement !== summary) return;
         expansions++; fields.hidden = false; summary.hidden = true; boxes.To.focus();
+        onExpand?.();
         // Gmail's delayed initial editor autofocus can land between expansion
         // and BCC reveal. Returning to it after reveal collapses the addressing UI.
-        setTimeout(() => { if (editor.isConnected) editor.focus(); }, 20);
+        setTimeout(() => {
+          if (editor.isConnected && region.contains(document.activeElement)) editor.focus();
+        }, 20);
       }, 0);
     });
     const inline = mode !== "new";
@@ -81,7 +84,7 @@
     region.append(form, editor);
     document.getElementById(floating ? "floating" : "workspace").append(region);
     if (focus) (inline ? editor : boxes.To).focus();
-    return { form, region, editor, boxes, addChip,
+    return { form, region, editor, boxes, fields, addChip,
       get attempts() { return attempts; }, get reveals() { return reveals; }, get expansions() { return expansions; },
       chips: () => [...rows.BCC.querySelectorAll('[role="option"]')],
       close: () => region.remove() };
@@ -107,6 +110,25 @@
       assert(document.activeElement === (mode === "new" ? draft.boxes.To : draft.editor), "focus restored");
     });
   }
+  await test("reply recipient setup finishes before an intermediate header paints", async () => {
+    const draft = compose({ mode: "reply" });
+    let sampledFrames = 0;
+    let intermediateFrames = 0;
+    let frame;
+    const sample = () => {
+      sampledFrames++;
+      if (!draft.fields.hidden && !draft.chips().length) intermediateFrames++;
+      frame = requestAnimationFrame(sample);
+    };
+    frame = requestAnimationFrame(sample);
+    try {
+      await settle();
+      assert(draft.chips().length === 1, "BCC committed");
+      assert(sampledFrames > 0, "browser rendered frames during setup");
+      assert(intermediateFrames === 0, "no expanded-but-unfinished header frames");
+      assert(draft.fields.hidden && document.activeElement === draft.editor, "compact header and editor focus restored");
+    } finally { cancelAnimationFrame(frame); }
+  });
   for (const count of [2, 3]) await test(`${count} simultaneous compose windows`, async () => {
     const drafts = Array.from({ length: count }, () => compose({ floating: true }));
     await settle();
@@ -190,17 +212,16 @@
     await settle(); assert(draft.attempts === 0 && draft.reveals === 0, "no guessed recipient control");
   });
   await test("reply expansion never restores focus into another compose", async () => {
-    const reply = compose({ mode: "reply" });
-    await new Promise(resolve => setTimeout(resolve, 110));
-    const other = compose();
+    let other;
+    const reply = compose({ mode: "reply", onExpand: () => { other = compose(); } });
     await settle();
     assert(reply.attempts === 1 && other.attempts === 1, "both drafts handled");
     assert(document.activeElement === other.boxes.To, "later compose keeps focus");
   });
   await test("disabling during header expansion cancels and restores focus", async () => {
-    const reply = compose({ mode: "reply" });
-    await new Promise(resolve => setTimeout(resolve, 110));
-    app.autoBcc.update({ autoBccEnabled: false });
+    const reply = compose({ mode: "reply", onExpand: () => {
+      app.autoBcc.update({ autoBccEnabled: false });
+    } });
     await settle();
     assert(reply.attempts === 0, "pending insertion cancelled");
     assert(document.activeElement === reply.editor, "original caret restored");
