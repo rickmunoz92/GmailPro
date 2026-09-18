@@ -227,3 +227,23 @@ selection, Shift-click selecting three conversations, Command-click deselecting 
 and native bulk-action availability. Unread count stayed unchanged; no bulk action
 was executed. Live testing used a separate temporary tab to preserve the user's
 existing open view.
+
+
+## Blank-list deselection and loading popup — 0.8.1, 2026-09-18
+
+The dedicated `.vY > .vX` loading banner containing `.vZ.L4XNt > .v1` is
+hidden in Apple Mail Mode. General alert and Undo notifications are unchanged.
+An ordinary click below the last rendered conversation in `.Nu.tf` clears native
+checkbox selection, resets the Shift anchor, and dispatches Gmail's complete
+native `u` key sequence to close the reading pane. No selection attributes or
+message HTML are modified. This native command requires Gmail keyboard shortcuts;
+the extension does not change the user's shortcut setting. Other panes, row-height
+areas, controls, footers, modified clicks and mode OFF keep native behavior.
+
+Validation: 21/21 Node checks and 44/44 Chromium appearance checks passed. Live
+Gmail in a separate QA tab verified that an open read conversation closes to
+“No conversations selected,” and that a checked/open conversation clears both
+checkbox state and the preview. A label navigation populated the loading banner
+with computed display `none`. No mail was sent, deleted, moved or archived.
+The installed unpacked extension was updated and reloaded; existing Gmail views
+need refresh to receive the new content script.

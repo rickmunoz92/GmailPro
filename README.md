@@ -82,6 +82,13 @@ controls; the extension never writes Gmail's selection attributes or stores a
 parallel selected-message list. Range discovery is limited to visible rows in the
 clicked table body, on a user gesture. The anchor is validated against its thread
 identity, current table and route to avoid stale selections after navigation.
+An ordinary click below the last row in the split conversation-list pane clears
+native checked rows and the range anchor. Gmail's native `u` (back-to-list) key
+sequence clears any open reading pane; Gmail keyboard shortcuts must be enabled
+for that native command. The extension does not change that account preference.
+Row clicks, message content, controls, footers and modified blank clicks remain
+native. The dedicated top-center label-loading banner is hidden; alert/Undo toasts
+remain visible. Both changes apply only while Apple Mail Mode is enabled.
 There are no per-row listeners, polling, message parsing, or ongoing DOM observers.
 A one-shot observer handles document-start before `<html>` exists; a media-query
 listener runs only for Follow system. Disabling/page exit removes all listeners,
