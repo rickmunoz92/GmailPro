@@ -98,9 +98,22 @@
     for (const i of [1, 3, 4, 5, 6, 7]) t.nodes[i].style.display = "none";
     enable(); await settle(); assert(matches(visual(t.list), [t.nodes[9], t.nodes[8], t.nodes[2], t.nodes[0]]), "group stays between newer and older messages");
     const count = reverseCount();
-    for (const n of t.nodes) { n.style.removeProperty("display"); n.setAttribute("role", "listitem"); n.setAttribute("aria-expanded", "true"); }
+    for (const n of t.nodes) { n.style.removeProperty("display"); n.setAttribute("role", "listitem"); }
+    await settle(); assert(matches(visual(t.list), t.nodes.slice().reverse()), "revealed summaries without aria-expanded stay newest first");
+    assert(matches([...t.list.children], t.nodes), "revealing never moves Gmail DOM nodes");
+    for (const n of t.nodes) n.setAttribute("aria-expanded", "true");
     await settle(); assert(matches(visual(t.list), t.nodes.slice().reverse()), "expanded slots in correct order");
     assert(reverseCount() === count, "expansion needs no second reorder");
+  });
+  await test("already revealed summaries validate without weakening unknown-state checks", async () => {
+    const t = thread(); t.nodes[0].removeAttribute('aria-expanded'); enable(); await settle();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), 'reload with revealed summaries');
+    t.nodes[0].setAttribute('aria-expanded','unknown'); await settle();
+    assert(!isReversed(t.list), 'invalid explicit state still fails closed');
+    t.nodes[0].removeAttribute('aria-expanded'); await settle();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), 'valid summaries recover');
+    t.nodes.forEach(n=>n.removeAttribute('aria-expanded')); await settle();
+    assert(!isReversed(t.list), 'unknown list without identified message stays native');
   });
   await test("expand/collapse handlers and attachment ownership survive", async () => {
     const t = thread(); let clicked = 0;

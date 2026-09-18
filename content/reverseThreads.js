@@ -49,8 +49,13 @@
   function ordering(list) {
     const children = [...list.children];
     const items = children.filter(node => node.matches(S.threadItem));
-    if (!items.length || items.some(node => !["true", "false"].includes(node.getAttribute("aria-expanded")))) return null;
-    const action = items[0].getAttribute("jsaction");
+    // Revealed older summaries have a listitem role but no aria-expanded.
+    // Keep a fully identified neighboring message as the action anchor, and
+    // reject invalid explicit states rather than treating them as summaries.
+    const identified = items.filter(node => ["true", "false"].includes(node.getAttribute("aria-expanded")));
+    if (!identified.length || items.some(node => node.hasAttribute("aria-expanded") &&
+        !["true", "false"].includes(node.getAttribute("aria-expanded")))) return null;
+    const action = identified[0].getAttribute("jsaction");
     if (!action) return null;
     const messages = [];
     for (const node of children) {

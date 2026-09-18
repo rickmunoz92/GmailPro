@@ -39,12 +39,13 @@
     summary: '[tabindex]:not([role])',
     addBcc: '[role="link"][aria-label^="Add Bcc recipients"]',
     // Live Gmail: complete message envelopes, not the nested body divs. Older
-    // grouped messages temporarily lose role/aria-expanded but keep the same
+    // grouped messages lose role/aria-expanded; revealing them restores role
+    // without necessarily restoring aria-expanded. They keep the same
     // action attribute and one-div wrapper as their neighboring message slots.
     threadHeading: 'h2[data-thread-perm-id][data-legacy-thread-id]',
     threadList: '[role="list"]',
     threadMessage: '[data-message-id][data-legacy-message-id]',
-    threadItem: 'div[role="listitem"][tabindex="-1"][jsaction][aria-expanded]',
+    threadItem: 'div[role="listitem"][tabindex="-1"][jsaction]',
     threadPlaceholder: 'div[tabindex="-1"][jsaction]:not([role]):not([aria-expanded])',
     // Message zoom's CSS repeats this structural contract. .a3s is the read
     // body only; .ii excludes compose and the outer message/header/attachments.
