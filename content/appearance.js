@@ -39,8 +39,10 @@
     const opened = rows.find(node => node.classList.contains("aps"));
     if (opened) {
       opened.focus({ preventScroll: true });
-      for (const type of ["keydown", "keyup"]) opened.dispatchEvent(new KeyboardEvent(type, {
-        key: "u", code: "KeyU", keyCode: 85, which: 85, bubbles: true, cancelable: true
+      for (const type of ["keydown", "keypress", "keyup"]) opened.dispatchEvent(new KeyboardEvent(type, {
+        key: "u", code: "KeyU", keyCode: type === "keypress" ? 117 : 85,
+        charCode: type === "keypress" ? 117 : 0, which: type === "keypress" ? 117 : 85,
+        bubbles: true, cancelable: true
       }));
     }
     anchor = undefined;
