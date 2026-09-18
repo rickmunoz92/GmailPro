@@ -5,9 +5,12 @@
 .ams { display: inline-block; padding: 10px; }
 .V8djrc { padding: 20px 0 0 72px; }
 .adn { display: flex; }
-.aju { width: 40px; min-width: 40px; padding: 0 16px; }
+.aju { display: flex; align-items: center; height: 80px; width: 40px; min-width: 40px; padding: 0 16px; }
+.aju img { display: block; }
 .gs { width: calc(100% - 72px); padding-bottom: 20px; }
-.gE { padding-top: 20px; }
+.gE { padding-top: 20px; line-height: 20px; }
+.gE h3 { display: inline-block; }
+.gE .g3 { float: right; }
 .ii { margin-top: 8px; }
 .a3s { font: 14px Arial; color: black; }
 [hidden] { display: none !important; }
