@@ -18,6 +18,7 @@
   --gp-accent: #007AFF;
   --gp-accent-contrast: #ffffff;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 80%, black);
+  --gp-label-accent: var(--gp-accent-ui);
   --gp-accent-hover: color-mix(in srgb, var(--gp-accent) 88%, black);
   --gp-accent-active: color-mix(in srgb, var(--gp-accent) 76%, black);
   --gp-icon-filter: none;
@@ -44,6 +45,9 @@
 }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"][data-gp-accent="blue"] {
   --gp-accent-ui: #008AFF;
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="blue"] {
+  --gp-label-accent: #00AEFF;
 }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="purple"] { --gp-accent: #8050bd; }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="pink"] { --gp-accent: #b53675; }

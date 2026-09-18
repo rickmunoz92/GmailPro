@@ -55,10 +55,10 @@
     background: var(--gp-selection-sidebar-bg) !important;
   }
   [role="navigation"] .TO.nZ :is(.TN, .n0, .aio) {
-    color: var(--gp-accent-ui) !important;
+    color: var(--gp-label-accent) !important;
     font-weight: 600;
   }
-  [role="navigation"] .TO.nZ .TN svg { fill: var(--gp-accent-ui) !important; color: var(--gp-accent-ui) !important; }
+  [role="navigation"] .TO.nZ .TN svg { fill: var(--gp-label-accent) !important; color: var(--gp-label-accent) !important; }
   [role="navigation"] .TN svg { fill: var(--gp-text-secondary); }
   /* Gmail's native .nY drop target can be on the row or its inner wrapper.
      Keep Gmail in charge of the drag; only replace its yellow feedback. */
@@ -246,12 +246,13 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope.aps :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE),
   :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-selected-icon-filter); }
   :scope :is([role="button"], [role="switch"], [role="checkbox"]) { color: inherit !important; }
-  :scope.btb:not(:focus-visible) { outline: none !important; }
-  :scope:focus-visible { outline: 2px solid var(--gp-accent-ui) !important; outline-offset: -2px; }
+  /* Gmail retains row focus after deselection and can move it after selection.
+     Keep focus behavior, but never draw a separate, lagging row outline. */
+  :scope, :scope.btb, :scope:focus-visible { outline: none !important; }
   :scope :focus-visible { outline: 2px solid currentColor !important; outline-offset: 1px; }
 }
 @media (forced-colors: active) {
-  html.gmail-pro-apple-mail-mode { --gp-accent: Highlight; --gp-accent-contrast: HighlightText; --gp-accent-ui: LinkText; --gp-selection-sidebar-bg: ButtonFace; }
+  html.gmail-pro-apple-mail-mode { --gp-accent: Highlight; --gp-accent-contrast: HighlightText; --gp-accent-ui: LinkText; --gp-label-accent: LinkText; --gp-selection-sidebar-bg: ButtonFace; }
 }
 /* Gmail's transient top-center loading banner, separate from alert/Undo toasts. */
 html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {

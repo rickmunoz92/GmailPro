@@ -106,10 +106,9 @@
   for (const theme of ["dark", "light"]) for (const accent of GmailPro.settings.choices.accentColor) await test(`${theme} / ${accent}: selected row, dot, neutral sidebar and palette contrast`, () => {
     const node = row({unread:true,label:"Projects/Example",attachment:true}); enable({appearanceTheme:theme,accentColor:accent});
     node.classList.add("aps");
-    // The requested vivid Apple blue is ~4:1 with white; its dark-sidebar
-    // variant is ~3:1. Keep the stronger existing checks for other accents.
+    // Keep the requested exact label blue and the existing contrast checks
+    // for other accents; white selection text on vivid blue remains ~4:1.
     const selectionContrast = accent === "blue" ? 4 : 4.5;
-    const sidebarContrast = accent === "blue" && theme === "dark" ? 3 : 4.5;
     assert(css(node).backgroundColor === token("--gp-accent"), "native open row uses accent");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= selectionContrast, "subject contrast");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= selectionContrast, "date contrast");
@@ -117,9 +116,10 @@
     assert(dot(node).visibility === "hidden" && node.classList.contains("zE"), "selected unread state retained, redundant dot hidden");
     const selected = document.querySelector(".TO.nZ"), link = selected.querySelector("a");
     assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");
-    assert(css(link).color === token("--gp-accent-ui"), "accent mailbox text");
-    assert(css(selected.querySelector("svg")).fill === token("--gp-accent-ui"), "accent mailbox icon");
-    assert(contrast(css(link).color, css(selected).backgroundColor) >= sidebarContrast, "sidebar text contrast");
+    assert(css(link).color === token("--gp-label-accent"), "accent mailbox text");
+    assert(css(selected.querySelector("svg")).fill === token("--gp-label-accent"), "accent mailbox icon");
+    if (accent === "blue") assert(css(link).color === "rgb(0, 174, 255)", "exact requested blue label color");
+    else assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast");
     assert(contrast(css(selected.querySelector(".bsU")).color, css(selected).backgroundColor) >= 4.5, "count contrast >= 4.5");
     selected.classList.add("nY");
     assert(css(selected).backgroundColor === token("--gp-accent"), "drop target uses current accent");
@@ -187,6 +187,11 @@
     const a = row({unread:true}), b = row(); enable();
     a.classList.add("aps"); a.classList.remove("aps"); b.classList.add("aps"); a.classList.add("btb");
     assert(css(b).backgroundColor === token("--gp-accent") && css(a).backgroundColor !== css(b).backgroundColor, "only current Gmail row selected");
+    a.focus();
+    assert(css(a).outlineStyle === "none" && css(a).boxShadow === "none", "previous focused row has no lingering border");
+    b.classList.remove("aps");
+    b.focus();
+    assert(css(b).outlineStyle === "none" && css(b).boxShadow === "none", "deselected focused row has no border");
     assert(dot(a).visibility === "visible", "prior unread dot restored");
   });
   await test("checkbox multiselect and native handlers remain functional", () => {
@@ -219,7 +224,7 @@
     node.classList.add("aqw", "btb");
     assert(rect(box).width === 0 && css(box.parentElement).display === "none", "checkbox and hover effects fully hidden");
     box.setAttribute("aria-checked", "true"); assert(css(node).backgroundColor === token("--gp-accent"), "native checked state styles row");
-    node.focus(); assert(node.matches(":focus-visible") && css(node).outlineStyle === "solid", "row keyboard focus visible");
+    node.focus(); assert(node.matches(":focus-visible") && css(node).outlineStyle === "none", "row keeps keyboard focus without a border");
     node.blur(); feature.stop();
     assert(rect(box).width > 0 && rect(node.querySelector('[role="toolbar"]')).width > 0, "native controls restore on OFF");
   });

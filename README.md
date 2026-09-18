@@ -104,10 +104,10 @@ root styling, and the temporary range anchor.
 popup. It supplies surface, text, border, focus, sidebar, and accent variables.
 Precomputed luminance-based foreground choices use dark text for Orange/Yellow and
 white for the other six accents. Blue uses vivid **#007AFF** selection backgrounds
-and **#008AFF** selected sidebar text/icons in dark mode, without a white tint.
-This Apple-style blue treatment provides about **4:1** contrast for white selection
-text and **3:1** for dark-sidebar blue text/icons; it does not meet the 4.5:1 target
-for normal text. Other accent pairs and sidebar counts retain the **4.5:1** checks
+and the requested exact **#00AEFF** selected sidebar text/icons in both themes.
+The blue palette prioritizes these specified colors: white selection text has about
+**4:1** contrast, and blue sidebar text does not meet the 4.5:1 normal-text target
+in every theme. Other accent pairs and sidebar counts retain the **4.5:1** checks
 across both themes. `content/appleMail.css` documents the native selector contract and scopes
 chrome styling away from message HTML and editable content.
 
@@ -129,7 +129,9 @@ Gmail Pro cannot recolor Chrome's own tab/address bars or a separate window's fr
 Dark main surfaces, sidebar, and toolbar use `#23292B`. Conversation-list stars and
 importance chevrons are hidden in this mode, without changing their Gmail state or
 reading-pane actions. Label/conversation hover backgrounds and pointer-following row
-outlines are suppressed; actual selection and keyboard focus remain visible. Native
+outlines are suppressed, including the row focus outline that Gmail can retain
+after deselection. Actual selection stays filled; keyboard focus behavior and
+focus indicators on individual controls remain intact. Native
 row checkboxes and their column are hidden; modifier-click selects conversations. Per-row hover action buttons are hidden;
 dates and attachment icons stay visible, and actions remain in the main toolbar.
 Mailbox-name hover tooltips are suppressed,
