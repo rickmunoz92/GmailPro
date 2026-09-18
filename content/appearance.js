@@ -87,6 +87,48 @@
     if (row.isConnected) row.focus({ preventScroll: true });
   }
 
+  // Only Gmail-owned scroll containers; never authored message/editor nodes.
+  const scrollSelector = '[role="main"] :is(.Nu, .Nr, .ii:has(> .a3s)), .nH:has(> [role="main"]), .V3:has(.aim)';
+  let scrollPositions = new WeakMap();
+  const scrolling = new Map();
+  const scrollOptions = { capture: true, passive: true };
+  function scrollPane(node) {
+    return node instanceof Element && node.matches(scrollSelector) && !node.closest('.a3s, [contenteditable], [role="dialog"]');
+  }
+  function rememberScroll(event) {
+    // Capture positions before wheel/keyboard/scrollbar input. No DOM scans.
+    for (let node = event.target; node instanceof Element; node = node.parentElement) {
+      if (scrollPane(node)) scrollPositions.set(node, { x: node.scrollLeft, y: node.scrollTop });
+    }
+  }
+  function onScroll(event) {
+    const node = event.target;
+    if (!current.appleMailModeEnabled || !scrollPane(node)) return;
+    const previous = scrollPositions.get(node) || { x: 0, y: 0 };
+    const next = { x: node.scrollLeft, y: node.scrollTop };
+    scrollPositions.set(node, next);
+    for (const axis of ['x', 'y']) {
+      if (next[axis] === previous[axis]) continue;
+      let timers = scrolling.get(node);
+      if (!timers) { timers = {}; scrolling.set(node, timers); }
+      clearTimeout(timers[axis]);
+      node.setAttribute(`data-gp-scroll-${axis}`, '');
+      timers[axis] = setTimeout(() => {
+        node.removeAttribute(`data-gp-scroll-${axis}`);
+        delete timers[axis];
+        if (!Object.keys(timers).length) scrolling.delete(node);
+      }, 700);
+    }
+  }
+  function clearScrolling() {
+    for (const [node, timers] of scrolling) for (const axis of ['x', 'y']) {
+      clearTimeout(timers[axis]);
+      node.removeAttribute(`data-gp-scroll-${axis}`);
+    }
+    scrolling.clear();
+    scrollPositions = new WeakMap();
+  }
+
   function apply() {
     if (!current.appleMailModeEnabled) return;
     const root = document.documentElement;
@@ -106,6 +148,9 @@
     media?.removeEventListener("change", apply);
     media = undefined;
     for (const type of gestureEvents) document.removeEventListener(type, onRowGesture, true);
+    document.removeEventListener("scroll", onScroll, true);
+    for (const type of ["wheel", "keydown", "pointerdown"]) document.removeEventListener(type, rememberScroll, true);
+    clearScrolling();
     listening = false;
     anchor = undefined;
     handledPointer = false;
@@ -123,6 +168,8 @@
     if (!current.appleMailModeEnabled) return stop();
     if (!listening) {
       for (const type of gestureEvents) document.addEventListener(type, onRowGesture, true);
+      document.addEventListener("scroll", onScroll, scrollOptions);
+      for (const type of ["wheel", "keydown", "pointerdown"]) document.addEventListener(type, rememberScroll, scrollOptions);
       listening = true;
     }
     // No per-row listeners or ongoing DOM observers. Follow OS changes only

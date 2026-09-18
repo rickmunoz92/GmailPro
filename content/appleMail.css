@@ -335,3 +335,32 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
   width: 20px; height: 20px; fill: none; stroke: currentColor;
   stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: none !important;
 }
+
+/* Fixed-size transparent tracks avoid layout jumps. Activity belongs to each
+   pane and axis; hovering or scrolling another pane never reveals a thumb. */
+html.gmail-pro-apple-mail-mode .nH:has(> [role="main"]) {
+  border-radius: 0 !important;
+  background: var(--gp-bg-primary) !important;
+}
+@scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *)) to (.a3s, [contenteditable], [role="dialog"]) {
+  :scope {
+    scrollbar-color: auto !important;
+    scrollbar-width: auto !important;
+  }
+  :scope::-webkit-scrollbar {
+    width: 8px; height: 8px; background: transparent;
+  }
+  :scope::-webkit-scrollbar-thumb {
+    background: transparent !important;
+    border: 2px solid transparent; background-clip: padding-box !important;
+    border-radius: 8px; box-shadow: none !important;
+  }
+  :scope::-webkit-scrollbar-track {
+    background: transparent !important; border: 0 !important; box-shadow: none !important;
+  }
+  :scope::-webkit-scrollbar-corner {
+    background: var(--gp-bg-primary) !important; border: 0 !important;
+  }
+  :scope[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  :scope[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical { background-color: var(--gp-text-muted) !important; }
+}

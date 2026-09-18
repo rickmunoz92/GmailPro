@@ -358,8 +358,8 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   f.context.matchMedia = () => media;
   const gestures = new Map();
   f.context.document = { documentElement: null,
-    addEventListener(type, fn, capture) { assert.equal(capture, true); assert.ok(!gestures.has(type)); gestures.set(type, fn); },
-    removeEventListener(type, fn, capture) { assert.equal(capture, true); if (gestures.has(type)) assert.equal(gestures.get(type), fn); gestures.delete(type); }
+    addEventListener(type, fn, options) { assert.equal(typeof options === "object" ? options.capture : options, true); const entries = gestures.get(type) || new Set(); assert.ok(!entries.has(fn)); entries.add(fn); gestures.set(type, entries); },
+    removeEventListener(type, fn, capture) { assert.equal(capture, true); const entries = gestures.get(type); entries?.delete(fn); if (!entries?.size) gestures.delete(type); }
   };
   f.context.MutationObserver = class {
     constructor(fn) { deliver = fn; }
@@ -373,7 +373,7 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   assert.equal(watches, 0);
   feature.update({ appleMailModeEnabled: true, appearanceTheme: "system", accentColor: "yellow" });
   feature.update({ autoBccEnabled: true });
-  assert.equal(gestures.size, 4);
+  assert.equal(gestures.size, 7);
   assert.equal(watches, 1); assert.equal(listeners.size, 1);
   f.context.document.documentElement = rootElement; deliver();
   assert.equal(disconnects, 1); assert.equal(rootElement.dataset.gpTheme, "light");

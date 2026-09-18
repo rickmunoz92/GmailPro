@@ -60,6 +60,9 @@ widths. The expanded mailbox sidebar is about 216px on wide desktop windows; nar
 windows and collapsed navigation retain Gmail's sizing. Header geometry stays native
 so Gmail's measured scrolling regions remain correct.
 
+- **Scrollbars:** Gmail pane thumbs appear only on the axis that moves and hide
+  after 700ms idle. Tracks keep a stable size, with a square, theme-colored corner.
+  Message/editor content retains its native scrolling and formatting.
 - **Unread:** Gmail's `.zE` state displays a 6px accent dot aligned with the sender line and
   identical text styling for read and unread messages: bold senders with regular
   subjects/dates in compact, approximately 46px rows. The dot

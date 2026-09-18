@@ -48,6 +48,38 @@
     feature.stop(); assert(css(node).display === "flex" && css(node).backgroundColor === baseline && workspace.innerHTML === html, "exact restoration");
     assert(!root.hasAttribute("data-gp-theme") && !root.hasAttribute("data-gp-accent"), "root cleaned");
   });
+  await test("scroll indicators follow actual movement per pane and axis, then hide", async () => {
+    const pane=document.createElement('div'); pane.className='Nu';
+    pane.style.cssText='width:160px;height:100px;overflow:scroll';
+    pane.innerHTML='<div style="width:500px;height:500px"></div>'; workspace.append(pane);
+    const other=pane.cloneNode(true); workspace.append(other); enable();
+    const size=[pane.clientWidth,pane.clientHeight].join(',');
+    const mark=axis=>pane.hasAttribute('data-gp-scroll-'+axis);
+    pane.dispatchEvent(new WheelEvent('wheel',{deltaY:50,bubbles:true}));
+    assert(!mark('x')&&!mark('y'),'wheel intent alone does not show bars');
+    pane.scrollTop=50; pane.dispatchEvent(new Event('scroll'));
+    assert(mark('y')&&!mark('x')&&!other.hasAttribute('data-gp-scroll-y'),'vertical movement only reveals this pane');
+    await new Promise(resolve=>setTimeout(resolve,750));
+    assert(!mark('y'),'vertical thumb hides after idle');
+    pane.dispatchEvent(new WheelEvent('wheel',{deltaX:50,bubbles:true}));
+    pane.scrollLeft=50; pane.dispatchEvent(new Event('scroll'));
+    assert(mark('x')&&!mark('y'),'horizontal movement reveals only horizontal thumb');
+    assert([pane.clientWidth,pane.clientHeight].join(',')===size,'no layout change while showing bars');
+    feature.stop(); assert(!mark('x')&&!mark('y'),'OFF clears active attributes and timers');
+    pane.scrollTop=80; pane.dispatchEvent(new Event('scroll'));
+    assert(!mark('y'),'OFF no longer tracks scrolling');
+  });
+  await test("scroll styling keeps the corner square and ignores authored bodies/editors", () => {
+    const shell=document.createElement('div'); shell.className='nH'; shell.style.borderRadius='16px';
+    const main=document.createElement('div'); main.setAttribute('role','main'); shell.append(main); workspace.append(shell);
+    enable(); assert(css(shell).borderRadius==='0px','outer reading corner square');
+    for (const container of [document.querySelector('.a3s'), document.querySelector('[contenteditable]')]) {
+      const fake=document.createElement('div'); fake.className='Nu'; container.append(fake);
+      fake.dispatchEvent(new Event('scroll'));
+      assert(!fake.hasAttribute('data-gp-scroll-y')&&getComputedStyle(fake,'::-webkit-scrollbar').width!=='8px','authored scroller untouched'); fake.remove();
+    }
+    feature.stop(); assert(css(shell).borderRadius==='16px','native corner restored');
+  });
   await test("native unread class changes only the dot, not text or background", () => {
     const node = row(); enable(); const bg = css(node).backgroundColor;
     const textStyle = () => [".sender", ".bqe", ".xW span"].map(selector => { const style = css(node.querySelector(selector)); return [style.color, style.fontWeight]; });
