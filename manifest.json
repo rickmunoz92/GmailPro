@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "0.5.0",
-  "description": "Power-user enhancements for Gmail: Auto BCC, newest-first conversations, two-line message lists, and custom label ordering.",
+  "version": "0.6.0",
+  "description": "Power-user enhancements for Gmail: Auto BCC, newest-first conversations, two-line message lists, custom label ordering, and message-only zoom.",
   "permissions": [
     "storage"
   ],
@@ -32,6 +32,7 @@
         "content/reverseThreads.js",
         "content/messageList.js",
         "content/labelOrder.js",
+        "content/messageZoom.js",
         "content/content.js"
       ],
       "run_at": "document_start",
@@ -39,7 +40,8 @@
       "css": [
         "content/reverseThreads.css",
         "content/messageList.css",
-        "content/labelOrder.css"
+        "content/labelOrder.css",
+        "content/messageZoom.css"
       ]
     },
     {

@@ -1,0 +1,21 @@
+/* Structural contract mirrored by selectors.readingBody. Never zoom envelopes,
+   headers, pane containers, attachments, or inline/pop-out compose editors.
+   CSS automatically covers new messages and expanded messages without observing
+   Gmail's SPA. At 100% (and when disabled), all native body styles apply. */
+html.gmail-pro-message-zoom [role="main"]:has(h2[data-thread-perm-id][data-legacy-thread-id])
+[role="list"] [role="listitem"][aria-expanded="true"]
+[data-message-id][data-legacy-message-id] .ii > .a3s:not(
+  [contenteditable]:not([contenteditable="false"]),
+  [contenteditable]:not([contenteditable="false"]) *,
+  [role="dialog"] *,
+  :has([contenteditable]:not([contenteditable="false"]))
+) {
+  zoom: var(--gmail-pro-message-zoom);
+  /* Auto width reflows within the original pane. Contain intrinsic inline size
+     so fixed-width HTML cannot expand the pane/list; scroll only that message
+     when its table/image cannot wrap. No transform or sender-format rewriting. */
+  contain: inline-size;
+  min-inline-size: 0;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}

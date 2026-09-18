@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Gmail Pro — Message zoom checks</title>
+<link rel="stylesheet" href="../content/messageZoom.css">
+<link rel="stylesheet" href="../content/reverseThreads.css">
+<link rel="stylesheet" href="../content/messageList.css">
+<style>
+body { font:14px/1.4 system-ui; margin:24px; } #workspace { display:flex; width:900px; max-width:100%; }
+#sidebar { width:140px; flex:none; } #main { display:flex; flex:1; min-width:0; }
+#message-list { width:180px; flex:none; } #pane { flex:1; min-width:0; }
+header, .attachments, .reply { padding:8px; background:#eee; }
+.a3s { font:14px/1.4 Arial; } #results { white-space:pre-wrap; } #events { white-space:pre-wrap; }
+</style>
+<h1>Message-only zoom checks</h1>
+<p>Synthetic content only; no email can be sent. After checks, click message text and try ⌘+, ⌘−, ⌘0.</p>
+<label>Search <input id="search" type="search"></label>
+<button id="toggle">Toggle message zoom</button><button id="empty">Toggle open thread</button>
+<button id="width">Toggle narrow pane</button><button id="run">Run checks again</button>
+<pre id="results">Running…</pre>
+<div id="workspace"></div>
+<pre id="events">Trusted key events:</pre>
+<script src="popup.storage.js"></script>
+<script src="../shared/debug.js"></script>
+<script src="../shared/settings.js"></script>
+<script src="../content/gmailSelectors.js"></script>
+<script src="../content/reverseThreads.js"></script>
+<script src="../content/messageList.js"></script>
+<script src="../content/messageZoom.js"></script>
+<script src="messageZoom.browser.js"></script>

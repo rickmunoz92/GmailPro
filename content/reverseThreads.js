@@ -10,6 +10,8 @@
   let bootstrapTimer;
   const attributes = ["role", "aria-expanded", "tabindex", "jsaction", "style", "data-gmail-pro-thread-order"];
   let enabled = false;
+  let reverseEnabled = false;
+  const conversationListeners = new Set();
   let discovery;
   const marker = "data-gmail-pro-thread-order";
 
@@ -22,6 +24,21 @@
       if (parent.matches(S.main)) break;
     }
     return null;
+  }
+
+  // One SPA discovery owner for ordering and temporary message zoom. Consumers
+  // receive only the currently visible thread identity; never body/header text.
+  function notifyConversation() {
+    if (!conversationListeners.size) return;
+    const headings = new Set();
+    for (const state of active.values()) {
+      const heading = headerFor(state.list);
+      if (heading && state.list.isConnected && heading.checkVisibility({ visibilityProperty: true }) &&
+          !heading.closest('[aria-hidden="true"], [inert]')) headings.add(heading);
+    }
+    const heading = headings.size === 1 ? [...headings][0] : null;
+    const identity = heading?.getAttribute("data-thread-perm-id") || null;
+    for (const listener of conversationListeners) listener(identity);
   }
 
   function ordering(list) {
@@ -113,6 +130,9 @@
     for (const node of state.list.children) {
       state.observer.observe(node, { childList: true, attributes: true, attributeFilter: attributes });
     }
+    const heading = headerFor(state.list);
+    if (heading) state.observer.observe(heading, { attributes: true,
+      attributeFilter: ["data-thread-perm-id", "data-legacy-thread-id", "hidden", "style", "aria-hidden"] });
     // No observation inside message bodies, attachments, or compose editors.
   }
 
@@ -141,6 +161,7 @@
       for (const node of state.styles.keys()) {
         if (node !== state.list && node.parentElement !== state.list) restoreNode(state, node);
       }
+      if (!reverseEnabled) return restore(state);
       if (plan.messages.length < 2) return restore(state);
       if (plan.children.length === state.originalOrder.length &&
           plan.children.every((node, i) => node === state.originalOrder[i]) &&
@@ -192,6 +213,7 @@
       app.debug.log("thread-selector-failure");
     } finally {
       if (enabled && active.has(state.list)) observeThread(state);
+      notifyConversation();
     }
   }
 
@@ -256,6 +278,7 @@
     }
     pendingRoots.clear();
     watchSpines();
+    notifyConversation();
   }
 
   function queue(mutations) {
@@ -296,7 +319,8 @@
     if (event.target instanceof Element && event.target.closest(S.threadRow)?.closest(S.main)) navigation();
   }
 
-  function stop() {
+  function stopDiscovery() {
+    if (!enabled) return;
     enabled = false;
     discovery?.disconnect();
     bootstrap?.disconnect();
@@ -311,9 +335,8 @@
     pendingRoots.clear();
   }
 
-  function update(patch = {}) {
-    if (!Object.hasOwn(patch, "newestEmailFirstEnabled") || !!patch.newestEmailFirstEnabled === enabled) return;
-    if (!patch.newestEmailFirstEnabled) return stop();
+  function startDiscovery() {
+    if (enabled) return;
     enabled = true;
     discovery = new MutationObserver(queue);
     bootstrap = new MutationObserver(queue);
@@ -326,5 +349,26 @@
     watchSpines();
   }
 
-  app.reverseThreads = Object.freeze({ implemented: true, start: update, update, stop });
+  function update(patch = {}) {
+    if (!Object.hasOwn(patch, "newestEmailFirstEnabled")) return;
+    reverseEnabled = !!patch.newestEmailFirstEnabled;
+    if (reverseEnabled || conversationListeners.size) {
+      startDiscovery();
+      for (const state of active.values()) apply(state);
+    } else stopDiscovery();
+  }
+
+  function stop() { update({ newestEmailFirstEnabled: false }); }
+
+  function subscribeConversation(listener) {
+    conversationListeners.add(listener);
+    startDiscovery();
+    notifyConversation();
+    return () => {
+      conversationListeners.delete(listener);
+      if (!reverseEnabled && !conversationListeners.size) stopDiscovery();
+    };
+  }
+
+  app.reverseThreads = Object.freeze({ implemented: true, start: update, update, stop, subscribeConversation });
 })();

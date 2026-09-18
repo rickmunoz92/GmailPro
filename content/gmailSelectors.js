@@ -43,6 +43,10 @@
     threadMessage: '[data-message-id][data-legacy-message-id]',
     threadItem: 'div[role="listitem"][tabindex="-1"][jsaction][aria-expanded]',
     threadPlaceholder: 'div[tabindex="-1"][jsaction]:not([role]):not([aria-expanded])',
+    // Message zoom's CSS repeats this structural contract. .a3s is the read
+    // body only; .ii excludes compose and the outer message/header/attachments.
+    readingBody: '[role="list"] [role="listitem"][aria-expanded="true"] [data-message-id][data-legacy-message-id] .ii > .a3s',
+    zoomExcluded: 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',
     threadRow: '[role="row"]',
     threadFixed: 'button, [role="button"], [role="toolbar"], [role="region"], h1, h2, h3'
   });

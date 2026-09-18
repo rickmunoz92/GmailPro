@@ -17,6 +17,7 @@
     bccAddress: address,
     newestEmailFirstEnabled: document.getElementById("newest-first"),
     appleMailMessageListEnabled: document.getElementById("apple-mail-list"),
+    messageZoomEnabled: document.getElementById("message-zoom"),
     customLabelOrderEnabled: document.getElementById("custom-label-order")
   };
   let saved = { ...app.settings.defaults };
@@ -31,6 +32,7 @@
       bccAddress: address.value.trim(),
       newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked,
       appleMailMessageListEnabled: controls.appleMailMessageListEnabled.checked,
+      messageZoomEnabled: controls.messageZoomEnabled.checked,
       customLabelOrderEnabled: controls.customLabelOrderEnabled.checked
     };
   }

@@ -89,6 +89,13 @@
     store.failWrite = true; byId("reset-label-order").click(); await settle(); store.failWrite = false;
     assert(byId("save-status").dataset.state === "error" && !byId("settings-fields").disabled, "reset failure recoverable");
   });
+  await test("message zoom toggle saves independently", async () => {
+    edit(byId("message-zoom"), true); await submit();
+    assert(store.values[key("messageZoomEnabled")] === true, "zoom enabled");
+    edit(byId("message-zoom"), false); await submit();
+    assert(store.values[key("messageZoomEnabled")] === false, "zoom disabled");
+    assert(!Object.hasOwn(store.values,key("messageZoom")), "temporary level never stored");
+  });
   await test("popup exit releases its storage subscription", async () => {
     window.dispatchEvent(new Event("pagehide"));
     assert(store.listeners.size === 0, "subscription removed");

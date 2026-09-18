@@ -36,6 +36,7 @@ function fixture(initial = {}) {
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
+  context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
   return { context, run, data, listeners, settings: context.GmailPro.settings,
     get writes() { return writes; }, fail(error) { failure = error; } };
@@ -43,7 +44,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -59,7 +60,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -152,6 +153,9 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let zoomStarted, zoomStops = 0;
+  const zoomPatches = [];
+  f.context.GmailPro.messageZoom = { start: value => { zoomStarted = value; }, update: patch => zoomPatches.push(plain(patch)), stop: () => zoomStops++ };
   let listStarted;
   let listStops = 0;
   const listPatches = [];
@@ -175,13 +179,15 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(plain(reverseStarted), plain(started));
   assert.equal(listStarted.appleMailMessageListEnabled, true);
   assert.deepEqual(plain(listStarted), plain(started));
+  assert.deepEqual(plain(zoomStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
   [...f.listeners][0]({ [prefix + "newestEmailFirstEnabled"]: { newValue: true } }, "sync");
   assert.deepEqual(reversePatches, [{ bccAddress: "next@example.com" }, { newestEmailFirstEnabled: true }]);
   assert.deepEqual(listPatches, reversePatches);
-  pagehide(); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
+  assert.deepEqual(zoomPatches, reversePatches);
+  pagehide(); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {
@@ -298,4 +304,14 @@ test("label order validates, deduplicates, preserves other settings and handles 
   assert.deepEqual(plain((await f.settings.load()).customLabelOrder), []);
   const malformed = fixture({ [prefix + "customLabelOrder"]: ["inbox"] });
   assert.deepEqual(plain((await malformed.settings.load()).customLabelOrder), []);
+});
+
+
+test("message zoom toggle round-trips independently; temporary levels are not stored", async () => {
+  const f = fixture({ [prefix + "autoBccEnabled"]: true });
+  await f.settings.save({ messageZoomEnabled: true });
+  assert.equal((await f.settings.load()).messageZoomEnabled, true);
+  assert.equal((await f.settings.load()).autoBccEnabled, true);
+  await assert.rejects(f.settings.save({messageZoom:125}));
+  await assert.rejects(f.settings.save({messageZoomEnabled:"true"}));
 });

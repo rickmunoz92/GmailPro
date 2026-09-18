@@ -16,6 +16,8 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Apple Mail-style Message List:** displays Gmail messages using a cleaner
   two-line sender/subject layout optimized for readability, especially beside
   the reading pane. Labels, attachments, selection and native controls stay available.
+- **Message-only Zoom:** enlarge or reduce message content with ⌘+, ⌘−, and ⌘0
+  without scaling Gmail’s interface. Resets to 100% for each new conversation.
 - **Custom Label Order:** choose the visual order of custom Gmail labels without
   renaming or modifying those labels in Gmail.
 
@@ -83,6 +85,50 @@ polling, layout reads, event interception or ongoing MutationObservers. If start
 precedes `<html>`, a one-shot observer watches only the document's direct children
 and disconnects as soon as that element exists. Colors and fonts remain Gmail's,
 including existing dark themes; this feature does not implement a dark mode.
+
+### Message-only Zoom
+
+Under **READING**, turn on **Message-only zoom** and save preferences. While reading
+an open conversation, use **Command +** (or **Command =**) to enlarge its content,
+**Command −** to reduce it, and **Command 0** to reset to 100%. Supported levels are
+**80%, 90%, 100%, 110%, 125%, 150%, 175%, and 200%**, clamped at either end.
+
+Zoom is temporary for the current conversation. **Opening another conversation,
+leaving it, refreshing Gmail, or disabling the feature resets it to 100%.** Expanding
+another email within the same conversation keeps the current level, consistently
+across all expanded bodies. Only the on/off preference is saved in `chrome.storage.sync`
+(`gmailPro.v1.messageZoomEnabled`); the level is never stored or synchronized.
+
+The feature applies layout-aware [CSS `zoom`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/zoom)
+to `.ii > .a3s` message bodies inside expanded, identified message envelopes in the
+conversation list under `role="main"`. It does not zoom the sender header, attachments,
+reply controls, toolbar, message list, sidebar, or reading-pane container. Text reflows;
+fixed-width tables or images that cannot fit scroll inside their message body instead
+of expanding the pane. Nodes, links, images, message HTML, selection, and native
+handlers are preserved. At 100% all native body styles are restored.
+
+A capture-phase `keydown` handler checks `metaKey`, modern `key` values, cancelability,
+visible conversation structure, and focus. It calls `preventDefault()` only for the
+three recognized reading shortcuts; it does not stop propagation. Search, inputs,
+editable controls, compose editors, extension controls, visible menus/dialogs,
+ambiguous contexts, and pages with no open message retain their existing behavior.
+No outgoing font formatting or compose visual zoom is implemented. With the switch
+off, Gmail Pro installs no zoom keyboard handler.
+
+The existing thread-discovery observer also reports conversation identity changes
+for resetting zoom, independently of whether Newest Email First is enabled. There
+is no second broad observer, polling, or observation within message bodies. CSS
+covers message insertion/expansion. A one-shot document-start observer is used only
+if `<html>` does not exist yet. Temporary discovery watches disconnect after the
+existing bootstrap window; idle pages do not run timers repeatedly.
+
+Native macOS shortcuts were verified in Chrome **153.0.8010.48** on macOS **26.6.2**,
+including the installed Gmail app window and full conversation view. Local reading
+zoom kept Chrome page zoom at 100%; Inbox/search and feature-off cases retained
+Chrome’s zoom. No extension-command fallback was needed. Browser menus, trackpad
+zoom, other browsers, non-US keyboard layouts, competing extensions, and future
+Gmail/Chrome changes are not covered by that guarantee. Existing browser zoom is
+never forcibly reset. See [message zoom QA](tests/messageZoom-QA.md).
 
 ### Custom Label Order
 
@@ -182,6 +228,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/popup.html`
 - `http://127.0.0.1:8765/tests/messageList.html`
 - `http://127.0.0.1:8765/tests/labelOrder.html`
+- `http://127.0.0.1:8765/tests/messageZoom.html`
 
 The fixtures use synthetic messages and addresses; they cannot send email. The popup
 fixture serves the actual popup with a test-only Chrome storage adapter. This server
@@ -201,7 +248,8 @@ the checks intentionally limited to synthetic data.
 ### Structure and maintenance
 
 - `content/autoBcc.js`: per-composition detection, insertion, and removal state.
-- `content/reverseThreads.js` and `.css`: validated, reversible visual ordering.
+- `content/reverseThreads.js` and `.css`: shared conversation discovery and reversible visual ordering.
+- `content/messageZoom.js` and `.css`: scoped reading magnification, shortcut guards, and per-conversation reset.
 - `content/messageList.js` and `.css`: one preference class and scoped two-line layout.
 - `content/labelOrder.js` and `.css`: reversible custom-label visual ordering and edit handles.
 - `content/gmailSelectors.js`: centralized JavaScript selectors; points to the

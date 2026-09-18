@@ -16,6 +16,7 @@
       if (idle) app.autoBcc.update(patch);
       app.reverseThreads.update(patch);
       app.messageList.update(patch);
+      app.messageZoom.update(patch);
       app.labelOrder.update(patch);
     }
   });
@@ -30,6 +31,7 @@
     if (idle) app.autoBcc.stop();
     app.reverseThreads.stop();
     app.messageList.stop();
+    app.messageZoom.stop();
     app.labelOrder.stop();
   }, { once: true });
   app.settings.load().then(settings => {
@@ -38,6 +40,7 @@
     if (idle) app.autoBcc.start(current);
     app.reverseThreads.start(current);
     app.messageList.start(current);
+    app.messageZoom.start(current);
     app.labelOrder.start(current);
     changes = {};
     loaded = true;
