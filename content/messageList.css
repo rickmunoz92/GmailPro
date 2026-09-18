@@ -72,6 +72,8 @@
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) {
     grid-area: 2 / 5 / 3 / -1;
     width: auto !important;
+    /* Gmail's narrow reading pane otherwise adds a second control-column indent. */
+    margin: 0 !important;
     padding: 0 !important;
     overflow: hidden;
   }

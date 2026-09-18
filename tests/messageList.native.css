@@ -12,6 +12,8 @@ table[role="grid"], tbody { display: block; width: 100%; }
 .zA > .apU, .zA > .WA { width: 20px; padding-right: 10px; }
 .zA > .yX { width: 168px; max-width: 168px; flex: 0 0 168px; padding-right: 32px; }
 .zA > .a4W { flex: 1 1 auto; padding-right: 10px; }
+/* Gmail applies this subject-cell indent in its narrow reading-pane mode. */
+.native-narrow .zA > .a4W { margin: 0 8px 0 46px; }
 .yW, .xT, .y6 { display: flex; overflow: hidden; white-space: nowrap; }
 .yW { flex: 1 1 auto; align-items: baseline; }
 .yW > .bA4, .bog { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

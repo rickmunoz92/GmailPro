@@ -65,7 +65,7 @@
     try { await run(); reports.push(`PASS ${name}`); }
     catch (error) { reports.push(`FAIL ${name}: ${error.message}`); }
     feature.stop(); workspace().replaceChildren(); workspace().style.width = "";
-    workspace().classList.remove("dark"); workspace().removeAttribute("dir");
+    workspace().classList.remove("dark", "native-narrow"); workspace().removeAttribute("dir");
     result.textContent = reports.join("\n");
   }
 
@@ -80,6 +80,17 @@
     const subject = node.querySelector(".bog");
     assert(css(subject).textOverflow === "ellipsis" && subject.scrollWidth > subject.clientWidth, "long subject truncates");
     assert(node.querySelector(".bA4").scrollWidth > node.querySelector(".bA4").clientWidth, "long sender constrained");
+  });
+  await test("resizing into Gmail's narrow mode keeps the subject aligned", () => {
+    const node = row(); enable();
+    for (const width of [680, 440, 320, 680]) {
+      workspace().style.width = `${width}px`;
+      workspace().classList.toggle("native-narrow", width < 500);
+      geometry(node);
+      assert(Math.abs(rect(node.querySelector(".bog")).left - rect(node.querySelector(".yW")).left) < 1, "visible subject and sender aligned");
+    }
+    workspace().classList.add("native-narrow"); feature.stop();
+    assert(css(node.querySelector(".a4W")).marginLeft === "46px", "native narrow indent restored when disabled");
   });
   await test("read and unread weights track native state changes", () => {
     const node = row(); enable();
