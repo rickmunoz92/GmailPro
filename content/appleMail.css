@@ -9,6 +9,7 @@
    Scope limits explicitly exclude read bodies and editable document content. */
 @scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable="true"]) {
   body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
+  .nH:has(> [role="main"]) { border-radius: 0 !important; background: var(--gp-bg-primary) !important; }
   [role="banner"], [role="navigation"], [role="main"], :is(.AO, .aeF, .bkK):has([role="main"]), [gh="tm"], [gh="tl"],
   [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY, .ao9, .aia) {
     background: var(--gp-bg-primary) !important;
@@ -338,10 +339,6 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
 
 /* Fixed-size transparent tracks avoid layout jumps. Activity belongs to each
    pane and axis; hovering or scrolling another pane never reveals a thumb. */
-html.gmail-pro-apple-mail-mode .nH:has(> [role="main"]) {
-  border-radius: 0 !important;
-  background: var(--gp-bg-primary) !important;
-}
 @scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *)) to (.a3s, [contenteditable], [role="dialog"]) {
   :scope {
     scrollbar-color: auto !important;
