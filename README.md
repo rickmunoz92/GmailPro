@@ -89,7 +89,9 @@ for that native command. The extension does not change that account preference.
 Row clicks, message content, controls, footers and modified blank clicks remain
 native. The dedicated top-center label-loading banner is hidden; alert/Undo toasts
 remain visible. Both changes apply only while Apple Mail Mode is enabled.
-There are no per-row listeners, polling, message parsing, or ongoing DOM observers.
+The root/row appearance controller has no per-row listeners, polling, message
+parsing, or ongoing DOM observers. Reading-pane actions use the separate narrow
+chrome observation described below.
 A one-shot observer handles document-start before `<html>` exists; a media-query
 listener runs only for Follow system. Disabling/page exit removes all listeners,
 root styling, and the temporary range anchor.

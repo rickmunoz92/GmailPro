@@ -95,3 +95,22 @@ reply/forward draft or reaction was created by the new feature in live Gmail, an
 no email was sent. Do not interpret synthetic delegation tests as live validation.
 The files are installed locally; reload Gmail Pro in Chrome Extensions and refresh
 Gmail after unlocking before following the manual checklist above.
+
+
+## Changed files and delivery
+
+- `content/appleMail.css`: scoped reading layout and toolbar presentation.
+- `content/readingPane.js`: native action delegation and chrome lifecycle.
+- `content/gmailSelectors.js`: centralized native-action selectors.
+- `content/reverseThreads.js`: shared current-conversation accessor.
+- `content/content.js`: start/update/stop integration.
+- `manifest.json`: version 0.9.0 and bundled module registration.
+- `tests/readingPane.html`, `tests/readingPane.fixture.css`,
+  `tests/readingPane.browser.js`: regression and visual/keyboard fixtures.
+- `tests/settings.test.cjs`: coordinator lifecycle regression.
+- `README.md` and this report: behavior, DOM assumptions and validation limits.
+
+Feature commit: `0dc83a3` — `feat: refine reading pane and add persistent message actions`.
+Hardening commit: `0569ec3` — `fix: preserve native actions during toolbar changes`.
+Both were pushed to the existing GitHub origin on `codex/apple-mail-mode`, without
+force-pushing. The final documentation update follows on that same branch.
