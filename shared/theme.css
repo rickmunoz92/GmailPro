@@ -28,9 +28,9 @@
   --gp-bg-primary: #23292B;
   --gp-bg-secondary: var(--gp-bg-primary);
   --gp-bg-tertiary: #303236;
-  --gp-text-primary: #f1f2f4;
-  --gp-text-secondary: #c4c6cc;
-  --gp-text-muted: #a4a8b0;
+  --gp-text-primary: #DEE0E2;
+  --gp-text-secondary: var(--gp-text-primary);
+  --gp-text-muted: var(--gp-text-primary);
   --gp-border: #3b3d42;
   --gp-hover: #34363b;
   --gp-selection-sidebar-bg: #3c3e43;

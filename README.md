@@ -126,7 +126,8 @@ Compose title chrome is styled; the editable message, its formatting, addressing
 and outgoing HTML are untouched. The composer may therefore retain a light editor.
 Gmail Pro cannot recolor Chrome's own tab/address bars or a separate window's frame.
 
-Dark main surfaces, sidebar, and toolbar use `#23292B`. Conversation-list stars and
+Dark main surfaces, sidebar, and toolbar use `#23292B`, with neutral interface text
+in `#DEE0E2`. Accent labels and selected-row foregrounds retain their own colors. Conversation-list stars and
 importance chevrons are hidden in this mode, without changing their Gmail state or
 reading-pane actions. Label/conversation hover backgrounds and pointer-following row
 outlines are suppressed, including the row focus outline that Gmail can retain
