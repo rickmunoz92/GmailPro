@@ -6,6 +6,8 @@
   // Verified with Gmail's English desktop UI, September 2026. No generated
   // classes. The form owns addressing but NOT the editable message body.
   // Accessible names are localized; unknown layouts/locales fail closed.
+  // Message-list layout needs no JS discovery: its structural gate and Gmail
+  // presentation hooks are centralized/documented in content/messageList.css.
   app.selectors = Object.freeze({
     main: '[role="main"]',
     form: 'form',

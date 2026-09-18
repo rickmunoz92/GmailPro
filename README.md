@@ -13,8 +13,11 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Newest Email First:** show the newest message at the top of an opened Gmail
   conversation. This changes presentation only; it does not sort the Inbox or
   change Gmail's stored messages.
+- **Apple Mail-style Message List:** displays Gmail messages using a cleaner
+  two-line sender/subject layout optimized for readability, especially beside
+  the reading pane. Labels, attachments, selection and native controls stay available.
 
-Both features are off by default. Open the extension popup, choose your settings,
+All features are off by default. Open the extension popup, choose your settings,
 and select **Save preferences**.
 
 ## Installation
@@ -56,6 +59,28 @@ Complete wrappers keep their sender details, attachments, message controls, and
 inline composers. Message nodes are never moved or cloned; timestamps and server-side
 conversation data are unchanged. No threads are prefetched, opened in the background,
 or downloaded by the extension.
+
+### Apple Mail-style Message List
+
+Under **MESSAGE LIST**, enable **Apple Mail-style message list** and select
+**Save preferences**. Sender and date appear on the first line; labels and the
+actual subject appear on the second. Known snippet elements are hidden visually,
+with their DOM and preview data preserved. Long text truncates with an ellipsis.
+Rows are approximately 56px tall, and Gmail continues to control unread weights,
+selected backgrounds, stars, importance, attachment indicators and hover actions.
+
+This is a CSS Grid presentation of Gmail's existing cells, not a replacement inbox.
+No messages or cells are moved, cloned, parsed or rewritten. The shared settings
+adapter stores `gmailPro.v1.appleMailMessageListEnabled` in `chrome.storage.sync`.
+Turning it off and saving restores the native appearance immediately, without a
+Gmail refresh. Auto BCC and Newest Email First remain independent.
+
+JavaScript toggles one extension-owned class on `<html>`. Persistent CSS handles
+Gmail navigation and inserted/replaced rows automatically. There are no row scans,
+polling, layout reads, event interception or ongoing MutationObservers. If startup
+precedes `<html>`, a one-shot observer watches only the document's direct children
+and disconnects as soon as that element exists. Colors and fonts remain Gmail's,
+including existing dark themes; this feature does not implement a dark mode.
 
 ## Privacy
 
@@ -108,6 +133,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/autoBcc.html`
 - `http://127.0.0.1:8765/tests/reverseThreads.html`
 - `http://127.0.0.1:8765/tests/popup.html`
+- `http://127.0.0.1:8765/tests/messageList.html`
 
 The fixtures use synthetic messages and addresses; they cannot send email. The popup
 fixture serves the actual popup with a test-only Chrome storage adapter. This server
@@ -118,12 +144,19 @@ The regression suites cover duplicate prevention, manual removal, simultaneous
 drafts, settings races, focus, SPA navigation, first-frame ordering, collapsed groups,
 attachments, restoration, and observer cleanup, including threads with 500 synthetic
 messages. Passing fixtures is not a guarantee of compatibility with every Gmail UI.
+The message-list suite checks narrow/wide layouts, native state, labels, ellipsis,
+hover spacing, handlers, SPA replacement, restoration and CSS boundaries. Auto BCC
+and thread-ordering fixtures also run with the message-list feature enabled.
+See the [recorded message-list QA](tests/messageList-QA.md) for live coverage and
+the checks intentionally limited to synthetic data.
 
 ### Structure and maintenance
 
 - `content/autoBcc.js`: per-composition detection, insertion, and removal state.
 - `content/reverseThreads.js` and `.css`: validated, reversible visual ordering.
-- `content/gmailSelectors.js`: centralized Gmail selectors.
+- `content/messageList.js` and `.css`: one preference class and scoped two-line layout.
+- `content/gmailSelectors.js`: centralized JavaScript selectors; points to the
+  CSS-only message-list selector contract in `content/messageList.css`.
 - `content/content.js`: one settings subscription and shared lifecycle, started early.
 - `content/autoBccStart.js`: preserves Auto BCC's `document_idle` startup.
 - `shared/settings.js`: the sole preference adapter; no parallel preference store.
@@ -139,9 +172,9 @@ only lifecycle codes; restore `DEBUG = false` before committing.
 ## Gmail DOM compatibility and known limitations
 
 Gmail's DOM is not a public API. The current implementation targets the English
-desktop interface and relies on accessibility attributes and structural relationships,
-not generated CSS class names. Unknown recipient labels or ambiguous layouts fail
-closed rather than guessing.
+desktop interface. Composition and conversation discovery rely on accessibility
+attributes and structural relationships. Unknown recipient labels or ambiguous
+conversation layouts fail closed rather than guessing.
 
 Composition discovery uses addressing forms, `composeid` markers, labeled recipient
 comboboxes, and recipient chips. Conversation discovery uses the thread heading,
@@ -149,6 +182,17 @@ a nearby message list, and complete message envelopes. Collapsed message slots m
 retain the structural attributes shared with their neighboring messages. Header and
 thread toolbar elements must remain outside the message list. Recheck these assumptions
 when Gmail changes.
+
+The message list uses a structural CSS gate: a table with `role="grid"` inside
+`role="main"`, native rows/cells, a checkbox, a subject link containing
+`data-thread-id`, a sender cell and a timestamp with a title. Opened message bodies
+are excluded. Gmail does not expose semantic roles for subject, snippet or labels,
+so the scoped stylesheet also depends on documented presentation hooks: `.yX/.yW`
+(senders), `.xS/.xT/.y6/.bog` (subject), `.y2` (snippet), `.yi` (labels), `.yf`
+(indicators), `.byZ` (extra metadata), `.xW` (date) and the native toolbar role.
+These hooks are centralized in that stylesheet, never scattered across scripts.
+Recheck them when Gmail changes. If the structural gate no longer matches, the row
+keeps Gmail's normal layout. Unknown snippet markup is retained rather than parsed.
 
 Additional limits:
 
@@ -168,6 +212,15 @@ Additional limits:
 - Other recipient or thread-ordering extensions may conflict. Existing competing
   layout styles are left alone. Full-thread view, attachment interactions, keyboard
   shortcuts, and assistive technology deserve additional live QA.
+- The two-line stylesheet uses CSS `@scope` (Chrome 118+); older browsers retain
+  native rows. It targets desktop message tables, not mobile/basic HTML Gmail.
+- Gmail still abbreviates conversation participants and labels in its own DOM;
+  the extension does not reconstruct full names. Long label groups share at most
+  45% of the second line and retain native tooltips. Native attachment previews or
+  additional metadata may make a row taller than 56px.
+- CSS preserves DOM/focus order and event handlers, but this is not a complete
+  screen-reader certification. Gmail redesigns and competing layout extensions
+  can require selector updates.
 
 ## License and affiliation
 

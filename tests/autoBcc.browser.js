@@ -4,6 +4,7 @@
 (async () => {
   "use strict";
   const app = GmailPro;
+  app.messageList.start({ appleMailMessageListEnabled: true });
   const address = "archive@example.com";
   const nextAddress = "next@example.com";
   const result = document.getElementById("results");
@@ -216,6 +217,7 @@
     assert(draft.attempts === 1, "late pane found without polling");
   });
   app.autoBcc.stop();
+  app.messageList.stop();
   const failures = log.filter(line => line.startsWith("FAIL")).length;
   result.dataset.failures = String(failures);
   result.dataset.complete = "true";

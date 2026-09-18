@@ -15,7 +15,8 @@
   const controls = {
     autoBccEnabled: document.getElementById("auto-bcc"),
     bccAddress: address,
-    newestEmailFirstEnabled: document.getElementById("newest-first")
+    newestEmailFirstEnabled: document.getElementById("newest-first"),
+    appleMailMessageListEnabled: document.getElementById("apple-mail-list")
   };
   let saved = { ...app.settings.defaults };
   let loadingChanges = {};
@@ -27,7 +28,8 @@
     return {
       autoBccEnabled: controls.autoBccEnabled.checked,
       bccAddress: address.value.trim(),
-      newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked
+      newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked,
+      appleMailMessageListEnabled: controls.appleMailMessageListEnabled.checked
     };
   }
 

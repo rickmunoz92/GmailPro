@@ -34,19 +34,20 @@ function fixture(initial = {}) {
   });
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
+  context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
   return { context, run, data, listeners, settings: context.GmailPro.settings,
     get writes() { return writes; }, fail(error) { failure = error; } };
 }
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false });
+  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
 
 test("malformed stored values normalize safely without destructive rewrites", async () => {
-  const initial = { [prefix + "autoBccEnabled"]: "true", [prefix + "bccAddress"]: "not-an-email", [prefix + "newestEmailFirstEnabled"]: 1 };
+  const initial = { [prefix + "autoBccEnabled"]: "true", [prefix + "bccAddress"]: "not-an-email", [prefix + "newestEmailFirstEnabled"]: 1, [prefix + "appleMailMessageListEnabled"]: "true" };
   const f = fixture(initial);
   assert.deepEqual(plain(await f.settings.load()), plain(f.settings.defaults));
   assert.deepEqual(f.data, initial);
@@ -56,7 +57,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true });
+  assert.deepEqual(plain(await f.settings.load()), { autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -149,6 +150,10 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let listStarted;
+  let listStops = 0;
+  const listPatches = [];
+  f.context.GmailPro.messageList = { start: value => { listStarted = value; }, update: patch => listPatches.push(plain(patch)), stop: () => listStops++ };
   let reverseStarted;
   let reverseStops = 0;
   const reversePatches = [];
@@ -159,18 +164,22 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   f.context.window = { addEventListener: (event, callback) => { assert.equal(event, "pagehide"); pagehide = callback; } };
   f.run("content/content.js"); f.run("content/content.js");
   [...f.listeners][0]({ [prefix + "autoBccEnabled"]: { newValue: true } }, "sync");
+  [...f.listeners][0]({ [prefix + "appleMailMessageListEnabled"]: { newValue: true } }, "sync");
   resolveLoad({ ...f.settings.defaults });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(started, undefined, "Auto BCC must wait for document_idle");
   f.run("content/autoBccStart.js"); f.run("content/autoBccStart.js");
   assert.equal(started.autoBccEnabled, true);
   assert.deepEqual(plain(reverseStarted), plain(started));
+  assert.equal(listStarted.appleMailMessageListEnabled, true);
+  assert.deepEqual(plain(listStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
   [...f.listeners][0]({ [prefix + "newestEmailFirstEnabled"]: { newValue: true } }, "sync");
   assert.deepEqual(reversePatches, [{ bccAddress: "next@example.com" }, { newestEmailFirstEnabled: true }]);
-  pagehide(); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
+  assert.deepEqual(listPatches, reversePatches);
+  pagehide(); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {
@@ -227,4 +236,50 @@ for (const idleFirst of [false, true]) test(`early settings owner handles ${idle
   assert.equal(starts.length, 1);
   pagehide(); f.run("content/autoBccStart.js");
   assert.equal(starts.length, 1); assert.equal(f.listeners.size, 0);
+});
+
+test("message-list preference round-trips independently and resets on sync deletion", async () => {
+  const f = fixture({ [prefix + "autoBccEnabled"]: true, [prefix + "newestEmailFirstEnabled"]: true });
+  const patches = [];
+  const stop = f.settings.subscribe(patch => patches.push(plain(patch)));
+  await f.settings.save({ appleMailMessageListEnabled: true });
+  const loaded = await f.settings.load();
+  assert.equal(loaded.appleMailMessageListEnabled, true);
+  assert.equal(loaded.autoBccEnabled, true);
+  assert.equal(loaded.newestEmailFirstEnabled, true);
+  await assert.rejects(f.settings.save({ appleMailMessageListEnabled: "true" }));
+  [...f.listeners][0]({ [prefix + "appleMailMessageListEnabled"]: {} }, "sync");
+  assert.deepEqual(patches, [{ appleMailMessageListEnabled: true }, { appleMailMessageListEnabled: false }]);
+  stop();
+});
+
+for (const cancel of [false, true]) test(`message-list early html bootstrap ${cancel ? "cancels cleanly" : "disconnects after one delivery"}`, () => {
+  let deliver;
+  let observations = 0, disconnects = 0;
+  const classes = new Set();
+  const rootElement = { classList: {
+    toggle: (name, enabled) => enabled ? classes.add(name) : classes.delete(name),
+    remove: name => classes.delete(name)
+  } };
+  const document = { documentElement: null };
+  const context = vm.createContext({ document, MutationObserver: class {
+    constructor(callback) { deliver = callback; }
+    observe(target, options) {
+      assert.equal(target, document); assert.deepEqual(plain(options), { childList: true }); observations++;
+    }
+    disconnect() { disconnects++; }
+  } });
+  const source = fs.readFileSync(path.join(root, "content/messageList.js"), "utf8");
+  vm.runInContext(source, context);
+  const feature = context.GmailPro.messageList;
+  feature.start({ appleMailMessageListEnabled: false });
+  assert.equal(observations, 0);
+  feature.start({ appleMailMessageListEnabled: true }); feature.start({ appleMailMessageListEnabled: true });
+  assert.equal(observations, 1);
+  if (cancel) feature.stop();
+  document.documentElement = rootElement; deliver();
+  assert.equal(classes.has("gmail-pro-message-list"), !cancel);
+  assert.equal(disconnects, 1);
+  vm.runInContext(source, context); assert.equal(context.GmailPro.messageList, feature);
+  feature.stop(); assert.equal(classes.size, 0);
 });

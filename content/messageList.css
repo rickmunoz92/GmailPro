@@ -1,0 +1,148 @@
+/* Message-list selector contract, verified in desktop Gmail September 2026.
+   This is the sole map of Gmail layout selectors for this CSS-only feature;
+   gmailSelectors.js points here rather than duplicating selectors in JavaScript.
+
+   Gate on Gmail's main > grid > row structure, native checkbox, subject link
+   with thread metadata, sender cell and dated cell. Unknown structures retain
+   Gmail's layout. Exclude lookalikes inside opened messages.
+
+   Gmail provides no semantic subject/snippet/label roles. Its presentation hooks:
+   .yX = sender cell, .yW = visible senders; .xS/.xT = subject link/line;
+   .a4X = optional quick-action wrapper; .y6/.bog = subject; .y2 = separate snippet;
+   .yi = labels; .yf = indicators;
+   .byZ = extra metadata; .xW = date; .bq4 = native hover toolbar cell;
+   .PF = drag/selection gutter. Never interpret text, IDs, unread or selected state.
+
+   @scope keeps these hooks local to verified rows. Older browsers without @scope
+   keep the native layout. No colors, backgrounds or font weights are replaced. */
+@scope (html.gmail-pro-message-list [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
+  :scope {
+    display: grid !important;
+    grid-template-columns: 3px auto auto auto minmax(0, 1fr) auto auto auto;
+    grid-template-rows: minmax(22px, auto) minmax(20px, auto);
+    align-items: center;
+    box-sizing: border-box;
+    min-height: 56px;
+    height: auto !important;
+    padding-block: 6px !important;
+    padding-inline: 0 12px !important;
+    row-gap: 2px;
+  }
+
+  :scope > td {
+    box-sizing: border-box;
+    min-width: 0;
+    height: auto !important;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+
+  :scope > .PF { grid-column: 1; align-self: stretch; }
+  :scope > td:has(> [role="checkbox"]) {
+    grid-column: 2;
+    width: 32px !important;
+    padding-inline: 6px !important;
+  }
+  :scope > td:has(> [role="button"]) {
+    grid-column: 3;
+    width: 26px !important;
+    padding-inline: 0 6px !important;
+  }
+  :scope > td:has(> [role="switch"]) {
+    grid-column: 4;
+    width: 26px !important;
+    padding-inline: 0 6px !important;
+  }
+
+  :scope > td.yX[role="gridcell"] {
+    grid-area: 1 / 5 / 2 / 6;
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 8px 0 0 !important;
+    overflow: hidden;
+  }
+  :scope > td.yX > .yW {
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) {
+    grid-area: 2 / 5 / 3 / -1;
+    width: auto !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  :scope > td > .a4X {
+    width: 100%;
+    min-width: 0;
+  }
+  :scope > td [role="link"].xS {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  :scope > td [role="link"] > .xT {
+    display: flex !important;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+  }
+  :scope > td [role="link"] > .xT > .y6 {
+    flex: 1 1 0% !important;
+    min-width: 0;
+    overflow: hidden;
+  }
+  :scope > td [role="link"] .bog {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Hide only a known snippet sibling of the actual subject. Keep its DOM/data. */
+  :scope > td [role="link"] > .xT:has(> .y6 [data-thread-id]) > .y2 {
+    display: none !important;
+  }
+  :scope > td [role="link"] > .xT > .yi {
+    flex: 0 1 auto;
+    max-width: 45%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  :scope > td.byZ[role="gridcell"] {
+    grid-area: 1 / 6 / 2 / 7;
+    padding-inline: 0 6px !important;
+  }
+  :scope > td.yf {
+    grid-area: 1 / 7 / 2 / 8;
+    width: auto !important;
+    max-width: none !important;
+    padding-inline: 0 6px !important;
+  }
+  :scope > td.xW[role="gridcell"] {
+    grid-area: 1 / 8 / 2 / 9;
+    width: auto !important;
+    padding: 0 !important;
+    justify-content: flex-end;
+    white-space: nowrap;
+  }
+  /* Gmail alone controls whether the date or actions are visible. Their shared
+     grid slot reserves actual toolbar width, so neither text line is overlaid. */
+  :scope > td:has(> [role="toolbar"]) {
+    grid-area: 1 / 8 / 2 / 9;
+    position: static !important;
+    width: auto !important;
+    padding: 0 !important;
+    justify-self: end;
+  }
+  :scope > td > [role="toolbar"] {
+    /* The native UL's block margins otherwise enlarge the first grid track. */
+    margin-block: 0 !important;
+  }
+  /* Gmail's empty trailing spacer is not a new grid row. */
+  :scope > td:last-child:empty { grid-area: 1 / 1 / 3 / 2; }
+}

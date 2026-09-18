@@ -11,6 +11,7 @@
   const save = byId("save-button");
   const address = byId("bcc-address");
   const bcc = byId("auto-bcc");
+  const messageList = byId("apple-mail-list");
   const reverse = byId("newest-first");
   const key = name => `gmailPro.v1.${name}`;
   const settle = () => new Promise(resolve => setTimeout(resolve, 20));
@@ -34,7 +35,7 @@
   await test("retry loads safe defaults without writing preferences", async () => {
     store.failRead = false; byId("retry-button").click(); await settle();
     assert(!byId("settings-fields").disabled && save.disabled, "loaded and unchanged");
-    assert(!bcc.checked && !reverse.checked && address.value === "" && store.writes === 0, "safe defaults");
+    assert(!bcc.checked && !reverse.checked && !messageList.checked && address.value === "" && store.writes === 0, "safe defaults");
     assert(store.listeners.size === 1, "one settings listener");
   });
   await test("enabled Auto BCC requires an address", async () => {
@@ -45,10 +46,10 @@
     edit(address, "invalid"); await submit();
     assert(address.getAttribute("aria-invalid") === "true" && store.writes === 0, "invalid address rejected");
   });
-  await test("both features and a trimmed address save through the shared adapter", async () => {
-    edit(address, " archive@example.com "); edit(reverse, true); await submit();
+  await test("all features and a trimmed address save through the shared adapter", async () => {
+    edit(address, " archive@example.com "); edit(reverse, true); edit(messageList, true); await submit();
     const saved = await GmailPro.settings.load();
-    assert(saved.autoBccEnabled && saved.newestEmailFirstEnabled && saved.bccAddress === "archive@example.com", "stored values round trip");
+    assert(saved.autoBccEnabled && saved.newestEmailFirstEnabled && saved.appleMailMessageListEnabled && saved.bccAddress === "archive@example.com", "stored values round trip");
     assert(save.disabled && byId("address-error").hidden, "saved state displayed");
   });
   await test("failed save preserves edits and allows retry", async () => {
@@ -70,6 +71,12 @@
   await test("disabling Auto BCC allows an empty address", async () => {
     edit(bcc, false); edit(address, ""); await submit();
     assert(!store.values[key("autoBccEnabled")] && store.values[key("bccAddress")] === "", "disabled preferences persisted");
+  });
+  await test("message-list toggle saves independently and responds to sync", async () => {
+    edit(messageList, false); await submit();
+    assert(!store.values[key("appleMailMessageListEnabled")] && !store.values[key("autoBccEnabled")], "independent save");
+    store.emit({ [key("appleMailMessageListEnabled")]: true });
+    assert(messageList.checked && save.disabled, "sync renders new preference");
   });
   await test("popup exit releases its storage subscription", async () => {
     window.dispatchEvent(new Event("pagehide"));

@@ -2,6 +2,7 @@
 (async () => {
   "use strict";
   const app = GmailPro;
+  app.messageList.start({ appleMailMessageListEnabled: true });
   const result = document.getElementById("results");
   const reports = [];
   const events = [];
@@ -275,6 +276,7 @@
     app.reverseThreads.stop(); assert(visual(t.list)[0] === t.nodes[0], "disable is synchronous");
   });
   window.MutationObserver = NativeObserver;
+  app.messageList.stop();
   const failures = reports.filter(line => line.startsWith("FAIL")).length;
   result.textContent = `${reports.join("\n")}\n\n${reports.length - failures}/${reports.length} checks passed.`;
   result.dataset.failures = String(failures);

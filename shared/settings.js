@@ -7,14 +7,16 @@
   const defaults = Object.freeze({
     autoBccEnabled: false,
     bccAddress: "",
-    newestEmailFirstEnabled: false
+    newestEmailFirstEnabled: false,
+    appleMailMessageListEnabled: false
   });
   // Independent, versioned keys avoid overwriting unrelated preferences when
   // different extension contexts save changes. Same-key conflicts are last-write-wins.
   const keys = Object.freeze({
     autoBccEnabled: "gmailPro.v1.autoBccEnabled",
     bccAddress: "gmailPro.v1.bccAddress",
-    newestEmailFirstEnabled: "gmailPro.v1.newestEmailFirstEnabled"
+    newestEmailFirstEnabled: "gmailPro.v1.newestEmailFirstEnabled",
+    appleMailMessageListEnabled: "gmailPro.v1.appleMailMessageListEnabled"
   });
   const subscribers = new Map();
   const emailPattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;

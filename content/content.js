@@ -15,6 +15,7 @@
       Object.assign(current, patch);
       if (idle) app.autoBcc.update(patch);
       app.reverseThreads.update(patch);
+      app.messageList.update(patch);
     }
   });
   app.startAutoBcc = () => {
@@ -27,12 +28,14 @@
     unsubscribe();
     if (idle) app.autoBcc.stop();
     app.reverseThreads.stop();
+    app.messageList.stop();
   }, { once: true });
   app.settings.load().then(settings => {
     if (!alive) return;
     current = { ...settings, ...changes };
     if (idle) app.autoBcc.start(current);
     app.reverseThreads.start(current);
+    app.messageList.start(current);
     changes = {};
     loaded = true;
     app.debug.log("content-ready");

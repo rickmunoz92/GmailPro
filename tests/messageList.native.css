@@ -1,0 +1,37 @@
+/* Minimal synthetic baseline mirroring the inspected Gmail layout contracts.
+   Deliberately includes the UL margins that caused a live hover height bug. */
+body { font-family: system-ui; }
+#workspace { width: 680px; }
+table[role="grid"], tbody { display: block; width: 100%; }
+.zA { display: flex; position: relative; padding: 4px 0; background: #f2f6fc; color: #202124; }
+.zA.zE { background: #fff; }
+.zA.aps { background: #c2dbff; }
+.zA > td { display: flex; align-items: center; flex: 0 0 auto; height: 20px; font-size: 14px; line-height: 20px; padding: 0; }
+.zA > .PF { width: 3px; }
+.zA > .oZ-x3 { width: 20px; padding: 0 10px 0 13px; }
+.zA > .apU, .zA > .WA { width: 20px; padding-right: 10px; }
+.zA > .yX { width: 168px; max-width: 168px; flex: 0 0 168px; padding-right: 32px; }
+.zA > .a4W { flex: 1 1 auto; padding-right: 10px; }
+.yW, .xT, .y6 { display: flex; overflow: hidden; white-space: nowrap; }
+.yW { flex: 1 1 auto; align-items: baseline; }
+.yW > .bA4, .bog { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.afn { display: none; }
+.a4X { display: flex; }
+.a4X > button { flex: 0 0 auto; }
+.xS { width: 100%; overflow: hidden; }
+.xT { align-items: center; }
+.y6 { flex: 0 1 auto; }
+.yi { display: flex; white-space: nowrap; }
+.at { margin-right: 5px; background: #ddd; padding: 0 3px; border-radius: 3px; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.y2 { color: #666; white-space: nowrap; overflow: hidden; }
+.zE .sender, .zE .bqe { font-weight: 700; }
+.zA > .byZ { display: none; padding-right: 16px; }
+.zA > .yf { flex-basis: 20px; width: 20px; max-width: 20px; padding-right: 8px; }
+.zA > .xW { flex-basis: 56px; width: 56px; padding-right: 16px; font-size: 12px; }
+.zA > .bq4 { display: none; }
+.bqY { display: flex; padding: 0; margin: 1em 6px 1em 0; }
+.bqY > li { display: flex; width: 20px; height: 20px; margin: 0 10px; }
+.zA.aqw > .bq4 { display: flex; }
+.zA.aqw > .xW, .zA.aqw > .yf { display: none; }
+[role="checkbox"], [role="switch"], .apU > [role="button"] { width: 20px; height: 20px; }
+.dark .zA { background: #222; color: #eee; }
