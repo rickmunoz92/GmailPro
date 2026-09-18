@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Power-user enhancements for Gmail. Auto BCC for new compositions and newest-first conversation display.",
   "permissions": [
     "storage"
@@ -29,9 +29,22 @@
         "shared/debug.js",
         "shared/settings.js",
         "content/gmailSelectors.js",
-        "content/autoBcc.js",
         "content/reverseThreads.js",
         "content/content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false,
+      "css": [
+        "content/reverseThreads.css"
+      ]
+    },
+    {
+      "matches": [
+        "https://mail.google.com/*"
+      ],
+      "js": [
+        "content/autoBcc.js",
+        "content/autoBccStart.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

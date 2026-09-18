@@ -15,15 +15,20 @@ assert.deepEqual(manifest.permissions, ["storage"]);
 for (const key of ["background", "host_permissions", "optional_permissions", "optional_host_permissions", "web_accessible_resources", "externally_connectable", "oauth2"]) {
   assert.equal(manifest[key], undefined, `Unexpected manifest capability: ${key}`);
 }
-assert.equal(manifest.content_scripts.length, 1);
-const content = manifest.content_scripts[0];
-assert.deepEqual(content.matches, ["https://mail.google.com/*"]);
-assert.equal(content.all_frames, false);
-assert.equal(content.run_at, "document_idle");
-assert.ok(!content.world || content.world === "ISOLATED");
+assert.equal(manifest.content_scripts.length, 2);
+for (const content of manifest.content_scripts) {
+  assert.deepEqual(content.matches, ["https://mail.google.com/*"]);
+  assert.equal(content.all_frames, false);
+  assert.ok(["document_start", "document_idle"].includes(content.run_at));
+  assert.ok(!content.world || content.world === "ISOLATED");
+}
+assert.equal(manifest.content_scripts[0].run_at, "document_start");
+assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css"]);
+assert.equal(manifest.content_scripts[1].run_at, "document_idle");
+assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
 assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/);
 
-const references = [manifest.action.default_popup, ...content.js,
+const references = [manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
   ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)];
 const html = fs.readFileSync(path.join(root, manifest.action.default_popup), "utf8");
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {

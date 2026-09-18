@@ -161,6 +161,8 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   [...f.listeners][0]({ [prefix + "autoBccEnabled"]: { newValue: true } }, "sync");
   resolveLoad({ ...f.settings.defaults });
   await new Promise(resolve => setImmediate(resolve));
+  assert.equal(started, undefined, "Auto BCC must wait for document_idle");
+  f.run("content/autoBccStart.js"); f.run("content/autoBccStart.js");
   assert.equal(started.autoBccEnabled, true);
   assert.deepEqual(plain(reverseStarted), plain(started));
   assert.equal(f.listeners.size, 1);
@@ -196,4 +198,33 @@ test("failed settings read leaves Gmail untouched and releases subscription", as
   f.context.window = { addEventListener() {} };
   f.run("content/content.js"); await new Promise(resolve => setImmediate(resolve));
   assert.equal(starts, 0); assert.equal(f.listeners.size, 0);
+});
+
+for (const idleFirst of [false, true]) test(`early settings owner handles ${idleFirst ? "idle before storage" : "storage before idle"}`, async () => {
+  const f = fixture();
+  let resolveLoad, pagehide;
+  const starts = [], reverseStarts = [];
+  f.context.GmailPro.settings = { ...f.settings, load: () => new Promise(resolve => { resolveLoad = resolve; }) };
+  f.context.GmailPro.reverseThreads = { start: settings => reverseStarts.push(plain(settings)), update() {}, stop() {} };
+  f.context.GmailPro.debug = { log() {} };
+  f.context.window = { addEventListener: (_event, fn) => { pagehide = fn; } };
+  f.run("content/content.js");
+  const idle = () => {
+    f.context.GmailPro.autoBcc = { start: settings => starts.push(plain(settings)), update() {}, stop() {} };
+    f.run("content/autoBccStart.js"); f.run("content/autoBccStart.js");
+  };
+  if (idleFirst) idle();
+  resolveLoad({ ...f.settings.defaults, newestEmailFirstEnabled: true });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(reverseStarts.length, 1);
+  assert.equal(reverseStarts[0].newestEmailFirstEnabled, true);
+  if (!idleFirst) {
+    assert.equal(starts.length, 0);
+    [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "updated@example.com" } }, "sync");
+    idle();
+    assert.equal(starts[0].bccAddress, "updated@example.com", "idle activation uses latest settings");
+  }
+  assert.equal(starts.length, 1);
+  pagehide(); f.run("content/autoBccStart.js");
+  assert.equal(starts.length, 1); assert.equal(f.listeners.size, 0);
 });

@@ -1,0 +1,16 @@
+/* Only lists validated by reverseThreads.js receive this extension-owned marker.
+   Gmail's DOM order, message contents and native event handlers remain untouched. */
+[data-gmail-pro-thread-order="reverse"],
+[data-gmail-pro-thread-order="slots"] {
+  display: flex !important;
+}
+[data-gmail-pro-thread-order="reverse"] {
+  flex-direction: column-reverse !important;
+}
+[data-gmail-pro-thread-order="slots"] {
+  flex-direction: column !important;
+}
+[data-gmail-pro-thread-order="reverse"] > *,
+[data-gmail-pro-thread-order="slots"] > * {
+  flex-shrink: 0 !important;
+}

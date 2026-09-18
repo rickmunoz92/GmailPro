@@ -5,26 +5,34 @@
   app.contentInitialized = true;
   let alive = true;
   let loaded = false;
+  let idle = false;
+  let current = {};
   let changes = {};
   const unsubscribe = app.settings.subscribe(patch => {
     if (!alive) return;
     if (!loaded) Object.assign(changes, patch);
     else {
-      app.autoBcc.update(patch);
+      Object.assign(current, patch);
+      if (idle) app.autoBcc.update(patch);
       app.reverseThreads.update(patch);
     }
   });
+  app.startAutoBcc = () => {
+    if (!alive || idle) return;
+    idle = true;
+    if (loaded) app.autoBcc.start(current);
+  };
   window.addEventListener("pagehide", () => {
     alive = false;
     unsubscribe();
-    app.autoBcc.stop();
+    if (idle) app.autoBcc.stop();
     app.reverseThreads.stop();
   }, { once: true });
   app.settings.load().then(settings => {
     if (!alive) return;
-    const initial = { ...settings, ...changes };
-    app.autoBcc.start(initial);
-    app.reverseThreads.start(initial);
+    current = { ...settings, ...changes };
+    if (idle) app.autoBcc.start(current);
+    app.reverseThreads.start(current);
     changes = {};
     loaded = true;
     app.debug.log("content-ready");

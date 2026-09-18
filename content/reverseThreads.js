@@ -8,10 +8,10 @@
   const pendingRoots = new Set();
   let bootstrap;
   let bootstrapTimer;
-  const attributes = ["role", "aria-expanded", "tabindex", "jsaction", "style"];
+  const attributes = ["role", "aria-expanded", "tabindex", "jsaction", "style", "data-gmail-pro-thread-order"];
   let enabled = false;
   let discovery;
-  let discoveryTimer;
+  const marker = "data-gmail-pro-thread-order";
 
   function headerFor(list) {
     if (list.closest(S.threadMessage) || !list.closest(S.main)) return null;
@@ -76,14 +76,29 @@
   }
 
   function restore(state) {
-    const changed = state.styles.size > 0;
+    const changed = state.mode !== null;
+    if (state.mode && state.list.getAttribute(marker) === state.mode) {
+      if (state.originalMarker === null) state.list.removeAttribute(marker);
+      else state.list.setAttribute(marker, state.originalMarker);
+    }
+    state.mode = null;
+    state.nativeStyles.clear();
     for (const node of state.styles.keys()) restoreNode(state, node);
     state.originalOrder = [];
     state.visualOrder = [];
     if (changed) app.debug.log("thread-original-restored");
   }
 
+  function inlineSignature(node, properties) {
+    return properties.map(property => `${node.style.getPropertyValue(property)}!${node.style.getPropertyPriority(property)}`).join(";");
+  }
+
   function conflicted(state) {
+    if (state.mode && state.list.getAttribute(marker) !== state.mode) return true;
+    for (const [node, saved] of state.nativeStyles) {
+      if (node !== state.list && node.parentElement !== state.list) continue;
+      if (inlineSignature(node, saved.properties) !== saved.signature) return true;
+    }
     for (const [node, saved] of state.styles) {
       if (node !== state.list && node.parentElement !== state.list) continue;
       for (const [property, entry] of saved.properties) {
@@ -96,20 +111,18 @@
   function observeThread(state) {
     state.observer.observe(state.list, { childList: true, attributes: true, attributeFilter: attributes });
     for (const node of state.list.children) {
-      state.observer.observe(node, { attributes: true, attributeFilter: attributes });
+      state.observer.observe(node, { childList: true, attributes: true, attributeFilter: attributes });
     }
     // No observation inside message bodies, attachments, or compose editors.
   }
 
   function release(state) {
-    clearTimeout(state.timer);
     state.observer.disconnect();
     restore(state);
     active.delete(state.list);
   }
 
   function apply(state) {
-    state.timer = null;
     if (!enabled || !state.list.isConnected) return release(state);
     state.observer.disconnect(); // Our style writes never feed this observer.
     try {
@@ -132,25 +145,47 @@
       if (plan.children.length === state.originalOrder.length &&
           plan.children.every((node, i) => node === state.originalOrder[i]) &&
           plan.visual.every((node, i) => node === state.visualOrder[i])) return;
-      if (!state.styles.size) {
+      if (!state.mode) {
         // Batch style reads before writes. Avoid taking over an existing layout
         // reversal from another extension or a redesigned Gmail message list.
         const layout = getComputedStyle(state.list);
-        if (!["block", "flow-root"].includes(layout.display) || plan.children.some(node => getComputedStyle(node).order !== "0")) {
+        if (!["block", "flow-root"].includes(layout.display)) {
           state.blocked = true;
           app.debug.log("thread-selector-failure");
           return;
         }
       }
+      const mode = plan.messages.length === plan.children.length ? "reverse" : "slots";
+      const changed = state.mode !== mode || mode === "slots";
+      // A new child could belong to another layout owner. Check before writing.
+      for (const node of plan.children) {
+        if (!state.nativeStyles.has(node) && !state.styles.has(node) && getComputedStyle(node).order !== "0") {
+          restore(state); state.blocked = true;
+          app.debug.log("thread-selector-failure");
+          return;
+        }
+      }
+      // Release per-child fallback styles before changing modes or recording baselines.
+      if (state.mode !== mode) for (const node of state.styles.keys()) restoreNode(state, node);
+      for (const node of state.nativeStyles.keys()) {
+        if (node !== state.list && node.parentElement !== state.list) state.nativeStyles.delete(node);
+      }
+      const rememberNative = (node, properties) => {
+        if (!state.nativeStyles.has(node)) state.nativeStyles.set(node, { properties, signature: inlineSignature(node, properties) });
+      };
+      rememberNative(state.list, ["display", "flex-direction"]);
+      if (mode === "reverse") {
+        for (const node of plan.children) rememberNative(node, ["order"]);
+      } else {
+        // Mixed lists retain fixed controls' native visual slots.
+        for (const node of plan.children) state.nativeStyles.delete(node);
+        plan.visual.forEach((node, index) => rememberStyle(state, node, "order", String(index)));
+      }
       state.originalOrder = plan.children; // Gmail's DOM is always left in this order.
       state.visualOrder = plan.visual;
-      rememberStyle(state, state.list, "display", "flex");
-      rememberStyle(state, state.list, "flex-direction", "column");
-      plan.visual.forEach((node, index) => {
-        rememberStyle(state, node, "order", String(index));
-        rememberStyle(state, node, "flex-shrink", "0");
-      });
-      app.debug.log("thread-reordered");
+      state.mode = mode;
+      if (state.list.getAttribute(marker) !== mode) state.list.setAttribute(marker, mode);
+      if (changed) app.debug.log("thread-reordered");
     } catch {
       restore(state);
       state.blocked = true;
@@ -160,26 +195,36 @@
     }
   }
 
-  function schedule(state) {
-    if (!state.timer) state.timer = setTimeout(() => apply(state), 80);
-  }
-
   function register(list) {
     if (active.has(list) || !headerFor(list)) return;
-    const state = { list, styles: new Map(), originalOrder: [], visualOrder: [], timer: null, blocked: false, invalid: false };
-    state.observer = new MutationObserver(() => schedule(state));
+    const state = { list, styles: new Map(), nativeStyles: new Map(), originalMarker: list.getAttribute(marker), mode: null, originalOrder: [], visualOrder: [], blocked: false, invalid: false };
+    state.observer = new MutationObserver(() => apply(state));
     active.set(list, state);
     observeThread(state);
     app.debug.log("thread-detected");
-    schedule(state);
+    apply(state);
     bootstrap?.disconnect();
     clearTimeout(bootstrapTimer);
   }
 
   function scan(root) {
     if (!(root instanceof Element) || !root.isConnected || root.closest(S.threadMessage)) return;
+    const foundMains = root.matches(S.main) ? [root] : [...root.querySelectorAll(S.main)];
+    for (const main of foundMains) {
+      if (!mains.has(main)) {
+        mains.add(main);
+        bootstrap.observe(main, { childList: true, subtree: true });
+        clearTimeout(bootstrapTimer);
+        bootstrapTimer = setTimeout(() => bootstrap.disconnect(), 5000);
+      }
+    }
     const enclosing = root.closest(S.threadList);
     if (enclosing && active.has(enclosing)) return;
+    // A heading can arrive after an empty list. Revisit only its local main.
+    if (root.matches(S.threadHeading) || root.querySelector(S.threadHeading)) {
+      const main = root.closest(S.main);
+      if (main) for (const list of main.querySelectorAll(S.threadList)) register(list);
+    }
     if (root.matches(S.threadList)) register(root);
     for (const list of root.querySelectorAll(S.threadList)) register(list);
   }
@@ -202,21 +247,29 @@
   }
 
   function discover() {
-    discoveryTimer = null;
     if (!enabled) return;
     for (const state of active.values()) if (!state.list.isConnected) release(state);
-    for (const root of pendingRoots) scan(root);
+    for (const root of pendingRoots) {
+      let parent = root.parentElement;
+      while (parent && !pendingRoots.has(parent)) parent = parent.parentElement;
+      if (!parent) scan(root); // One scan per added subtree, not each descendant.
+    }
     pendingRoots.clear();
     watchSpines();
   }
 
   function queue(mutations) {
+    let relevant = false;
     for (const mutation of mutations) {
       if (mutation.target instanceof Element && mutation.target.closest(S.threadList) &&
           active.has(mutation.target.closest(S.threadList))) continue;
+      relevant = true;
       for (const node of mutation.addedNodes) if (node instanceof Element) pendingRoots.add(node);
     }
-    if (!discoveryTimer) discoveryTimer = setTimeout(discover, 80);
+    if (!relevant) return;
+    // MutationObserver delivery is a microtask: finish validation/style changes
+    // here, before rendering. No timers or animation frames defer the first paint.
+    discover();
   }
 
   function navigation() {
@@ -231,8 +284,7 @@
       pendingRoots.add(main);
     }
     bootstrapTimer = setTimeout(() => bootstrap.disconnect(), 5000);
-    clearTimeout(discoveryTimer);
-    discoveryTimer = setTimeout(discover, 80);
+    discover();
   }
 
   function focus(event) {
@@ -246,8 +298,6 @@
 
   function stop() {
     enabled = false;
-    clearTimeout(discoveryTimer);
-    discoveryTimer = null;
     discovery?.disconnect();
     bootstrap?.disconnect();
     clearTimeout(bootstrapTimer);
@@ -255,6 +305,7 @@
     window.removeEventListener("popstate", navigation);
     document.removeEventListener("focusin", focus, true);
     document.removeEventListener("click", openRow, true);
+    document.removeEventListener("DOMContentLoaded", navigation);
     for (const state of active.values()) release(state);
     mains.clear();
     pendingRoots.clear();
@@ -270,6 +321,7 @@
     window.addEventListener("popstate", navigation);
     document.addEventListener("focusin", focus, true);
     document.addEventListener("click", openRow, true);
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", navigation, { once: true });
     navigation();
     watchSpines();
   }

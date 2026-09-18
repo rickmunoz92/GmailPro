@@ -51,6 +51,7 @@
     list.append(...nodes); holder.append(list); shell.append(heading, toolbar, holder); main().append(shell);
     return { shell, heading, toolbar, holder, list, nodes };
   }
+  const isReversed = node => node.hasAttribute("data-gmail-pro-thread-order");
   const enable = () => app.reverseThreads.start({ newestEmailFirstEnabled: true });
   const reverseCount = () => events.filter(code => code === "thread-reordered").length;
   const visual = list => [...list.children].filter(n => n.getBoundingClientRect().height > 0)
@@ -67,14 +68,14 @@
 
   await test("disabled performs no observation or writes", async () => {
     const t = thread(); app.reverseThreads.start({ newestEmailFirstEnabled: false }); await settle();
-    assert(observers.size === 0 && !t.list.hasAttribute("style"), "disabled stays inert");
+    assert(observers.size === 0 && !isReversed(t.list), "disabled stays inert");
   });
   for (const count of [1, 2, 3, 25, 500]) await test(`${count} message conversation`, async () => {
     const t = thread(count); const subjectParent = t.heading.parentNode; enable(); await settle();
     assert(matches([...t.list.children], t.nodes), "native DOM order unchanged");
     assert(matches(visual(t.list), t.nodes.slice().reverse()), "visual order newest first");
     assert(t.heading.parentNode === subjectParent && !t.heading.hasAttribute("style") && !t.toolbar.hasAttribute("style"), "header and toolbar untouched");
-    if (count === 1) assert(!t.list.hasAttribute("style"), "one message needs no layout change");
+    if (count === 1) assert(!isReversed(t.list), "one message needs no layout change");
   });
   await test("off restores exact original inline styles and DOM sequence", async () => {
     const t = thread(); t.list.style.margin = "3px"; t.nodes[0].style.color = "red";
@@ -128,14 +129,14 @@
   });
   await test("unknown child fails closed and can recover", async () => {
     const t = thread(); enable(); await settle(); const unknown = el("div"); t.list.append(unknown); await settle();
-    assert(!t.list.hasAttribute("style"), "unknown layout restored, not guessed");
+    assert(!isReversed(t.list), "unknown layout restored, not guessed");
     unknown.remove(); await settle(); assert(visual(t.list)[0] === t.nodes[2], "known layout recovers");
   });
   await test("unrelated lists and body-embedded lookalikes remain untouched", async () => {
     const t = thread(); const nested = el("div", { role: "list" }); nested.append(item(5), item(6));
     t.nodes[0].querySelector('[data-message-id]').append(nested);
     const outside = el("div", { role: "list" }); outside.append(item(7), item(8)); document.body.append(outside);
-    enable(); await settle(); assert(!nested.hasAttribute("style") && !outside.hasAttribute("style"), "only actual conversation list styled"); outside.remove();
+    enable(); await settle(); assert(!isReversed(nested) && !isReversed(outside), "only actual conversation list styled"); outside.remove();
   });
   await test("message body mutation bursts do not wake ordering observer", async () => {
     const t = thread(); enable(); await settle(); const before = deliveries; const count = reverseCount();
@@ -151,13 +152,13 @@
     const t = thread(); enable(); enable(); await settle(); const count = observers.size;
     app.reverseThreads.update({ autoBccEnabled: false }); enable(); await settle();
     assert(observers.size === count && reverseCount() === 1, "one observer owner");
-    app.reverseThreads.stop(); app.reverseThreads.stop(); assert(!t.list.hasAttribute("style") && !observers.size, "complete cleanup");
+    app.reverseThreads.stop(); app.reverseThreads.stop(); assert(!isReversed(t.list) && !observers.size, "complete cleanup");
   });
   await test("Gmail style changes are preserved instead of fought", async () => {
     const t = thread(); enable(); await settle(); t.nodes[0].style.color = "blue"; await settle();
     assert(reverseCount() === 1, "unrelated style changes do not reorder");
     t.nodes[0].style.setProperty("order", "99"); await settle();
-    assert(t.nodes[0].style.order === "99" && !t.list.hasAttribute("style"), "conflicting owner retained and reversal released");
+    assert(t.nodes[0].style.order === "99" && !isReversed(t.list), "conflicting owner retained and reversal released");
     assert(t.nodes[0].style.color === "blue", "unrelated styles retained");
   });
   await test("already reordered external layout is left alone", async () => {
@@ -166,8 +167,8 @@
   });
   await test("switch thread, Inbox removal, same thread reopening", async () => {
     const t = thread(); enable(); await settle(); t.shell.remove(); const next = thread(2); await settle();
-    assert(!t.list.hasAttribute("style") && visual(next.list)[0] === next.nodes[1], "switch reconciles old/new lists");
-    next.shell.remove(); await settle(); assert(!next.list.hasAttribute("style"), "Inbox cleanup");
+    assert(!isReversed(t.list) && visual(next.list)[0] === next.nodes[1], "switch reconciles old/new lists");
+    next.shell.remove(); await settle(); assert(!isReversed(next.list), "Inbox cleanup");
     main().append(t.shell); await settle(); assert(visual(t.list)[0] === t.nodes[2], "cached thread rediscovered");
   });
   await test("hash/popstate navigation and replacement main pane", async () => {
@@ -178,7 +179,7 @@
     window.dispatchEvent(new HashChangeEvent("hashchange")); await settle(); assert(reverseCount() === 2, "hash navigation does not repeat styles");
   });
   await test("disabling before pending work cancels all writes", async () => {
-    const t = thread(); enable(); app.reverseThreads.stop(); await settle(); assert(!t.list.hasAttribute("style") && !observers.size, "pending work cancelled");
+    const t = thread(); enable(); app.reverseThreads.stop(); await settle(); assert(!isReversed(t.list) && !observers.size, "pending work cancelled");
   });
   function composeIn(node) {
     const region = el("section", { role: "region" }); const form = el("form"); form.addEventListener("submit", e => e.preventDefault());
@@ -205,6 +206,73 @@
     const t = thread(); enable(); app.autoBcc.start({ autoBccEnabled: false }); await settle();
     const composer = composeIn(t.nodes[2]); await settle();
     assert(composer.attempts === 0 && visual(t.list)[0] === t.nodes[2], "independent settings");
+  });
+  const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  await test("first rendered frame of a newly inserted thread is newest-first", async () => {
+    enable(); await settle();
+    const t = thread(3);
+    const start = performance.now();
+    let wrongFrames = 0;
+    for (let i = 0; i < 15; i++) {
+      await frame();
+      if (visual(t.list)[0] !== t.nodes[2]) wrongFrames++;
+    }
+    result.dataset.firstPaint = JSON.stringify({ wrongFrames, sampledFrames: 15, sampleMs: Math.round(performance.now() - start) });
+    assert(wrongFrames === 0, `${wrongFrames} frames showed native ordering before reversal`);
+  });
+  await test("pure message lists use one CSS marker and no per-message style writes", async () => {
+    const t = thread(25); enable(); await frame();
+    assert(t.list.getAttribute("data-gmail-pro-thread-order") === "reverse", "CSS reverse mode selected");
+    assert(getComputedStyle(t.list).flexDirection === "column-reverse", "manifest stylesheet active");
+    assert(t.nodes.every(node => !node.hasAttribute("style")), "message nodes untouched");
+    const next = item(25); t.list.append(next);
+    assert(visual(t.list)[0] === next, "CSS orders a new message even before observer delivery");
+    await frame(); assert(reverseCount() === 1, "no new ordering pass for appended message");
+  });
+  await test("first frame handles repeated short/long thread switches and navigation events", async () => {
+    enable(); await frame();
+    for (const count of [2, 25, 3, 500, 10, 2]) {
+      main().replaceChildren();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      const t = thread(count); await frame();
+      assert(visual(t.list)[0] === t.nodes[count - 1], `first frame correct for ${count} messages`);
+      main().replaceChildren(); await frame();
+      assert(!isReversed(t.list), "detached marker removed");
+    }
+  });
+  await test("late heading and staged envelope structure are correct at first supported frame", async () => {
+    enable(); const t = thread(0); t.heading.remove(); await frame();
+    t.list.append(item(0), item(1)); await frame();
+    assert(!isReversed(t.list), "unverified list left alone");
+    t.shell.prepend(t.heading); await frame();
+    assert(visual(t.list)[0] === t.list.lastElementChild, "late heading discovers list pre-paint");
+    const next = item(2); const envelope = next.firstElementChild; envelope.remove(); t.list.append(next); await frame();
+    assert(!isReversed(t.list), "incomplete wrapper fails closed");
+    next.append(envelope); await frame();
+    assert(visual(t.list)[0] === next, "direct wrapper construction observed before paint");
+  });
+  await test("replacement main discovers a deeply staged thread before paint", async () => {
+    enable(); await frame();
+    const replacement = el("div", { role: "main", id: "workspace" }); main().replaceWith(replacement); await frame();
+    const nested = el("div"); replacement.append(nested); await frame();
+    const t = thread(3); nested.append(t.shell); await frame();
+    assert(visual(t.list)[0] === t.nodes[2], "new main's staged content discovered");
+  });
+  await test("fixed controls appearing or disappearing switch CSS modes without a wrong frame", async () => {
+    const t = thread(); enable(); await frame();
+    const fixed = el("button"); fixed.textContent = "Fixed action"; t.nodes[1].before(fixed); await frame();
+    assert(matches(visual(t.list), [t.nodes[2], fixed, t.nodes[1], t.nodes[0]]), "mixed slots preserved");
+    fixed.remove(); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "pure reversal restored");
+    assert(t.nodes.every(node => !node.hasAttribute("style")), "fallback styles released");
+  });
+  await test("toggle is synchronous and body expansion causes no layout writes", async () => {
+    const t = thread(); enable(); assert(visual(t.list)[0] === t.nodes[2], "enable is synchronous");
+    const mutations = []; const watch = new NativeObserver(records => mutations.push(...records));
+    watch.observe(t.list, { subtree: true, attributes: true, attributeFilter: ["style", "data-gmail-pro-thread-order"] });
+    t.nodes[1].setAttribute("aria-expanded", "true"); await frame();
+    assert(mutations.length === 0, "no redundant layout writes on expansion"); watch.disconnect();
+    app.reverseThreads.stop(); assert(visual(t.list)[0] === t.nodes[0], "disable is synchronous");
   });
   window.MutationObserver = NativeObserver;
   const failures = reports.filter(line => line.startsWith("FAIL")).length;
