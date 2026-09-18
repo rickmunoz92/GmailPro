@@ -186,6 +186,9 @@
     assert(menu.defaultPrevented && selectedIndices(nodes) === "3", "Mac Control-click menu suppressed without double toggle");
     const rightClick = new MouseEvent("contextmenu", {bubbles:true,cancelable:true,button:2});
     nodes[1].dispatchEvent(rightClick); assert(!rightClick.defaultPrevented, "ordinary right-click preserved");
+    nodes[1].dispatchEvent(new MouseEvent("pointerdown", {bubbles:true,cancelable:true,button:0,ctrlKey:true}));
+    nodes[1].dispatchEvent(new MouseEvent("contextmenu", {bubbles:true,cancelable:true,button:2,ctrlKey:true}));
+    assert(selectedIndices(nodes) === "1,3", "Mac sequence without a click still toggles exactly once");
     gesture(nodes[2]); assert(opened === 1, "plain click still reaches Gmail");
   });
   await test("Shift-click selects and contracts ranges; Ctrl/Command-Shift adds ranges", () => {

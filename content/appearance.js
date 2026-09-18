@@ -9,6 +9,7 @@
   let media;
   let listening = false;
   let anchor;
+  let handledPointer = false;
   const gestureEvents = ["pointerdown", "mousedown", "click", "contextmenu"];
   // Same fail-closed structure as the CSS row gate. Only discover rendered rows
   // on a user gesture; Gmail's checkbox remains the selection source of truth.
@@ -23,6 +24,7 @@
     if (box && (box.getAttribute("aria-checked") === "true") !== selected) box.click();
   }
   function onRowGesture(event) {
+    if (event.type === "pointerdown") handledPointer = false;
     // macOS also emits contextmenu for Control-click. Suppress that companion
     // event without toggling twice; ordinary right-click stays Gmail's.
     const controlMenu = event.type === "contextmenu" && event.ctrlKey;
@@ -37,7 +39,11 @@
     }
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (event.type !== "click") return; // Avoid native text selection/mousedown handling.
+    if (event.type === "mousedown" || event.type === "contextmenu") return;
+    if (event.type === "click" && handledPointer) { handledPointer = false; return; }
+    // Handle the press itself: Mac Control-click may emit contextmenu instead
+    // of click. Ignore its eventual click companion to avoid toggling twice.
+    if (event.type === "pointerdown") handledPointer = true;
     if (event.shiftKey) {
       const rows = [...row.parentElement.children].filter(candidate => candidate.matches(rowSelector) && candidate.getClientRects().length);
       const validAnchor = anchor?.route === location.hash && rows.includes(anchor.row) && threadId(anchor.row) === anchor.thread;
@@ -78,6 +84,7 @@
     for (const type of gestureEvents) document.removeEventListener(type, onRowGesture, true);
     listening = false;
     anchor = undefined;
+    handledPointer = false;
     const root = document.documentElement;
     if (!root) return;
     root.classList.remove(marker);
