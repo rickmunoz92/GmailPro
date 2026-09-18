@@ -187,12 +187,19 @@
     const a = row({unread:true}), b = row(); enable();
     a.classList.add("aps"); a.classList.remove("aps"); b.classList.add("aps"); a.classList.add("btb");
     assert(css(b).backgroundColor === token("--gp-accent") && css(a).backgroundColor !== css(b).backgroundColor, "only current Gmail row selected");
+    const gutter = a.querySelector(".PF");
+    gutter.classList.add("PE");
+    assert(getComputedStyle(gutter, "::before").display === "none", "native left-edge focus bar hidden");
     a.focus();
     assert(css(a).outlineStyle === "none" && css(a).boxShadow === "none", "previous focused row has no lingering border");
     b.classList.remove("aps");
     b.focus();
     assert(css(b).outlineStyle === "none" && css(b).boxShadow === "none", "deselected focused row has no border");
     assert(dot(a).visibility === "visible", "prior unread dot restored");
+    a.classList.add("aps");
+    assert(getComputedStyle(gutter, "::before").display === "none", "selected row also has no focus bar");
+    feature.stop();
+    assert(getComputedStyle(gutter, "::before").display === "block", "native gutter marker restores outside Apple Mail Mode");
   });
   await test("checkbox multiselect and native handlers remain functional", () => {
     const node = row(); const box = node.querySelector('[role="checkbox"]'); let clicks = 0;

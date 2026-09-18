@@ -249,6 +249,9 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   /* Gmail retains row focus after deselection and can move it after selection.
      Keep focus behavior, but never draw a separate, lagging row outline. */
   :scope, :scope.btb, :scope:focus-visible { outline: none !important; }
+  /* Gmail's .PE gutter marker survives deselection independently of outlines.
+     Hide only its painted pseudo-element; retain the native drag gutter. */
+  :scope > td.PF::before { content: none !important; display: none !important; }
   :scope :focus-visible { outline: 2px solid currentColor !important; outline-offset: 1px; }
 }
 @media (forced-colors: active) {

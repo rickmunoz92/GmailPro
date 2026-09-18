@@ -8,6 +8,7 @@ table[role="grid"], tbody { display: block; width: 100%; }
 .zA.aps { background: #c2dbff; }
 .zA > td { display: flex; align-items: center; flex: 0 0 auto; height: 20px; font-size: 14px; line-height: 20px; padding: 0; }
 .zA > .PF { width: 3px; }
+.zA > .PF.PE::before { content: ""; display: block; width: 3px; height: 100%; background: #4d90f0; }
 .zA > .oZ-x3 { width: 20px; padding: 0 10px 0 13px; }
 .zA > .apU, .zA > .WA { width: 20px; padding-right: 10px; }
 .zA > .yX { width: 168px; max-width: 168px; flex: 0 0 168px; padding-right: 32px; }

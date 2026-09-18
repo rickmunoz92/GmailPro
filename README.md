@@ -130,7 +130,7 @@ Dark main surfaces, sidebar, and toolbar use `#23292B`. Conversation-list stars 
 importance chevrons are hidden in this mode, without changing their Gmail state or
 reading-pane actions. Label/conversation hover backgrounds and pointer-following row
 outlines are suppressed, including the row focus outline that Gmail can retain
-after deselection. Actual selection stays filled; keyboard focus behavior and
+after deselection, and the separate left-edge focus bar. Actual selection stays filled; keyboard focus behavior and
 focus indicators on individual controls remain intact. Native
 row checkboxes and their column are hidden; modifier-click selects conversations. Per-row hover action buttons are hidden;
 dates and attachment icons stay visible, and actions remain in the main toolbar.
