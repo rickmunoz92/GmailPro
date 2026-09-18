@@ -89,12 +89,20 @@ case, expanded older message behavior, and native toolbar/Phish Alert arrangemen
 Expanding an older message left Gmail's thread-footer target in place; this bridge
 intentionally preserves that native behavior.
 
-Post-installation live reload and action checks are pending: macOS became locked,
-and native Chrome control reported that automatic unlock was unavailable. No new
-reply/forward draft or reaction was created by the new feature in live Gmail, and
-no email was sent. Do not interpret synthetic delegation tests as live validation.
-The files are installed locally; reload Gmail Pro in Chrome Extensions and refresh
-Gmail after unlocking before following the manual checklist above.
+Live action validation completed on 2026-09-18 with version 0.9.2. Gmail's
+positioned toolbar `::before` layer intercepted pointer hits on the initially
+unpositioned action group. The group now uses `position: relative; z-index: 0`,
+matching native controls above that background without modifying Gmail's layer.
+A fixture reproduces the overlay and verifies pointer hits on all four icons
+before delegating their clicks. Reading pane checks: 29/29; Node checks: 21/21.
+
+In a separate Gmail tab, all four button centers resolved to their own controls.
+Reply All, Reply, and Forward each opened Gmail's native composer. Each newly
+created test draft was discarded; no message was sent. Add reaction opened the
+native emoji picker, which was dismissed with Escape without choosing a reaction.
+No visible composer or picker remained after testing. Version 0.9.1 also verified
+avatar/header alignment and full-row unread-dot centering live.
+
 
 
 ## Changed files and delivery
