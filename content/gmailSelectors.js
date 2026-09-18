@@ -50,6 +50,18 @@
     // body only; .ii excludes compose and the outer message/header/attachments.
     readingBody: '[role="list"] [role="listitem"][aria-expanded="true"] [data-message-id][data-legacy-message-id] .ii > .a3s',
     zoomExcluded: 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',
+    // Reading chrome / native thread-footer bridge, English desktop Gmail.
+    // Structural/semantic guards accompany Gmail's presentation class hooks.
+    readingShell: '.iY:has(h2[data-thread-perm-id][data-legacy-thread-id])',
+    readingExcluded: '.ii, .a3s, [contenteditable], [role="dialog"], form',
+    readingChrome: '.gE, .gA, .gB, .ip, .amr, .nr, .amn, .btDi4d',
+    primaryToolbar: '[gh="tm"] [gh="mtb"]',
+    toolbarMore: '[role="button"][aria-label="More email options"]',
+    nativeFooter: '.btDi4d .amn, .gA .amn',
+    nativeReplyAll: '.ams.bkI[role="link"]',
+    nativeReply: '.ams.bkH[role="link"]',
+    nativeForward: '.ams.bkG[role="link"]',
+    nativeReaction: 'button[aria-label="Add reaction"], [role="button"][aria-label="Add reaction"]',
     threadRow: '[role="row"]',
     threadFixed: 'button, [role="button"], [role="toolbar"], [role="region"], h1, h2, h3'
   });

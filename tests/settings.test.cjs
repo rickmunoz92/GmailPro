@@ -36,6 +36,7 @@ function fixture(initial = {}) {
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
   context.GmailPro.appearance = { start() {}, update() {}, stop() {} };
+  context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
@@ -154,6 +155,9 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let readingStarted, readingStops = 0;
+  const readingPatches = [];
+  f.context.GmailPro.readingPane = { start: value => { readingStarted = value; }, update: patch => readingPatches.push(plain(patch)), stop: () => readingStops++ };
   let appearanceStarted, appearanceStops = 0;
   const appearancePatches = [];
   f.context.GmailPro.appearance = { start: value => { appearanceStarted = value; }, update: patch => appearancePatches.push(plain(patch)), stop: () => appearanceStops++ };
@@ -185,6 +189,7 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(plain(listStarted), plain(started));
   assert.deepEqual(plain(zoomStarted), plain(started));
   assert.deepEqual(plain(appearanceStarted), plain(started));
+  assert.deepEqual(plain(readingStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
@@ -193,7 +198,8 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(listPatches, reversePatches);
   assert.deepEqual(zoomPatches, reversePatches);
   assert.deepEqual(appearancePatches, reversePatches);
-  pagehide(); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
+  assert.deepEqual(readingPatches, reversePatches);
+  pagehide(); assert.equal(readingStops, 1); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {

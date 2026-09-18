@@ -17,6 +17,7 @@
       app.reverseThreads.update(patch);
       app.messageList.update(patch);
       app.appearance.update(patch);
+      app.readingPane.update(patch);
       app.messageZoom.update(patch);
       app.labelOrder.update(patch);
     }
@@ -32,6 +33,7 @@
     if (idle) app.autoBcc.stop();
     app.reverseThreads.stop();
     app.messageList.stop();
+    app.readingPane.stop();
     app.appearance.stop();
     app.messageZoom.stop();
     app.labelOrder.stop();
@@ -43,6 +45,7 @@
     app.reverseThreads.start(current);
     app.messageList.start(current);
     app.appearance.start(current);
+    app.readingPane.start(current);
     app.messageZoom.start(current);
     app.labelOrder.start(current);
     changes = {};

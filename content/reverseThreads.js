@@ -27,19 +27,23 @@
     return null;
   }
 
-  // One SPA discovery owner for ordering and temporary message zoom. Consumers
-  // receive only the currently visible thread identity; never body/header text.
-  function notifyConversation() {
-    if (!conversationListeners.size) return;
-    const headings = new Set();
+  // Shared SPA discovery: consumers receive only a visible thread identity and
+  // its validated DOM context, never copied message content or recipient data.
+  function currentConversation() {
+    const contexts = new Map();
     for (const state of active.values()) {
       const heading = headerFor(state.list);
       if (heading && state.list.isConnected && heading.checkVisibility({ visibilityProperty: true }) &&
-          !heading.closest('[aria-hidden="true"], [inert]')) headings.add(heading);
+          !heading.closest('[aria-hidden="true"], [inert]')) contexts.set(heading, { heading, list: state.list });
     }
-    const heading = headings.size === 1 ? [...headings][0] : null;
-    const identity = heading?.getAttribute("data-thread-perm-id") || null;
-    for (const listener of conversationListeners) listener(identity);
+    return contexts.size === 1 ? [...contexts.values()][0] : null;
+  }
+
+  function notifyConversation() {
+    if (!conversationListeners.size) return;
+    const context = currentConversation();
+    const identity = context?.heading.getAttribute("data-thread-perm-id") || null;
+    for (const listener of conversationListeners) listener(identity, context);
   }
 
   function ordering(list) {
@@ -381,5 +385,5 @@
     };
   }
 
-  app.reverseThreads = Object.freeze({ implemented: true, start: update, update, stop, subscribeConversation });
+  app.reverseThreads = Object.freeze({ implemented: true, start: update, update, stop, subscribeConversation, currentConversation });
 })();
