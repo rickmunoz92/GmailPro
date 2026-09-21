@@ -237,8 +237,8 @@ or downloaded by the extension.
 ### Apple Mail-style Message List
 
 Under **Mail tools & advanced appearance → MESSAGE LIST**, enable **Apple Mail-style message list** and select
-**Save preferences**. Sender and date appear on the first line; labels and the
-actual subject appear on the second. Known snippet elements are hidden visually,
+**Save preferences**. Sender and date appear on the first line; the actual subject
+and right-aligned labels appear on the second. Known snippet elements are hidden visually,
 with their DOM and preview data preserved. Long text truncates with an ellipsis.
 Rows are approximately 56px tall, and Gmail continues to control unread weights,
 selected backgrounds, stars, importance, attachment indicators and hover actions.

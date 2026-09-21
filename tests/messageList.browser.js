@@ -77,7 +77,8 @@
   await test("short subject, conversation senders, label and attachment survive", () => {
     const node = row({ subject: "Hi", label: "Projects/Example", attachment: true }); enable(); geometry(node);
     assert(rect(node.querySelector(".yi")).width > 0 && rect(node.querySelector('.yf [role="img"]')).width > 0, "label and attachment visible");
-    assert(rect(node.querySelector(".yi")).right <= rect(node.querySelector(".y6")).left, "label precedes subject");
+    assert(rect(node.querySelector(".y6")).right < rect(node.querySelector(".yi")).left, "label follows subject with a gap");
+    assert(Math.abs(rect(node.querySelector(".at")).right - rect(node.querySelector(".xT")).right) < 1, "label right aligned");
     assert(node.querySelector(".sender").textContent === "Alex, Morgan 3", "native conversation sender string retained");
   });
   await test("long labels leave space for subject in a narrow pane", () => {
@@ -85,6 +86,7 @@
     const node = row({ label: "Projects/A very long user-created label ".repeat(5) }); enable();
     assert(rect(node.querySelector(".yi")).width <= rect(node.querySelector(".xT")).width * 0.45 + 1, "label width bounded");
     assert(rect(node.querySelector(".bog")).width > 80, "subject remains readable");
+    assert(Math.abs(rect(node.querySelector(".yi")).right - rect(node.querySelector(".xT")).right) < 1, "long label right aligned");
   });
   await test("subject quick-action wrapper in Sent preserves native controls", () => {
     const node = row(); const link = node.querySelector('[role="link"]');

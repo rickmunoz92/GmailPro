@@ -109,10 +109,19 @@
     display: none !important;
   }
   :scope > td [role="link"] > .xT > .yi {
+    /* Keep Gmail's label nodes/handlers, but place badges after the flexible
+       subject so they align with the trailing edge of each conversation. */
+    order: 1;
+    margin-inline: 8px 0;
+    justify-content: flex-end;
     flex: 0 1 auto;
     max-width: 45%;
     min-width: 0;
     overflow: hidden;
+  }
+
+  :scope > td [role="link"] > .xT > .yi > :last-child {
+    margin-inline-end: 0;
   }
 
   :scope > td.byZ[role="gridcell"] {
