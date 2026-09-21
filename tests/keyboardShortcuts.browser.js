@@ -44,6 +44,8 @@
   for(const type of ['menu','dialog','alertdialog'])await test('open '+type+' blocks actions and never discards',()=>{
     draft();const overlay=document.createElement('div');overlay.setAttribute('role',type);overlay.textContent='Overlay';workspace.append(overlay);press();workspace.focus();press('a');assert(sent===0&&archived===0&&discarded===0,'blocked');
   });
+  await test('native pressed-state controls receive one mouse gesture',()=>{const host=draft(),send=host.querySelector('.send'),phases=[];let pressed=false,actions=0;send.onmousedown=()=>{pressed=true;phases.push('down');};send.onmouseup=()=>{if(pressed)actions++;pressed=false;phases.push('up');};send.onclick=()=>phases.push('click');press();assert(actions===1&&phases.join(',')==='down,up,click'&&discarded===0,'one native gesture');});
+  await test('native action removing its button stops the remaining mouse phases',()=>{const host=draft(),send=host.querySelector('.send');send.onmouseup=()=>send.remove();press();assert(sent===0&&discarded===0,'no detached click');});
   await test('archive ignores per-row buttons, missing, disabled, hidden and ambiguous toolbar targets',()=>{
     const toolbar=workspace.querySelector('[gh="mtb"]'),button=toolbar.firstElementChild;
     const rowButton=button.cloneNode(true);rowButton.onclick=()=>archived+=100;workspace.append(rowButton);

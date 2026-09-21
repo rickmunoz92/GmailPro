@@ -23,6 +23,9 @@ background worker, new permissions, network calls, or alternate selection/draft 
 - Native repeat flags suppress held-key repetition. macOS can omit release events for
   Command chords; every fresh non-repeating keydown remains usable, and the next plain
   letter must still type normally. Companion-event state clears on release/blur/stop.
+- Native controls receive one mousedown/mouseup/click sequence. Gmail's toolbar needs
+  this pressed state; click alone does not activate Archive. If a phase removes or
+  disables the control, the remaining phases stop.
 
 ## Compatibility gate and real-key verification
 
@@ -42,6 +45,10 @@ These pages have no Gmail connection and cannot send mail or archive real conver
 The compatibility page intentionally only counts key events; production logic lives
 solely in the content module. No private content or diagnostic footage is committed.
 
+With the installed extension in Gmail, Command-Shift-A displayed Gmail's native
+"Conversation archived" confirmation. The test conversation was then restored using
+Move to Inbox and verified in the inbox. No actual email was sent.
+
 ## Regression results
 
 Run `node --test tests/settings.test.cjs`, then `python3 scripts/serve-tests.py` and the
@@ -50,7 +57,7 @@ browser fixtures at `http://127.0.0.1:8765/tests/`.
 | Suite | Passed |
 |---|---:|
 | Settings / lifecycle / Mac platform gate | 27/27 |
-| Keyboard shortcuts | 33/33 |
+| Keyboard shortcuts | 35/35 |
 | Popup settings | 16/16 |
 | Floating composer | 33/33 |
 | Auto BCC | 32/32 |
@@ -60,6 +67,8 @@ browser fixtures at `http://127.0.0.1:8765/tests/`.
 | Reading pane | 30/30 |
 | Thread ordering | 42/42 |
 | Label ordering | 14/14 |
+
+All 319 checks passed.
 
 Shortcut scenarios cover fresh target resolution after navigation/replacement, independent
 preferences, key repeats/releases, missing/disabled/hidden/ambiguous controls, competing

@@ -49,6 +49,19 @@
     return null;
   }
 
+  function activate(target) {
+    if (!target) return;
+    // Gmail's toolbar buttons use pressed state set on mousedown; .click()
+    // alone does not activate them. Match one ordinary native mouse gesture.
+    const box = target.getBoundingClientRect();
+    for (const type of ["mousedown", "mouseup", "click"]) {
+      if (!usable(target)) break;
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true,
+        view: window, button: 0, buttons: type === "mousedown" ? 1 : 0, detail: 1,
+        clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 }));
+    }
+  }
+
   function reset() { held.clear(); }
   function keyboard(event) {
     const key = event.key.toLowerCase();
@@ -74,7 +87,7 @@
     const focus = document.activeElement;
     if (!(focus instanceof Element)) return;
     const target = key === "a" ? archiveButton(focus) : sendButton(focus);
-    target?.click(); // One native action, synchronously; no queued send or retry.
+    activate(target); // One native gesture, synchronously; no queued send or retry.
   }
 
   function stop() {
