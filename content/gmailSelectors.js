@@ -61,6 +61,8 @@
     readingExcluded: '.ii, .a3s, [contenteditable], [role="dialog"], form',
     readingChrome: '.gE, .gA, .gB, .ip, .amr, .nr, .amn, .btDi4d',
     readingRecipients: '.gE .hb',
+    nativeActionButton: 'button, [role="button"]',
+    shortcutArchiveExcluded: 'input, textarea, select, [contenteditable], [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="region"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',
     primaryToolbar: '[gh="tm"] [gh="mtb"]',
     toolbarMore: '[role="button"][aria-label="More email options"]',
     nativeFooter: '.btDi4d .amn, .gA .amn',

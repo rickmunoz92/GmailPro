@@ -36,6 +36,7 @@ function fixture(initial = {}) {
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
   context.GmailPro.appearance = { start() {}, update() {}, stop() {} };
+  context.GmailPro.keyboardShortcuts = { start() {}, update() {}, stop() {} };
   context.GmailPro.floatingCompose = { start() {}, update() {}, stop() {} };
   context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
@@ -47,7 +48,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, sendShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -63,7 +64,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, sendShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -156,6 +157,9 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let shortcutsStarted, shortcutsStops = 0;
+  const shortcutsPatches = [];
+  f.context.GmailPro.keyboardShortcuts = { start: value => { shortcutsStarted = value; }, update: patch => shortcutsPatches.push(plain(patch)), stop: () => shortcutsStops++ };
   let readingStarted, readingStops = 0;
   const readingPatches = [];
   f.context.GmailPro.readingPane = { start: value => { readingStarted = value; }, update: patch => readingPatches.push(plain(patch)), stop: () => readingStops++ };
@@ -191,6 +195,7 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(plain(zoomStarted), plain(started));
   assert.deepEqual(plain(appearanceStarted), plain(started));
   assert.deepEqual(plain(readingStarted), plain(started));
+  assert.deepEqual(plain(shortcutsStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
@@ -200,7 +205,8 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(zoomPatches, reversePatches);
   assert.deepEqual(appearancePatches, reversePatches);
   assert.deepEqual(readingPatches, reversePatches);
-  pagehide(); assert.equal(readingStops, 1); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
+  assert.deepEqual(shortcutsPatches, reversePatches);
+  pagehide(); assert.equal(shortcutsStops, 1); assert.equal(readingStops, 1); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {
@@ -391,7 +397,7 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   f.run("content/appearance.js"); assert.equal(feature, f.context.GmailPro.appearance);
 });
 
-for (const name of ["floatingReplyEnabled", "floatingReplyAllEnabled", "floatingForwardEnabled"]) {
+for (const name of ["floatingReplyEnabled", "floatingReplyAllEnabled", "floatingForwardEnabled", "archiveShortcutEnabled", "sendShortcutEnabled"]) {
   test(`${name} defaults on, saves independently, validates and resets on deletion`, async () => {
     const f = fixture();
     assert.equal((await f.settings.load())[name], true);
@@ -405,3 +411,14 @@ for (const name of ["floatingReplyEnabled", "floatingReplyAllEnabled", "floating
     assert.deepEqual(patches, [{ [name]: true }]); stop();
   });
 }
+
+
+test("keyboard shortcuts are inert on non-Mac platforms", () => {
+  const f = fixture();
+  f.context.navigator = { userAgentData: {platform: "Windows"}, platform: "Win32" };
+  f.context.window = { addEventListener() { throw Error("Unexpected keyboard handler"); }, removeEventListener() {} };
+  delete f.context.GmailPro.keyboardShortcuts;
+  f.run("content/gmailSelectors.js"); f.run("content/keyboardShortcuts.js");
+  f.context.GmailPro.keyboardShortcuts.start(f.settings.defaults);
+  f.context.GmailPro.keyboardShortcuts.stop();
+});

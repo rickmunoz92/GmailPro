@@ -19,6 +19,7 @@
       app.appearance.update(patch);
       app.readingPane.update(patch);
       app.floatingCompose.update(patch);
+      app.keyboardShortcuts.update(patch);
       app.messageZoom.update(patch);
       app.labelOrder.update(patch);
     }
@@ -36,6 +37,7 @@
     app.messageList.stop();
     app.readingPane.stop();
     app.floatingCompose.stop();
+    app.keyboardShortcuts.stop();
     app.appearance.stop();
     app.messageZoom.stop();
     app.labelOrder.stop();
@@ -49,6 +51,7 @@
     app.appearance.start(current);
     app.readingPane.start(current);
     app.floatingCompose.start(current);
+    app.keyboardShortcuts.start(current);
     app.messageZoom.start(current);
     app.labelOrder.start(current);
     changes = {};

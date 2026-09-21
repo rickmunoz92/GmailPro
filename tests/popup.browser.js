@@ -45,6 +45,15 @@
     assert(saved.floatingReplyEnabled && !saved.floatingReplyAllEnabled && saved.floatingForwardEnabled, "independent save");
     store.writes = 0;
   });
+  await test("keyboard shortcuts default on, save independently, and follow sync", async () => {
+    const archive=byId("archive-shortcut"), send=byId("send-shortcut");
+    assert(archive.checked && send.checked, "default on");
+    edit(archive, false); await submit();
+    assert(!(await GmailPro.settings.load()).archiveShortcutEnabled && send.checked, "independent save");
+    store.emit({[key("sendShortcutEnabled")]:false}); assert(!send.checked, "sync applied");
+    assert(byId("send-shortcut-hint").textContent.includes("discard"), "native conflict explained");
+    store.writes=0;
+  });
   await test("enabled Auto BCC requires an address", async () => {
     edit(bcc, true); await submit();
     assert(address.getAttribute("aria-invalid") === "true" && store.writes === 0, "missing address rejected");

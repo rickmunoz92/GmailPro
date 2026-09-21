@@ -212,7 +212,33 @@ Manually removing the inserted BCC keeps it removed for that composition. Settin
 changes affect future compositions, and disabling Auto BCC cancels pending additions.
 Existing recipients are not rewritten. Reopening a saved draft or refreshing Gmail
 creates a new composition instance; existing recipients still prevent duplicates.
-Gmail Pro does not intercept or trigger **Send**.
+Auto BCC does not intercept or trigger **Send**. The optional keyboard shortcut below
+clicks Gmail’s normal Send button with the draft’s current recipients.
+
+### Mac keyboard shortcuts
+
+Both shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
+in the extension popup. Use **Save preferences** to apply changes.
+
+- **⌘⇧A — Archive:** clicks Gmail’s main Archive button for selected conversations or
+  the open conversation. Does nothing in search/editable fields, composers, or menus/dialogs.
+- **⌘⇧D — Send:** clicks the normal Send button only in the composer currently focused
+  in its body, recipients, subject, or controls. It never guesses another draft, sends a
+  minimized draft, or substitutes Send & archive.
+
+Enabling ⌘⇧D replaces Gmail’s **Discard draft** shortcut. Even if Send is unavailable,
+the enabled shortcut does nothing instead of discarding. Turning the switch off restores
+Gmail’s native shortcut. Enabled combinations are reserved in the Gmail page; outside
+Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native **E** and **⌘Enter**
+remain available. These features are independent of Apple Mail Mode and Gmail’s own
+keyboard-shortcut preference, and apply only on Mac.
+
+Gmail retains recipient validation, confirmation prompts it already requires, Undo,
+Undo Send, and all send behavior. There is no deferred send, retry, recipient rewrite,
+or send-time Auto BCC step. Holding a shortcut triggers one action; release and press
+again for another. Native controls are resolved afresh for every action.
+
+See [keyboard shortcut QA](tests/keyboardShortcuts-QA.md) for compatibility and tests.
 
 ### Newest Email First
 
@@ -454,6 +480,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/appleMail.html`
 - `http://127.0.0.1:8765/tests/readingPane.html`
 - `http://127.0.0.1:8765/tests/floatingCompose.html`
+- `http://127.0.0.1:8765/tests/keyboardShortcuts.html`
 
 Repeat Auto BCC, reverseThreads, messageZoom, and labelOrder with `?appearance=1`
 to run the same regressions with Apple Mail Mode active.

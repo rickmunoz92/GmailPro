@@ -2,9 +2,9 @@
 (() => {
   const observers = new Set(), listeners = new Map();
   // Browser automation injects unrelated message/beforeunload listeners. Count
-  // every event type used by the two production modules, on document/window.
-  const ownedEvents = new Set(['focusin','pointerdown','mousedown','mouseup','click','keydown','beforeinput','input','paste','drop','hashchange','popstate','visibilitychange']);
-  const owned = () => /\/content\/(autoBcc|floatingCompose)\.js/.test(new Error().stack);
+  // every event type used by the production modules, on document/window.
+  const ownedEvents = new Set(['focusin','pointerdown','mousedown','mouseup','click','keydown','keypress','keyup','beforeinput','input','paste','drop','hashchange','popstate','visibilitychange','blur']);
+  const owned = () => /\/content\/(autoBcc|floatingCompose|keyboardShortcuts)\.js/.test(new Error().stack);
   const NativeObserver = window.MutationObserver;
   window.MutationObserver = class extends NativeObserver {
     observe(...args) { if (owned()) observers.add(this); return super.observe(...args); }
