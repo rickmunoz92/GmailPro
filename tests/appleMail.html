@@ -5,6 +5,16 @@
 <link rel="stylesheet" href="../shared/theme.css">
 <link rel="stylesheet" href="../content/messageList.css">
 <link rel="stylesheet" href="../content/appleMail.css">
+<style>
+/* Native sidebar geometry; production CSS must preserve Gmail's display gates. */
+#sidebar { width:216px; }
+#sidebar .TN { display:flex; align-items:center; padding-left:26px; }
+#sidebar .TN > svg { flex:none; margin-right:8px; }
+#sidebar .aio { display:flex; flex:1 1 0; align-items:center; }
+#sidebar .nU { white-space:nowrap; margin-right:auto; }
+#sidebar .bsU { color:#444746; }
+#sidebar.collapsed .aio { display:none; }
+</style>
 <h1>Apple Mail Mode checks</h1>
 <p>Synthetic messages only. No Gmail connection; no email can be sent.</p>
 <pre id="results">Running…</pre>

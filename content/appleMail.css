@@ -82,13 +82,21 @@
   body:has([role="navigation"] .aim .TN.nY) .T-ays {
     display: none !important;
   }
+  /* Gmail owns count text and removes .bsU when no unread mail remains.
+     Keep its native visibility (including collapsed navigation/hover menus),
+     and keep long label names from shrinking the trailing number. */
   [role="navigation"] .bsU {
-    margin-inline-start: auto;
+    flex: 0 0 auto;
+    margin-inline-start: auto !important;
     padding-inline-start: 8px;
     font-size: 11px !important;
+    font-weight: 600 !important;
     font-variant-numeric: tabular-nums;
-    color: var(--gp-text-secondary) !important;
+    text-align: right;
+    white-space: nowrap;
+    color: #9C9EA0 !important;
   }
+  [role="navigation"] .bsU:empty { display: none !important; }
   [role="navigation"] .aio { min-width: 0; }
   [role="navigation"] .nU { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   [role="navigation"] [gh="cm"][role="button"] {
@@ -172,6 +180,17 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     width: var(--gp-sidebar-width) !important;
     min-width: var(--gp-sidebar-width) !important;
     max-width: var(--gp-sidebar-width) !important;
+  }
+  /* Gmail keeps a 240px minimum on each .wT label section and a fixed .TO
+     width. Let both follow our narrower expanded sidebar so counts and native
+     label menus stay inside its scroll viewport. Collapsed flyouts stay native. */
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) [role="navigation"].aeN .wT {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) [role="navigation"].aeN .aim > .TO {
+    width: auto !important;
   }
 }
 /* Same structural gate as messageList.css; unknown rows stay native. Native

@@ -125,7 +125,7 @@
     assert(css(selected.querySelector("svg")).fill === token("--gp-label-accent"), "accent mailbox icon");
     if (accent === "blue") assert(css(link).color === "rgb(0, 174, 255)", "exact requested blue label color");
     else assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast");
-    assert(contrast(css(selected.querySelector(".bsU")).color, css(selected).backgroundColor) >= 4.5, "count contrast >= 4.5");
+    assert(css(selected.querySelector(".bsU")).color === "rgb(156, 158, 160)", "exact requested mailbox count gray in both themes");
     selected.classList.add("nY");
     assert(css(selected).backgroundColor === token("--gp-accent"), "drop target uses current accent");
     assert(contrast(css(link).color, css(selected).backgroundColor) >= selectionContrast, "drop label contrast");
@@ -136,6 +136,64 @@
     assert(node.querySelector('.xW > span').hasAttribute('data-gmail-pro-date'), 'Apple Mail mode formats date');
     node.querySelector('[role="checkbox"]').setAttribute('aria-checked', 'true');
     assert(css(node.querySelector('.xW > span')).color === token('--gp-accent-contrast'), 'checked date uses accent contrast');
+  });
+  await test("mailbox counts align right and remain intact beside long nested names", () => {
+    const sidebar = document.getElementById("sidebar"), rows = sidebar.querySelectorAll(".TO");
+    const count = rows[1].querySelector(".bsU"), name = rows[1].querySelector(".n0");
+    const originalName = name.textContent, originalCount = count.textContent;
+    try {
+      enable(); name.textContent = "A very long nested mailbox name that must truncate";
+      for (const width of [160, 216, 280]) for (const value of ["1", "42", "1,234", "99+"]) {
+        sidebar.style.width = `${width}px`; count.textContent = value;
+        assert(Math.abs(rect(count).right - rect(rows[0].querySelector(".bsU")).right) < 1, "top-level and nested counts share right edge");
+        assert(rect(rows[1].querySelector(".nU")).right <= rect(count).left, "long name stays clear of count");
+        assert(count.scrollWidth <= count.clientWidth && css(count).textAlign === "right", "count is untruncated and right justified");
+        assert(css(count).color === "rgb(156, 158, 160)", "unselected count uses requested gray");
+      }
+      sidebar.classList.add("collapsed");
+      assert(count.getClientRects().length === 0, "native collapsed sidebar still hides counts");
+    } finally {
+      sidebar.classList.remove("collapsed"); sidebar.style.width = "";
+      name.textContent = originalName; count.textContent = originalCount;
+    }
+  });
+  await test("native unread updates show no number at zero and mode OFF restores count styling", () => {
+    const aio = document.querySelector("#sidebar .aio"), count = aio.querySelector(".bsU");
+    const original = aio.innerHTML, baseline = css(count).color;
+    try {
+      enable(); count.textContent = "1";
+      assert(count.textContent === "1" && rect(count).width > 0, "positive unread count visible");
+      count.remove(); // Gmail's native zero-unread transition.
+      assert(!aio.querySelector(".bsU") && aio.textContent === "Inbox", "zero unread has no number or generated badge");
+      aio.append(count); count.textContent = "";
+      assert(css(count).display === "none" && rect(count).width === 0, "empty native count reserves no gap");
+      count.textContent = "2";
+      assert(css(count).display !== "none" && rect(count).width > 0, "new unread mail restores native count immediately");
+      feature.stop();
+      assert(css(count).color === baseline && count.textContent === "2", "OFF restores native style without touching Gmail's count");
+    } finally { aio.innerHTML = original; }
+  });
+  await test("expanded sidebar fits Gmail's fixed-width label sections and restores collapsed widths", () => {
+    const sidebar = document.getElementById("sidebar"), banner = document.createElement("div");
+    banner.setAttribute("role", "banner");
+    banner.innerHTML = '<button aria-label="Main menu" aria-expanded="true"></button>';
+    const viewport = document.createElement("div"), section = document.createElement("div");
+    viewport.style.cssText = "width:100%;overflow:hidden";
+    section.className = "wT"; section.style.cssText = "width:240px;min-width:240px;max-width:240px";
+    const fixedRow = sidebar.querySelector(".aim").cloneNode(true);
+    fixedRow.querySelector(".TO").style.width = "240px";
+    section.append(fixedRow); viewport.append(section); sidebar.append(viewport); document.body.append(banner);
+    try {
+      enable();
+      if (matchMedia("(min-width:1000px)").matches) {
+        assert(rect(fixedRow.querySelector(".bsU")).right <= rect(viewport).right - 10, "unread count stays inside sidebar with trailing inset");
+        assert(rect(section).width <= sidebar.clientWidth, "native 240px section fits the 216px sidebar");
+      }
+      banner.querySelector("button").setAttribute("aria-expanded", "false");
+      assert(rect(section).width === 240 && rect(fixedRow.querySelector(".TO")).width === 240, "collapsed flyout retains native widths");
+      banner.querySelector("button").setAttribute("aria-expanded", "true"); feature.stop();
+      assert(rect(section).width === 240 && rect(fixedRow.querySelector(".TO")).width === 240, "OFF restores original dimensions");
+    } finally { banner.remove(); viewport.remove(); }
   });
   await test("list stars and importance markers hide without reserving space and restore on OFF", () => {
     const node = row(), star = node.querySelector(".apU"), importance = node.querySelector(".WA");

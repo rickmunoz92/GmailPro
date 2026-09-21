@@ -1,5 +1,22 @@
 # Apple Mail Mode — implementation and QA
 
+## Mailbox unread counts — 2026-09-21, version 0.9.25
+
+- Native `.bsU` counts use right-aligned tabular numbers in `#9C9EA0` in both
+  themes. Gmail supplies the totals and removes the count at zero; empty native
+  count elements reserve no space. No observer, count cache, or API request added.
+- Live inspection found Gmail's 240px `.wT` sections and `.TO` rows clipped counts
+  inside the 216px sidebar. Expanded desktop sections and rows now fit that
+  sidebar. Collapsed navigation and mode OFF retain native widths/visibility.
+- Passed 57/57 Chrome appearance checks, 14/14 label-order checks with appearance
+  enabled, and 29/29 Node checks plus manifest/assets/syntax validation.
+  Coverage includes long nested names, multiple count widths, native removal and
+  reinsertion, empty counts, both themes/all accents, clipping and restoration.
+- Updated the installed unpacked extension, reloaded version 0.9.25 and Gmail,
+  and visually verified a native positive count inside the sidebar's right edge.
+  Verified the zero-unread Inbox had no number. Restored the sidebar scroll
+  position; no message read state was changed. No live mail captured in the repo.
+
 Date: 2026-09-18. Version: 0.7.0. Branch: `codex/apple-mail-mode`.
 
 ## Architecture and ownership

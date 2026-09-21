@@ -125,8 +125,11 @@ so Gmail's measured scrolling regions remain correct.
   adds that range. A normal click still opens the conversation. Keyboard focus
   (`.btb`) keeps an outline and is not mistaken for an opened conversation.
 - **Current mailbox/label:** Gmail's `.TO.nZ` state gets neutral gray selection
-  chrome with an accent-tinted icon/text. Counts stay readable; nesting and
-  disclosure controls retain Gmail's hierarchy and behavior.
+  chrome with an accent-tinted icon/text. Native unread counts sit at the right
+  edge in **#9C9EA0**, including nested labels; mailboxes with no unread messages
+  show no number. Gmail owns the totals and updates, so counts are not limited to
+  the currently loaded message page. Nesting and disclosure controls retain
+  Gmail's hierarchy and behavior.
 
 JavaScript in `content/appearance.js` applies one root class,
 `gmail-pro-apple-mail-mode`, and two preference attributes. Four delegated capture
