@@ -7,11 +7,11 @@
    Gmail exposes no semantic equivalents for these presentation/state hooks.
    Every rule is gated by our single root switch. No DOM or email mutation.
    Scope limits explicitly exclude read bodies and editable document content. */
-@scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable="true"]) {
+@scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
   body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
   .nH:has(> [role="main"]) { border-radius: 0 !important; background: var(--gp-bg-primary) !important; }
   [role="banner"], [role="navigation"], [role="main"], :is(.AO, .aeF, .bkK):has([role="main"]), [gh="tm"], [gh="tl"],
-  [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY, .ao9, .aia) {
+  [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY) {
     background: var(--gp-bg-primary) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -134,7 +134,7 @@
   /* Thread surroundings/headers only. No descendant wildcard, inversion, or
      typography changes on the message envelope or its .ii/.a3s document. */
   [role="main"] .iY:has(h2[data-thread-perm-id]) { margin: 0 !important; border: 0 !important; }
-  [role="main"] :is(.gE, .ha, .hj, .ajx) {
+  [role="main"] :is(.gE, .ha, .hj) {
     background: var(--gp-bg-primary) !important;
     color: var(--gp-text-primary) !important;
     font-family: var(--gp-font) !important;
@@ -145,24 +145,6 @@
   [role="main"] .gE :is(h3, .gD, .g2, .g3, .gK, .go) { color: var(--gp-text-secondary) !important; font-family: var(--gp-font) !important; }
   [role="main"] .gE .gD { color: var(--gp-text-primary) !important; }
   [role="main"] [role="list"] > [role="listitem"] { border-color: var(--gp-border) !important; box-shadow: none !important; }
-  /* Native menu surfaces, not arbitrary email tables or modal content. */
-  body > [role="menu"], body > .J-M[role="menu"], [role="dialog"]:not(:has([contenteditable="true"])) {
-    background-color: var(--gp-bg-secondary) !important;
-    color: var(--gp-text-primary) !important;
-    border-color: var(--gp-border) !important;
-  }
-  [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
-    color: var(--gp-text-primary) !important;
-    font-family: var(--gp-font) !important;
-  }
-  [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):hover { background: var(--gp-hover) !important; }
-  /* Compose chrome only: never touch editor colors/fonts, innerHTML or style
-     attributes. Gmail can serialize computed editor formatting on send. */
-  [role="dialog"] :is(.aYF, .aZ, .aoI), .AD:has(input[name="composeid"]) .aYF {
-    background: var(--gp-bg-tertiary) !important;
-    color: var(--gp-text-primary) !important;
-    font-family: var(--gp-font) !important;
-  }
   :is([role="navigation"], [gh="tm"], [role="search"], [data-gmail-pro-label-ui]) :focus-visible {
     outline: 2px solid var(--gp-accent-ui) !important;
     outline-offset: 2px;
@@ -264,7 +246,7 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
 
 /* Reading-pane chrome only. Gmail retains message DOM/order, security banners,
    details menus, attachment controls and all authored body/editor formatting. */
-@scope (html.gmail-pro-apple-mail-mode [role="main"] .iY:has(h2[data-thread-perm-id][data-legacy-thread-id])) to (.ii, .a3s, [contenteditable], form, [role="dialog"]) {
+@scope (html.gmail-pro-apple-mail-mode [role="main"] .iY:has(h2[data-thread-perm-id][data-legacy-thread-id])) to (.ii, .a3s, [contenteditable], form, [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
   .V8djrc:has(h2[data-thread-perm-id]) { padding: 12px 16px 6px !important; }
   h2[data-thread-perm-id] { font-size: 16px !important; line-height: 1.4 !important; margin: 0 !important; }
   .ha { margin: 0 !important; padding: 0 !important; }
@@ -345,7 +327,7 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
 
 /* Fixed-size transparent tracks avoid layout jumps. Activity belongs to each
    pane and axis; hovering or scrolling another pane never reveals a thumb. */
-@scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *)) to (.a3s, [contenteditable], [role="dialog"]) {
+@scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *, [role="region"] *)) to (.a3s, [contenteditable], [role="dialog"], [role="region"]) {
   :scope {
     scrollbar-color: auto !important;
     scrollbar-width: auto !important;
@@ -367,7 +349,3 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
   :scope[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
   :scope[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical { background-color: var(--gp-text-muted) !important; }
 }
-
-/* Native compose transition, independent of Apple Mail Mode. Cleared before
-   the next paint on every success/fallback/cancel path. Never styles email HTML. */
-[role="region"][data-gp-floating-pending] { opacity: 0 !important; }

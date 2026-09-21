@@ -93,7 +93,7 @@
   const scrolling = new Map();
   const scrollOptions = { capture: true, passive: true };
   function scrollPane(node) {
-    return node instanceof Element && node.matches(scrollSelector) && !node.closest('.a3s, [contenteditable], [role="dialog"]');
+    return node instanceof Element && node.matches(scrollSelector) && !node.closest('.a3s, [contenteditable], [role="dialog"], [role="region"]');
   }
   function rememberScroll(event) {
     // Capture positions before wheel/keyboard/scrollbar input. No DOM scans.
@@ -172,7 +172,7 @@
       for (const type of ["wheel", "keydown", "pointerdown"]) document.addEventListener(type, rememberScroll, scrollOptions);
       listening = true;
     }
-    // No per-row listeners or ongoing DOM observers. Follow OS changes only
+    // No per-row listeners or idle DOM observers. Follow OS changes only
     // while needed; delegated selection handlers are removed on mode OFF.
     if (current.appearanceTheme === "system" && !media) {
       media = matchMedia("(prefers-color-scheme: dark)");

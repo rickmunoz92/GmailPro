@@ -1,95 +1,87 @@
-# Native floating composer QA — September 18, 2026
+# Native Shift-click composer QA — 2026-09-21
 
-## Implementation and preservation
+## Implemented behavior
 
-- Capture native Reply / Reply All / Forward, delegated Gmail Pro toolbar actions,
-  and Gmail's lowercase r/a/f shortcuts. Observe only the current conversation during
-  the action, excluding editors that already existed. New Compose stays native.
-- Require Gmail's native region, addressing form, Message Body editor, and the current
-  pair of Pop out reply controls with exactly one visible. Live Gmail initially exposes
-  a construction control that ignores activation; this motivated the paired-control guard.
-- Wait for native editor/recipient focus, then invoke the actual control in one pre-paint
-  callback with native mouse events. A plain early click was insufficient in live Gmail.
-  Re-resolve the control at activation time. Never reconstruct recipients, subject/body,
-  attachments, signatures, draft IDs, or Gmail's compose lifecycle.
-- One-attempt WeakSet per region; disconnect before activation. Dialogs and pre-existing
-  inline editors are excluded. Each conversation has its own bounded action intent.
-- Suppress opacity only on a confirmed new editor for at most one rendering opportunity.
-  Finally/cancel/navigation/visibility cleanup always removes suppression. Missing controls,
-  lost focus, unsupported structures, and failed activation leave inline Gmail usable.
-  A two-second expiry only cleans up observation. No polling or external windows.
-- Auto BCC's existing owner remembers decisions across native form replacement by the
-  observed session data-compose-id. Identity can arrive after form creation. The 100-entry
-  memory-only history preserves pending/inserted/removed states without storing message
-  text or recipient lists. No second BCC implementation was added.
-- The starting checkout already had no external-window modules/service worker, positioning,
-  size preferences, or related permissions. `storage` remains the only manifest permission.
-  No old architecture had to be deleted. Existing safe compose chrome styling is reused.
-- Existing uncommitted recipient-label/unread-dot work was preserved in checkpoint
-  `762e248`, with `codex/before-native-compose` pointing to it.
+The user's simplified plan supersedes the earlier transition/state-machine proposal.
+Normal primary clicks on supported Reply, Reply All, and Forward controls forward each
+native pointer/mouse phase once with Shift in actual event data. Gmail creates the
+floating composer directly. Explicit modifiers, disabled controls, existing composers,
+message bodies, and unknown controls remain untouched. Keyboard shortcuts stay native.
 
-## Automated verification
+The adapter has four delegated capture listeners and no observer, timer, draft tracking,
+Pop Out activation, hidden editor, or delayed fallback. Independent switches and the
+existing start/update/stop lifecycle remain. The persistent toolbar still delegates to
+Gmail's native action. Unknown layouts fall back to ordinary Gmail behavior.
 
-`node scripts/validate.cjs`: 24/24 unit checks, manifest/resource/syntax checks,
-minimal-permission assertions. `git diff --check`: clean.
+Auto BCC owns recipient discovery independently. Its existing initial delay, microtask
+recipient processing, duplicate checks, focus restoration, and memory-only draft identity
+history remain. A bounded five-second watcher handles a focused floating shell whose
+addressing form arrives later, including a nested native region. Discovery, removal,
+deadline, and teardown release that watcher.
 
-Real Chrome synthetic browser suite (all local; no mail can be sent):
+Composer styling and popup styling are removed at the source. Inline, floating, new,
+minimized, and full-screen composers, plus all menus/listboxes/dialogs, remain native.
+There is no ownership metadata, popup observer, forced-white skin, or reset stylesheet.
+Apple Mail Mode continues to style the main inbox, sidebar, and reading toolbar.
+
+## Automated validation
+
+Run `node --test tests/settings.test.cjs`, then `python3 scripts/serve-tests.py` and open
+the HTML suites at `http://127.0.0.1:8765/tests/`. Test-only resource instrumentation
+counts the two production modules' observers/listeners, excluding browser tooling.
 
 | Suite | Passed |
 |---|---:|
-| Floating composer | 26/26 |
+| Settings / lifecycle | 24/24 |
+| Native Shift composer + Auto BCC integration | 33/33 |
 | Auto BCC | 32/32 |
-| Persistent reading-pane actions | 30/30 |
-| Newest-first threads | 42/42 |
+| Apple Mail appearance | 54/54 |
+| Reading pane | 30/30 |
+| Thread ordering | 42/42 |
 | Message list | 20/20 |
-| Label order | 14/14 |
+| Label ordering | 14/14 |
 | Message zoom | 16/16 |
-| Apple Mail appearance | 47/47 |
-| Settings popup | 15/15 |
-| **Total** | **242/242** |
+| Popup settings | 15/15 |
 
-New coverage includes independent settings, native header/menu/toolbar/keyboard actions,
-construction controls, mouseup-driven activation, multiple/minimized drafts, existing drafts,
-missing and no-op controls, delayed controls, native-focus fallback, pre-paint cancellation,
-navigation, lifecycle cleanup, late compose identity, manual BCC removal and form replacement.
+Integration checks include native modifier data/getModifierState, nested targets,
+coordinates and pointer identity, all four event phases, early header activation,
+cancellation, independent switches, explicit modifiers, disabled/unrelated controls,
+unknown markup, no late conversion, teardown, Auto BCC ON/OFF, delayed forms, multiple
+drafts, duplicate recipients, manual removal across form replacement, focus retention,
+and watch expiration. Appearance tests compare computed native surfaces across dark,
+light, and system modes, including detached/nested/recycled menus and dialogs.
 
-## Live Gmail verification
+## Live Gmail validation
 
-English desktop Gmail, Chrome, existing account and extensions, Apple Mail Mode enabled.
-Only newly created disposable drafts were discarded. No mail was sent. Original five drafts
-remained; temporary diagnostic attributes/code were removed before the final smoke test.
+Tested the updated unpacked extension in a dedicated Chrome Gmail tab with existing
+Apple Mail Mode and Auto BCC enabled. No email was sent. Only drafts created during
+these checks were discarded; no preexisting draft was edited or discarded.
 
-- Automatic floating Reply from the persistent toolbar: passed; native body focus,
-  signature, recipient and one BCC verified.
-- Automatic floating Reply All from the native message header and persistent toolbar:
-  passed; one To recipient, three CC recipients, one BCC, signature and body focus verified
-  against the selected multi-recipient message.
-- Automatic floating Forward from the persistent toolbar: passed; native forward subject,
-  forwarded content, signature and one BCC verified.
-- Three simultaneous floating drafts from different threads: passed; each retained one BCC.
-- Native minimize -> collapsed draft -> manual maximize: passed; no automatic reopening.
-- Manual BCC chip removal followed by minimize/restore: passed; BCC remained absent.
-- Signature menu -> No signature -> existing signature: passed; native replacement works.
-- Native Save & close preserved a disposable text marker and returned the draft inline.
-  **Limitation:** that reconstructed inline draft reapplied a manually removed Auto BCC.
-  Do not claim removal survives every save/close/reopen path. Review BCC after reopening.
-- Attachment picker opened, but selecting the synthetic text file was blocked by the
-  ChatGPT browser extension's file-access setting. Upload/remove/drag-drop remain unverified.
-- Final production smoke test: one floating Reply All, body focus, zero hidden-transition
-  markers, and no diagnostic attributes. No custom editor/window or compose positioning.
+- Persistent-toolbar Reply and Forward: one floating composer, zero inline editors
+  outside dialogs, one BCC chip. Reply keeps Message Body focus; Forward keeps To focus.
+- Native header Reply All and detached native menu Forward: direct floating composer,
+  zero inline editors outside dialogs, one BCC chip.
+- Explicit Shift-click on the native header (bypasses the adapter): same native floating
+  result, BCC count, and body focus as the ordinary automatic-Shift click.
+- Minimize, restore, full screen, and return from full screen use Gmail's native controls.
+- New Compose alongside a minimized reply produces two independent drafts with one BCC
+  each; the reply remains minimized. New Compose keeps To focus.
+- Visually inspected white Gmail composer and full-screen surfaces while the inbox and
+  sidebar retain dark Apple Mail Mode. Native signature and quoted content remain.
 
-## Remaining manual checks / limits
+These checks verify behavior and native presentation, not a numerical opening-time
+promise. Gmail can still render its shell before signatures and recipient UI finish.
+No timing numbers or recordings from the older implementation are acceptance evidence
+for this revision. No private inbox data, screenshots, or recordings are included in Git.
 
-1. Confirm perceived opening smoothness on the user's usual thread sizes and hardware.
-   Pre-paint suppression limits flashes but does not guarantee zero inline frames when
-   Gmail performs slow asynchronous setup. No frame-by-frame live recording was made.
-2. Attach/remove a test file, drag/drop an image, and forward a message with attachments.
-   Gmail owns those paths; only the picker and existing signature/forward content were checked.
-3. Try Search, a label, Sent, full-thread mode, Browser Back/Forward, and Apple Mail Mode off.
-   Navigation/appearance regressions are covered synthetically; that complete live matrix
-   was not executed. Keyboard shortcut coverage is synthetic; Gmail must enable shortcuts.
-4. Check body formatting and reload/reopen a saved disposable draft. Confirm BCC before sending,
-   especially after Save & close or a page reload. Never send the QA draft.
-5. Unknown Gmail markup/locales fall back inline. The paired Pop Out controls, editor labels,
-   validated conversation shell, and session compose identity are DOM assumptions, not a
-   public Gmail API. History eviction/reload/new identity can reinitialize Auto BCC.
+## Limits
+
+Auto BCC OFF and theme OFF/ON equivalence were verified in fixtures; the complete live
+settings matrix was not repeated. Earlier browser policy blocked the privileged extension
+settings URL; no workaround was used. Attachment upload, image drag/drop, Send, and every
+native popup type were not exercised in this revision. No code intercepts those controls.
+
+English desktop Gmail action labels and structural hooks are assumed. Native Gmail
+changes can make a control fall back to inline behavior. A new compose identity, page
+reload, or identity-history eviction can reapply a manually removed BCC; review recipients
+after reopening a saved draft. Minimize/restore does not create a new identity.

@@ -33,53 +33,40 @@ use **Save preferences**.
 
 ## Gmail native floating composer
 
-Reply, Reply All, and Forward can automatically open Gmail’s own floating composer,
-eliminating the manual **Pop out reply** step. All three switches default **ON** in
-**Compose**; save preferences to apply them independently. New Compose is unchanged.
-Gmail remains responsible for recipients, quoted history, signatures, attachments,
-formatting, draft autosave, Send, and minimize/collapse/restore. Apple Mail Mode uses
-its existing compose-chrome colors; outgoing HTML is never restyled or reconstructed.
+Reply, Reply All, and Forward automatically use Gmail’s own floating composer.
+Their independent **Compose** switches default **ON**; save preferences to apply.
+New Compose is unchanged. Gmail owns recipients, quoted history, signatures,
+attachments, formatting, autosave, Send, and minimize/restore/full-screen behavior.
+Gmail Pro intentionally does not style any composer, including its title, addressing,
+editor, toolbars, buttons, or detached menus/dialogs. Gmail’s current theme applies.
 
-Native message/header/menu actions and Gmail Pro’s persistent toolbar participate.
-Gmail’s lowercase `r`, `a`, and `f` shortcuts participate when Gmail shortcuts are enabled;
-Gmail Pro never enables them, creates drafts itself, or overrides browser shortcuts.
-Existing drafts opened from Drafts or returned inline with **Show your draft here** are
-left alone. Minimized floating drafts are never automatically reopened.
+For ordinary native and persistent-toolbar clicks, Gmail Pro forwards each native mouse
+phase once with Gmail’s Shift modifier, opening the floating composer directly. This
+includes header controls that start their action before `click`; the original target
+and Gmail’s own handlers remain responsible for creating the draft.
+Existing modifier keys are preserved. The persistent toolbar uses the same native
+handler through an explicit synchronous bridge; it never creates a second draft.
+Gmail’s keyboard shortcuts stay unchanged. Existing drafts, including minimized drafts
+and **Show your draft here**, are left alone.
 
-Capture-phase events arm a temporary observer on the current conversation only.
-Existing editors are excluded. Within each newly created native region we require an
-addressing form, Message Body editor, and Gmail’s resolved pair of **Pop out reply**
-controls (exactly one visible). Live Gmail exposes a temporary control during construction;
-activating it early is a no-op. After Gmail focuses the actual editor, one pre-paint
-callback invokes the visible control using its native mouse sequence. No polling or
-background window manager is used. Each region is attempted once; a separate conversation
-can independently create another draft. The observer disconnects before activation.
+There is no inline-to-pop-out conversion, draft observer, hiding rule, transition timer,
+or delayed retry. If Gmail ignores Shift or a control is not recognized, Gmail’s normal
+inline behavior remains usable. Gmail controls construction and rendering speed.
 
-To limit inline flash, only the new region is transparent for at most one rendering
-opportunity. Every exit restores it. Missing controls, ambiguous markup, lost focus,
-navigation, settings changes, and failed/no-op native activation leave normal inline
-Gmail available. A two-second safety expiry cancels observation; it never delays activation.
-Gmail’s asynchronous construction can still expose an inline frame on a slow/changed layout;
-we favor a usable editor over keeping a draft hidden.
+Auto BCC discovers native drafts independently and retains its existing duplicate,
+focus, and manual-removal protections. A five-second, short-lived watch handles a
+floating shell that receives focus before Gmail creates its addressing form. The
+100-entry memory-only `data-compose-id` history preserves recipient decisions across
+native form replacement; a new identity, page reload, or history eviction can reapply
+a manually removed BCC. Review BCC after reopening a draft.
 
-Auto BCC keeps its existing owner and insertion rules. Gmail’s session `data-compose-id`
-survives native form replacement in the inspected desktop UI; pending/inserted/removed
-state follows that identity, so a removed BCC stays removed and a committed BCC is not
-inserted twice. This metadata is memory-only and bounded to the 100 most recently seen
-identities per page, with no message content, subject, or recipient list stored. Without
-that identity (or after page reload/history eviction), the existing recipient check still
-prevents duplicate chips, but a fully reconstructed draft is treated as a new composition.
-Gmail Pro never infers identity from subject or recipients. Live **Save & close**
-returned a floating reply inline with its text intact but reapplied a manually removed
-Auto BCC; review BCC when reopening a reconstructed draft. Minimize/restore preserved
-the removal in live testing.
+All Gmail menus, listboxes, and dialogs use native Gmail styling. Apple Mail Mode still
+styles the main inbox, sidebar, and reading toolbar. There is no popup ownership tracking,
+custom white override, or inherited dark composer skin.
 
-DOM assumptions: English desktop Gmail, native `role=region`, `role=dialog`,
-`input[name=composeid]`, Message Body label, the resolved Pop Out control pair, and the
-existing validated conversation shell. Other locales/changed structures fall back inline.
-Only `storage` permission is required. The starting checkout already contained no external
-window service worker, positioning/size settings, or window permissions; no abandoned
-window implementation remains active. See [native compose QA](tests/floatingCompose-QA.md).
+DOM assumptions: English desktop Gmail, native action labels/classes and the validated
+conversation shell. Unknown structures fall back to Gmail. Only `storage` permission is
+required. See [native compose QA](tests/floatingCompose-QA.md).
 
 ## Installation
 
@@ -174,8 +161,8 @@ or conversation-cleanup feature existed in this baseline, so none is duplicated.
 Message fonts, HTML, images and tables are not rewritten or inverted. A light Gmail
 message-wrapper canvas keeps transparent documents readable beside dark chrome.
 If Dark Reader advertises ownership of document colors, its canvas is left alone.
-Compose title chrome is styled; the editable message, its formatting, addressing,
-and outgoing HTML are untouched. The composer may therefore retain a light editor.
+All composer surfaces and compose-owned popups retain Gmail’s native appearance.
+Editable content, addressing, formatting, and outgoing HTML are untouched.
 Gmail Pro cannot recolor Chrome's own tab/address bars or a separate window's frame.
 
 Dark main surfaces, sidebar, and toolbar use `#23292B`, with neutral interface text
@@ -199,7 +186,7 @@ native rows. No uninstall or Gmail refresh is needed for preference changes.
 Compatibility is intentionally conservative: desktop Gmail/Chrome 118+ only. Native
 roles and structure are used where available; Gmail's undocumented presentation
 classes remain necessary for unread/selection and some chrome. Unknown row layouts
-retain native presentation. Some menus/dialog interiors and Workspace/Chat/Meet
+retain native presentation. All menus/dialog interiors and Workspace/Chat/Meet
 controls stay native; the Workspace rail remains reachable, including installed
 security add-ons. Standalone Gemini and Google app-launcher buttons are hidden;
 Gmail's search (including an Ask Gmail-branded field), advanced search, account and

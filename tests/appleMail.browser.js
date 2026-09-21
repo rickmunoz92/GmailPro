@@ -358,6 +358,37 @@
     enable({appearanceTheme:"system"});
     assert(root.dataset.gpTheme === (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"), "system theme resolved");
   });
+  const flush = () => new Promise(resolve => requestAnimationFrame(resolve));
+  const appearanceSnapshot = node => JSON.stringify([node, ...node.querySelectorAll('*')].map(element => {
+    const style = css(element);
+    return [style.color,style.backgroundColor,style.font,style.border,style.padding,style.margin,style.boxShadow,style.borderRadius,style.filter];
+  }));
+  for (const kind of ['inline','floating','minimized','fullscreen']) await test(kind + ' composer chrome remains exactly native across themes', () => {
+    const composer = document.createElement('div'); composer.setAttribute('role', kind === 'inline' ? 'region' : 'dialog');
+    composer.innerHTML = '<div class="aYF aZ aoI">Native title</div><form><input type="hidden" name="composeid"><div class="gE ao9 aia">From / To / Cc / Bcc <input role="combobox"></div><input name="subjectbox"></form><div contenteditable="true">Body and signature</div><div class="Nu"><button>Formatting</button><button>Send</button><button>Attachments</button></div>';
+    workspace.append(composer);
+    const before = appearanceSnapshot(composer);
+    for (const appearanceTheme of ['dark','light','system']) {
+      enable({appearanceTheme});
+      assert(appearanceSnapshot(composer) === before, 'entire composer surface unchanged in ' + appearanceTheme);
+    }
+  });
+  for (const role of ['menu','listbox','dialog']) await test(role + ' stays native detached, nested, and reused across themes', async () => {
+    const popup = document.createElement('div'); popup.setAttribute('role',role);
+    popup.innerHTML = '<div role="menuitem" class="gE">Native item <button>More</button></div>';
+    document.body.append(popup); const before = appearanceSnapshot(popup);
+    try {
+      for (const appearanceTheme of ['dark','light','system']) {
+        enable({appearanceTheme}); await flush();
+        assert(appearanceSnapshot(popup) === before, 'detached popup unchanged');
+        workspace.append(popup); await flush();
+        assert(appearanceSnapshot(popup) === before, 'nested popup unchanged');
+        popup.hidden = true; popup.hidden = false; popup.firstElementChild.click();
+        assert(!popup.hasAttribute('data-gp-chrome-popup') && !popup.hasAttribute('data-gp-native-popup'), 'no ownership bookkeeping');
+        document.body.append(popup);
+      }
+    } finally { popup.remove(); }
+  });
   const failures = reports.filter(line => line.startsWith("FAIL")).length;
   result.textContent = `${reports.join("\n")}\n\n${reports.length - failures}/${reports.length} checks passed.`;
   result.dataset.failures = String(failures);

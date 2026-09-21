@@ -26,14 +26,9 @@
     labelMoreCollapsed: '[gh="mll"][aria-label="More labels"]',
     main: '[role="main"]',
     form: 'form',
-    // Native inline pop-out, verified September 18, 2026. Never match the
-    // floating dialog's Full screen (Shift for pop-out) / external-window action.
-    composeContent: '.ii, .a3s, [contenteditable]',
+    // Native addressing form and action boundaries, English desktop Gmail.
     composeForm: 'form:has(input[name="composeid"])',
-    inlineCompose: '[role="region"]',
-    composeEditor: '[contenteditable="true"][role="textbox"][aria-label="Message Body"]',
     composeExcluded: '.ii, .a3s, [contenteditable], input, textarea, select',
-    popOutReply: '[role="button"][aria-label="Pop out reply"], [role="button"][data-tooltip="Pop out reply"]',
     composeAction: 'button, [role="button"], [role="link"], [role="menuitem"]',
     composeMarker: 'input[name="composeid"]',
     region: '[role="region"], [role="dialog"]',

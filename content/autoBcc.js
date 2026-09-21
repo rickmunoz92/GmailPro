@@ -21,6 +21,9 @@
   let discovery;
   let main;
   let headerOwner = null;
+  // Focus can precede Gmail's addressing form. These short-lived watches belong
+  // to this recipient owner; they neither control nor wait for a pop-out.
+  const incompleteHosts = new Map(), watchedHosts = new WeakSet();
 
   // Keep plus tags and dots: different providers assign different meanings.
   function normalizeAddress(value) {
@@ -234,6 +237,7 @@
   function discover(form) {
     if (!running || !form?.matches(S.form) || !form.isConnected || seen.has(form) ||
         !form.querySelector(S.composeMarker)) return;
+    for (const host of incompleteHosts.keys()) if (host.contains(form)) releaseHost(host);
     const identity = form.closest(S.region)?.getAttribute("data-compose-id");
     // Flush a removal before Gmail detaches the old form in the same task.
     for (const previous of active.values()) if (identity && previous.identity === identity && previous.form !== form) {
@@ -274,12 +278,34 @@
   }
 
   function cleanupDetached() {
+    for (const host of incompleteHosts.keys()) if (!host.isConnected) releaseHost(host);
     for (const state of active.values()) if (!state.form.isConnected) {
       // Detachment itself is not recipient removal. Only compare retained chips
       // while the old form still has its recipient UI.
       if (state.status === "inserted" && inputs(state.form).length && !bccCommitted(state)) finish(state, "removed");
       else { remember(state); finish(state, "closed"); }
     }
+  }
+
+  function releaseHost(host) {
+    const watch = incompleteHosts.get(host);
+    if (!watch) return;
+    watch.observer.disconnect();
+    clearTimeout(watch.deadline);
+    incompleteHosts.delete(host);
+  }
+
+  function watchIncompleteHost(host) {
+    if (!host.matches('[role="dialog"]') || watchedHosts.has(host) || host.querySelector(S.composeForm)) return;
+    watchedHosts.add(host);
+    const observer = new MutationObserver(() => {
+      if (!host.isConnected) return releaseHost(host);
+      scan(host);
+    });
+    incompleteHosts.set(host, { observer, deadline: setTimeout(() => releaseHost(host), 5000) });
+    observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ['name'] });
+    // Detect removal without observing unrelated document subtrees.
+    for (let parent = host.parentElement; parent; parent = parent.parentElement) observer.observe(parent, { childList: true });
   }
 
   function watchSpine(node) {
@@ -308,11 +334,10 @@
       if (nextMain) observeMain(nextMain);
     }
     const form = event.target.closest(S.form);
+    const region = event.target.closest(S.region);
     if (form) discover(form);
-    else {
-      const region = event.target.closest(S.region);
-      if (region) scan(region);
-    }
+    else if (region) scan(region);
+    if (region) watchIncompleteHost(region.closest('[role="dialog"]') || region);
   }
 
   function update(next) {
@@ -347,6 +372,7 @@
   function stop() {
     if (!running) return;
     running = false;
+    for (const host of incompleteHosts.keys()) releaseHost(host);
     discovery.disconnect();
     document.removeEventListener("focusin", onFocus, true);
     document.removeEventListener("pointerdown", onUserInteraction, true);
