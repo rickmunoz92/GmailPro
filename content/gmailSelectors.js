@@ -62,6 +62,9 @@
     readingChrome: '.gE, .gA, .gB, .ip, .amr, .nr, .amn, .btDi4d',
     readingRecipients: '.gE .hb',
     nativeActionButton: 'button, [role="button"]',
+    // Native Archive / Move to Undo toast, verified in desktop Gmail. Its
+    // structured notification boundary excludes arbitrary links in messages.
+    nativeUndo: '.b8[role="alert"] > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"][role="link"]',
     shortcutArchiveExcluded: 'input, textarea, select, [contenteditable], [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="region"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',
     primaryToolbar: '[gh="tm"] [gh="mtb"]',
     toolbarMore: '[role="button"][aria-label="More email options"]',

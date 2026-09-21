@@ -3,7 +3,7 @@
   const app = (globalThis.GmailPro ??= {});
   if (app.keyboardShortcuts) return;
   const S = app.selectors;
-  const preferences = { a: "archiveShortcutEnabled", d: "sendShortcutEnabled" };
+  const preferences = { a: "archiveShortcutEnabled", d: "sendShortcutEnabled", z: "undoShortcutEnabled" };
   const options = { ...app.settings.defaults };
   const held = new Set();
   const events = ["keydown", "keypress", "keyup"];
@@ -49,6 +49,12 @@
     return null;
   }
 
+  function undoButton() {
+    return one([...document.querySelectorAll(S.nativeUndo)].filter(control => usable(control) &&
+      !control.closest(`${S.composeExcluded}, .inboxsdk__butterbar, [data-inboxsdk-id]`) &&
+      /^(Undo|Undo link)$/.test(name(control)) && control.textContent.trim() === "Undo"));
+  }
+
   function activate(target) {
     if (!target) return;
     // Gmail's toolbar buttons use pressed state set on mousedown; .click()
@@ -68,11 +74,18 @@
     // macOS can release Command before delivering the letter's keyup, or omit
     // that keyup. Release latches on modifier release and loss of focus as well.
     if (event.type === "keyup" && (key === "meta" || key === "shift")) reset();
-    const exact = event.metaKey && event.shiftKey && !event.ctrlKey && !event.altKey;
+    const exact = event.metaKey && event.shiftKey === (key !== "z") && !event.ctrlKey && !event.altKey;
     if (event.type === "keydown" && !exact) held.delete(key);
     const reserved = options[preferences[key]] && exact;
     const companion = event.type !== "keydown" && held.has(key);
     if ((!reserved && !companion) || event.isComposing || !event.cancelable) return;
+    const focus = document.activeElement;
+    // Text editing owns Command-Z throughout a composer, menu, or dialog.
+    // Leave every event untouched, including after focus changes during a chord.
+    if (key === "z" && (!(focus instanceof Element) || focus.closest(S.shortcutArchiveExcluded) || overlayOpen())) {
+      held.delete(key);
+      return;
+    }
     const prevented = event.defaultPrevented;
     // Reserve enabled chords even without an actionable target. In particular,
     // failed Send discovery must never fall through to Gmail's Discard shortcut.
@@ -84,9 +97,8 @@
     if (event.type !== "keydown" || event.repeat) return;
     held.add(key);
     if (prevented) return;
-    const focus = document.activeElement;
     if (!(focus instanceof Element)) return;
-    const target = key === "a" ? archiveButton(focus) : sendButton(focus);
+    const target = key === "a" ? archiveButton(focus) : key === "d" ? sendButton(focus) : undoButton();
     activate(target); // One native gesture, synchronously; no queued send or retry.
   }
 

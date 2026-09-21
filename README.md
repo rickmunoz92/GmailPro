@@ -217,7 +217,7 @@ clicks Gmail’s normal Send button with the draft’s current recipients.
 
 ### Mac keyboard shortcuts
 
-Both shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
+All three shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
 in the extension popup. Use **Save preferences** to apply changes.
 
 - **⌘⇧A — Archive:** clicks Gmail’s main Archive button for selected conversations or
@@ -225,11 +225,17 @@ in the extension popup. Use **Save preferences** to apply changes.
 - **⌘⇧D — Send:** clicks the normal Send button only in the composer currently focused
   in its body, recipients, subject, or controls. It never guesses another draft, sends a
   minimized draft, or substitutes Send & archive.
+- **⌘Z — Undo:** activates Gmail’s currently available native Undo action, including
+  manual moves, archives, and Undo Send. Gmail restores the previous labels and Inbox
+  state. Inside editable fields, composers, menus, and dialogs, normal text undo stays
+  untouched. If Gmail’s Undo has expired or is unavailable, nothing happens; Gmail Pro
+  keeps no separate action history.
 
 Enabling ⌘⇧D replaces Gmail’s **Discard draft** shortcut. Even if Send is unavailable,
 the enabled shortcut does nothing instead of discarding. Turning the switch off restores
-Gmail’s native shortcut. Enabled combinations are reserved in the Gmail page; outside
-Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native **E** and **⌘Enter**
+Gmail’s native shortcut. Enabled combinations are reserved in the Gmail page, except
+⌘Z in the editing contexts above; outside
+Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native **E**, **Z**, and **⌘Enter**
 remain available. These features are independent of Apple Mail Mode and Gmail’s own
 keyboard-shortcut preference, and apply only on Mac.
 

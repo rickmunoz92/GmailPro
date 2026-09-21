@@ -3,7 +3,7 @@
   const app=GmailPro, feature=app.keyboardShortcuts, workspace=document.getElementById('workspace'), reports=[];
   const result=document.getElementById('results'), wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const assert=(ok,why)=>{if(!ok)throw Error(why);};
-  let archived=0,sent=0,discarded=0,serial=0;
+  let archived=0,sent=0,discarded=0,undone=0,serial=0;
   const nativeShortcut=event=>{if(event.metaKey&&event.shiftKey&&event.key.toLowerCase()==='d')discarded++;};
   const key=(value='d',type='keydown',patch={})=>{
     const event=new KeyboardEvent(type,{key:value.toUpperCase(),code:'Key'+value.toUpperCase(),metaKey:true,shiftKey:true,bubbles:true,cancelable:true,...patch});
@@ -11,7 +11,7 @@
   };
   function press(value='d',patch={}) { const event=key(value,'keydown',patch);key(value,'keypress',patch);key(value,'keyup',patch);return event; }
   function setup() {
-    feature.stop();app.autoBcc.stop();workspace.replaceChildren();archived=sent=discarded=0;
+    feature.stop();app.autoBcc.stop();workspace.replaceChildren();archived=sent=discarded=undone=0;
     workspace.innerHTML='<div gh="tm"><div gh="mtb"><button aria-label="Archive">Archive</button></div></div><input aria-label="Search mail">';
     workspace.querySelector('button').onclick=()=>archived++;
     feature.start(app.settings.defaults);workspace.focus();
@@ -28,6 +28,14 @@
     if(nested){const region=document.createElement('div');region.setAttribute('role','region');region.append(...host.childNodes);host.append(region);}
     workspace.append(host);host.querySelector('[contenteditable]').focus();return host;
   }
+  function undoNotice(message='Conversation archived.') {
+    const toast=document.createElement('div');toast.className='b8 UC bAp';toast.setAttribute('role','alert');
+    toast.innerHTML='<div class="J-J5-Ji"><div class="vh"><span class="aT"><span class="bAq"></span><span class="bAo"><span class="ag a8k" id="link_undo" tabindex="0" role="link" aria-label="Undo link">Undo</span></span></span></div></div>';
+    toast.querySelector('.bAq').textContent=message;
+    toast.querySelector('#link_undo').onclick=()=>undone++;
+    workspace.append(toast);return toast;
+  }
+  const undo=patch=>press('z',{shiftKey:false,...patch});
   async function test(name, run) {
     setup();try{await run();reports.push('PASS '+name);}catch(e){reports.push('FAIL '+name+': '+e.message);}
     feature.stop();app.autoBcc.stop();for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,nativeShortcut);
@@ -96,16 +104,87 @@
   await test('native validation remains in control without retries or queued send',async()=>{
     const host=draft();let validation=0;host.querySelector('.send').onclick=()=>validation++;press();await wait(100);assert(validation===1&&sent===0&&discarded===0,'one native validation');
   });
+  for (const action of ['Archive','Move to']) await test('Undo delegates single and bulk '+action+' restoration to Gmail',()=>{
+    for (const count of [1,3]) {
+      const before=Array.from({length:count},(_,i)=>['Inbox','Original '+i]);
+      let labels=before.map(()=>action==='Archive'?[]:['Destination']);
+      const toast=undoNotice();toast.querySelector('#link_undo').onclick=()=>{undone++;labels=before;toast.remove();};
+      assert(undo().defaultPrevented,'mailbox chord reserved');
+      assert(labels===before,'native owner restored prior state');
+    }
+    assert(undone===2 && sent===0 && discarded===0,'one native action per press');
+  });
+  await test('Undo Send uses the same available native Undo without another Send',()=>{
+    undoNotice('Message sent.');undo();assert(undone===1 && sent===0 && discarded===0,'Undo only');
+  });
+  await test('Undo ignores expired, hidden, disabled and ambiguous controls',()=>{
+    assert(undo().defaultPrevented && !undone,'missing reserved');
+    const toast=undoNotice(),control=toast.querySelector('#link_undo');
+    toast.hidden=true;undo();toast.hidden=false;
+    control.setAttribute('aria-disabled','true');undo();control.removeAttribute('aria-disabled');
+    const duplicate=undoNotice();undo();duplicate.remove();
+    toast.remove();undo();assert(!undone,'unavailable controls untouched');
+  });
+  await test('Undo rejects authored, third-party and unrelated lookalikes',()=>{
+    for(const wrapper of ['.ii','.a3s','[contenteditable]','.inboxsdk__butterbar','[data-inboxsdk-id]']) {
+      const box=document.createElement('div');
+      if(wrapper.startsWith('.'))box.className=wrapper.slice(1);else box.setAttribute(wrapper.slice(1,-1),'true');
+      workspace.append(box);box.append(undoNotice());undo();box.remove();
+    }
+    const fake=document.createElement('a');fake.id='link_undo';fake.setAttribute('role','link');fake.textContent='Undo';fake.onclick=()=>undone++;
+    workspace.append(fake);undo();fake.remove();
+    const altered=undoNotice();altered.querySelector('#link_undo').setAttribute('aria-label','Redo');undo();altered.remove();
+    assert(!undone,'only native notification may activate');
+  });
+  await test('page-wide InboxSDK theme classes do not hide Gmail native Undo',()=>{
+    document.body.classList.add('inboxsdk__gmail_dark_theme');
+    try { undoNotice();undo();assert(undone===1,'native Undo still works'); }
+    finally { document.body.classList.remove('inboxsdk__gmail_dark_theme'); }
+  });
+  for(const field of ['input','textarea','select','[contenteditable]'])await test('Undo leaves every editing event untouched in '+field,()=>{
+    undoNotice();const node=document.createElement(field==='[contenteditable]'?'div':field);
+    if(field==='[contenteditable]')node.contentEditable='true';workspace.append(node);node.focus();
+    for(const type of ['keydown','keypress','keyup'])assert(!key('z',type,{shiftKey:false}).defaultPrevented,'native editor receives '+type);
+    assert(!undone,'no mailbox action');
+  });
+  for(const field of ['[contenteditable]','[aria-label="To recipients"]','[name="subjectbox"]','.send'])await test('Undo preserves composer focus in '+field,()=>{
+    undoNotice();const host=draft();host.querySelector(field).focus();assert(!undo().defaultPrevented && !undone,'composer owns undo');
+  });
+  for(const role of ['menu','dialog','alertdialog'])await test('Undo leaves shortcuts untouched with an open '+role,()=>{
+    undoNotice();const overlay=document.createElement('div');overlay.setAttribute('role',role);overlay.textContent='Open overlay';workspace.append(overlay);
+    assert(!undo().defaultPrevented && !undone,'overlay owns keys');
+  });
+  await test('Undo repeats, missing macOS releases and focus changes stay safe',()=>{
+    undoNotice();key('z','keydown',{shiftKey:false});key('z','keydown',{shiftKey:false,repeat:true});key('z','keypress',{shiftKey:false});
+    assert(undone===1,'held press once');key('z','keydown',{shiftKey:false});assert(undone===2,'fresh press without release');
+    workspace.querySelector('input').focus();assert(!key('z','keyup',{shiftKey:false,metaKey:false}).defaultPrevented,'editing companion untouched');
+    workspace.focus();window.dispatchEvent(new Event('blur'));undo();assert(undone===3,'blur resets');
+  });
+  await test('Undo rejects extra modifiers, IME, native Z and redo',()=>{
+    undoNotice();for(const patch of [{shiftKey:true},{altKey:true},{ctrlKey:true},{isComposing:true},{metaKey:false}])assert(!undo(patch).defaultPrevented,'native combination untouched');
+    assert(!undone,'no action');
+  });
+  await test('Undo resolves successive notifications after navigation without storing history',()=>{
+    const previous=undoNotice();previous.remove();window.dispatchEvent(new Event('hashchange'));undo();assert(!undone,'expired is not retained');
+    const next=undoNotice('Conversations moved.');undo();assert(undone===1,'fresh notification');next.remove();undo();assert(undone===1,'no replay');
+  });
+  await test('Undo preference independently activates, disables and restores its listener',()=>{
+    undoNotice();feature.update({archiveShortcutEnabled:false,sendShortcutEnabled:false});undo();assert(undone===1,'undo alone active');
+    feature.update({undoShortcutEnabled:false});assert(!undo().defaultPrevented,'disabled is native');assert(composeLifecycle.listenersActive()===0,'all off cleaned up');
+    feature.update({undoShortcutEnabled:true});undo();assert(undone===2,'undo reenabled');
+  });
   await test('start/update/stop deduplicate and release every listener without observers',()=>{
-    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0,'four delegated listeners');feature.update({archiveShortcutEnabled:false,sendShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('a').defaultPrevented,'stopped');
+    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0,'four delegated listeners');feature.update({archiveShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('a').defaultPrevented && !undo().defaultPrevented,'stopped');
   });
   const failures=reports.filter(x=>x.startsWith('FAIL')).length;
   result.textContent=reports.join('\n')+'\n\n'+(reports.length-failures)+'/'+reports.length+' checks passed.';result.dataset.failures=String(failures);
   workspace.replaceChildren();
+  document.getElementById('manual').disabled=false;
   document.getElementById('manual').onclick=()=>{
-    setup();const host=draft();
+    setup();const toast=undoNotice(),host=draft();
     const output=document.getElementById('manual-results');
-    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,focus:document.activeElement.getAttribute('aria-label')});};
+    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,focus:document.activeElement.getAttribute('aria-label')});};
+    toast.querySelector('#link_undo').addEventListener('click',render);
     host.querySelector('.send').addEventListener('click',render);workspace.querySelector('[aria-label="Archive"]').addEventListener('click',render);render();
   };
 })();

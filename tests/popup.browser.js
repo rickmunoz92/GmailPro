@@ -46,12 +46,17 @@
     store.writes = 0;
   });
   await test("keyboard shortcuts default on, save independently, and follow sync", async () => {
-    const archive=byId("archive-shortcut"), send=byId("send-shortcut");
-    assert(archive.checked && send.checked, "default on");
+    const archive=byId("archive-shortcut"), send=byId("send-shortcut"), undo=byId("undo-shortcut");
+    assert(archive.checked && send.checked && undo.checked, "default on");
     edit(archive, false); await submit();
     assert(!(await GmailPro.settings.load()).archiveShortcutEnabled && send.checked, "independent save");
     store.emit({[key("sendShortcutEnabled")]:false}); assert(!send.checked, "sync applied");
     assert(byId("send-shortcut-hint").textContent.includes("discard"), "native conflict explained");
+    edit(undo, false); await submit();
+    const saved=await GmailPro.settings.load();
+    assert(!saved.undoShortcutEnabled && !saved.archiveShortcutEnabled && !saved.sendShortcutEnabled, "undo saves independently");
+    store.emit({[key("undoShortcutEnabled")]:true}); assert(undo.checked, "undo sync applied");
+    assert(byId("undo-shortcut-hint").textContent.includes("While editing"), "text undo explained");
     store.writes=0;
   });
   await test("enabled Auto BCC requires an address", async () => {

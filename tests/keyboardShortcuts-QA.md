@@ -1,10 +1,40 @@
-# Archive and Send keyboard shortcuts — 2026-09-21
+# Mac keyboard shortcuts — 2026-09-21
+
+## v0.9.18 Undo verification
+
+Command-Z activates Gmail's currently available native Undo notification. Gmail owns
+the previous labels/Inbox state, bulk semantics, and Undo Send window. No history is
+stored. Expired, missing, disabled, or ambiguous native controls do nothing. Editing
+fields, composers (including their controls), menus, and dialogs retain normal text
+undo. Shift-Command-Z and Gmail's Z shortcut stay untouched.
+
+Verified the native `link_undo` link within Gmail's structured alert after both Archive
+and Move to. The installed extension's Command-Z produced "Action undone" for both;
+the test conversation's Inbox membership was restored and the temporary destination
+label removed. No real email was sent. Native Undo Send is covered synthetically.
+
+Live verification caught an InboxSDK theme class applied to Gmail's entire body.
+The exclusion now targets InboxSDK-owned notification containers, not page-wide theme
+classes. A regression checks that native Undo remains available alongside those classes.
+
+Real macOS Command-Z invoked one Undo callback per press in Chrome and the Gmail app
+window. In both environments, editing the synthetic draft and pressing Command-Z
+restored its original text without activating mailbox Undo. The app was returned to
+Gmail after local fixture checks.
+
+Current release checks: **187 passed** — settings/lifecycle 28, keyboard shortcuts 56,
+popup 16, Apple Mail appearance 54, and floating composer 33. Shortcut coverage includes
+single/bulk restoration, successive notifications, expiration, lookalikes, excluded
+focus, modifiers/IME, repeat/release behavior, sync preferences, navigation, and teardown.
+Other suite results below were recorded for v0.9.17, not rerun for this change.
+
+Refresh existing Gmail windows after reloading the installed v0.9.18 extension.
 
 ## Behavior
 
-Mac only. Both preferences default on and use the existing versioned Chrome Sync
+Mac only. All three preferences default on and use the existing versioned Chrome Sync
 settings owner. The popup saves them independently with Save preferences. The content
-owner starts after settings load and stops on pagehide or when both preferences are off.
+owner starts after settings load and stops on pagehide or when all three preferences are off.
 There are three delegated keyboard listeners and one blur listener, no observers, timers,
 background worker, new permissions, network calls, or alternate selection/draft store.
 
@@ -27,7 +57,7 @@ background worker, new permissions, network calls, or alternate selection/draft 
   this pressed state; click alone does not activate Archive. If a phase removes or
   disables the control, the remaining phases stop.
 
-## Compatibility gate and real-key verification
+## v0.9.17 compatibility gate and real-key verification
 
 Before feature implementation, used `keyboardCompatibility.html` in normal Chrome and
 inside the installed Gmail app window (`com.google.Chrome.app.fmgjjmmmlfnkbppncabfkddbjimcfncm`).
@@ -49,7 +79,7 @@ With the installed extension in Gmail, Command-Shift-A displayed Gmail's native
 "Conversation archived" confirmation. The test conversation was then restored using
 Move to Inbox and verified in the inbox. No actual email was sent.
 
-## Regression results
+## v0.9.17 regression results
 
 Run `node --test tests/settings.test.cjs`, then `python3 scripts/serve-tests.py` and the
 browser fixtures at `http://127.0.0.1:8765/tests/`.
