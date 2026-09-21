@@ -65,6 +65,14 @@
     store.emit({ [key("autoPagingEnabled")]: false }); assert(!toggle.checked && save.disabled, "sync applied");
     assert(byId("auto-paging-description").textContent.includes("replaces"), "page replacement explained"); store.writes = 0;
   });
+  await test("reply all and forward shortcuts default on and save independently", async () => {
+    const all=byId("reply-all-shortcut"),forward=byId("forward-shortcut");
+    assert(all.checked && forward.checked && !byId("reply-shortcut"),"defaults on; ordinary refresh has no override");
+    edit(all,false);await submit();const saved=await GmailPro.settings.load();
+    assert(!saved.replyAllShortcutEnabled && saved.forwardShortcutEnabled,"independent save");
+    store.emit({[key("forwardShortcutEnabled")]:false});assert(!forward.checked && !all.checked,"sync applied independently");
+    assert(byId("reply-shortcut-hint").textContent.includes("⌘R still refreshes"),"refresh behavior explained");store.writes=0;
+  });
   await test("enabled Auto BCC requires an address", async () => {
     edit(bcc, true); await submit();
     assert(address.getAttribute("aria-invalid") === "true" && store.writes === 0, "missing address rejected");

@@ -3,7 +3,14 @@
   const app = (globalThis.GmailPro ??= {});
   if (app.keyboardShortcuts) return;
   const S = app.selectors;
-  const preferences = { a: "archiveShortcutEnabled", d: "sendShortcutEnabled", z: "undoShortcutEnabled" };
+  const bindings = {
+    "shift+a": ["archiveShortcutEnabled", "archive"],
+    "shift+d": ["sendShortcutEnabled", "send"],
+    z: ["undoShortcutEnabled", "undo"],
+    "shift+r": ["replyAllShortcutEnabled", "replyAll"],
+    "shift+f": ["forwardShortcutEnabled", "forward"]
+  };
+  const preferences = Object.values(bindings).map(([preference]) => preference);
   const options = { ...app.settings.defaults };
   const held = new Set();
   const events = ["keydown", "keypress", "keyup"];
@@ -55,6 +62,29 @@
       /^(Undo|Undo link)$/.test(name(control)) && control.textContent.trim() === "Undo"));
   }
 
+  function conversationButton(action, focus) {
+    if (focus.closest(S.shortcutArchiveExcluded) || overlayOpen()) return null;
+    const thread = app.reverseThreads?.currentConversation();
+    const shell = thread?.heading.closest(S.readingShell), main = shell?.closest(S.main);
+    // Gmail may keep keyboard focus in its page-level proxy after closing a
+    // draft. The current visible conversation, not focus ancestry, owns replies.
+    if (!visible(shell) || !visible(thread.list) || !main ||
+        main.querySelector('[role="row"] [role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"])')) return null;
+    const toolbar = one([...main.querySelectorAll(S.primaryToolbar)].filter(visible));
+    if (!toolbar) return null;
+    // Reuse the existing reading-pane bridge when it owns the native footer.
+    // Its click handler resolves Gmail's action again and preserves floating preferences.
+    const bridged = [...toolbar.querySelectorAll(`.gmail-pro-message-actions button[data-gp-message-action="${action}"]`)].filter(usable);
+    if (bridged.length) return one(bridged);
+    const ownsChrome = node => !node.closest(S.readingExcluded);
+    const footers = [...shell.querySelectorAll(S.nativeFooter)].filter(footer => ownsChrome(footer) && visible(footer) &&
+      footer.querySelector(`${S.nativeReply}, ${S.nativeReplyAll}, ${S.nativeForward}`));
+    const sticky = footers.filter(footer => footer.closest('.btDi4d'));
+    const footer = sticky.length === 1 ? sticky[0] : one(footers);
+    const selector = { replyAll: S.nativeReplyAll, forward: S.nativeForward }[action];
+    return footer && one([...footer.querySelectorAll(selector)].filter(control => ownsChrome(control) && usable(control)));
+  }
+
   function activate(target) {
     if (!target) return;
     // Gmail's toolbar buttons use pressed state set on mousedown; .click()
@@ -74,9 +104,9 @@
     // macOS can release Command before delivering the letter's keyup, or omit
     // that keyup. Release latches on modifier release and loss of focus as well.
     if (event.type === "keyup" && (key === "meta" || key === "shift")) reset();
-    const exact = event.metaKey && event.shiftKey === (key !== "z") && !event.ctrlKey && !event.altKey;
-    if (event.type === "keydown" && !exact) held.delete(key);
-    const reserved = options[preferences[key]] && exact;
+    const binding = event.metaKey && !event.ctrlKey && !event.altKey && bindings[(event.shiftKey ? "shift+" : "") + key];
+    if (event.type === "keydown" && !binding) held.delete(key);
+    const reserved = binding && options[binding[0]];
     const companion = event.type !== "keydown" && held.has(key);
     if ((!reserved && !companion) || event.isComposing || !event.cancelable) return;
     const focus = document.activeElement;
@@ -98,7 +128,9 @@
     held.add(key);
     if (prevented) return;
     if (!(focus instanceof Element)) return;
-    const target = key === "a" ? archiveButton(focus) : key === "d" ? sendButton(focus) : undoButton();
+    const action = binding[1];
+    const target = action === "archive" ? archiveButton(focus) : action === "send" ? sendButton(focus) :
+      action === "undo" ? undoButton() : conversationButton(action, focus);
     activate(target); // One native gesture, synchronously; no queued send or retry.
   }
 
@@ -108,8 +140,8 @@
     reset(); running = false;
   }
   function update(patch = {}) {
-    for (const preference of Object.values(preferences)) if (Object.hasOwn(patch, preference)) options[preference] = patch[preference];
-    if (!isMac || !Object.values(preferences).some(preference => options[preference])) return stop();
+    for (const preference of preferences) if (Object.hasOwn(patch, preference)) options[preference] = patch[preference];
+    if (!isMac || !preferences.some(preference => options[preference])) return stop();
     if (running) return;
     for (const type of events) window.addEventListener(type, keyboard, listenerOptions);
     window.addEventListener("blur", reset, true);

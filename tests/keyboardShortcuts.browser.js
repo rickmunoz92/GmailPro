@@ -4,6 +4,10 @@
   const result=document.getElementById('results'), wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const assert=(ok,why)=>{if(!ok)throw Error(why);};
   let archived=0,sent=0,discarded=0,undone=0,serial=0;
+  let currentThread=null, composeActions=[];
+  app.reverseThreads={currentConversation:()=>currentThread};
+  const composeOff={replyAllShortcutEnabled:false,forwardShortcutEnabled:false};
+  const actionPress=action=>press(action==='forward'?'f':'r',{shiftKey:true});
   const nativeShortcut=event=>{if(event.metaKey&&event.shiftKey&&event.key.toLowerCase()==='d')discarded++;};
   const key=(value='d',type='keydown',patch={})=>{
     const event=new KeyboardEvent(type,{key:value.toUpperCase(),code:'Key'+value.toUpperCase(),metaKey:true,shiftKey:true,bubbles:true,cancelable:true,...patch});
@@ -11,7 +15,8 @@
   };
   function press(value='d',patch={}) { const event=key(value,'keydown',patch);key(value,'keypress',patch);key(value,'keyup',patch);return event; }
   function setup() {
-    feature.stop();app.autoBcc.stop();workspace.replaceChildren();archived=sent=discarded=undone=0;
+    feature.stop();app.autoBcc.stop();app.floatingCompose.stop();workspace.replaceChildren();archived=sent=discarded=undone=0;
+    currentThread=null;composeActions=[];
     workspace.innerHTML='<div gh="tm"><div gh="mtb"><button aria-label="Archive">Archive</button></div></div><input aria-label="Search mail">';
     workspace.querySelector('button').onclick=()=>archived++;
     feature.start(app.settings.defaults);workspace.focus();
@@ -36,9 +41,25 @@
     workspace.append(toast);return toast;
   }
   const undo=patch=>press('z',{shiftKey:false,...patch});
+  function conversation({bridged=false}={}) {
+    const shell=document.createElement('div');shell.className='iY';
+    shell.innerHTML='<h2 data-thread-perm-id="thread-fixture" data-legacy-thread-id="fixture">Synthetic conversation</h2><div role="list"></div><div class="btDi4d"><div class="amn"><span class="ams bkH" role="link" tabindex="0">Reply</span><span class="ams bkI" role="link" tabindex="0">Reply all</span><span class="ams bkG" role="link" tabindex="0">Forward</span></div></div>';
+    workspace.append(shell);currentThread={heading:shell.querySelector('h2'),list:shell.querySelector('[role="list"]')};
+    for(const [action,selector] of Object.entries({reply:'.bkH',replyAll:'.bkI',forward:'.bkG'})) {
+      shell.querySelector(selector).onclick=event=>composeActions.push({action,shift:event.shiftKey});
+      if(bridged) {
+        let group=workspace.querySelector('.gmail-pro-message-actions');
+        if(!group){group=document.createElement('div');group.className='gmail-pro-message-actions';workspace.querySelector('[gh="mtb"]').append(group);}
+        const button=document.createElement('button');button.dataset.gpMessageAction=action;button.textContent=action;
+        button.onclick=event=>composeActions.push({action,shift:event.shiftKey});group.append(button);
+      }
+    }
+    if(bridged)shell.querySelector('.btDi4d').hidden=true;
+    return shell;
+  }
   async function test(name, run) {
     setup();try{await run();reports.push('PASS '+name);}catch(e){reports.push('FAIL '+name+': '+e.message);}
-    feature.stop();app.autoBcc.stop();for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,nativeShortcut);
+    feature.stop();app.autoBcc.stop();app.floatingCompose.stop();for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,nativeShortcut);
     if(composeLifecycle.listenersActive()||composeLifecycle.observersActive())reports.push('FAIL '+name+': lifecycle leak '+composeLifecycle.describe());
     result.textContent=reports.join('\n');
   }
@@ -169,21 +190,83 @@
     const next=undoNotice('Conversations moved.');undo();assert(undone===1,'fresh notification');next.remove();undo();assert(undone===1,'no replay');
   });
   await test('Undo preference independently activates, disables and restores its listener',()=>{
-    undoNotice();feature.update({archiveShortcutEnabled:false,sendShortcutEnabled:false});undo();assert(undone===1,'undo alone active');
+    undoNotice();feature.update({...composeOff,archiveShortcutEnabled:false,sendShortcutEnabled:false});undo();assert(undone===1,'undo alone active');
     feature.update({undoShortcutEnabled:false});assert(!undo().defaultPrevented,'disabled is native');assert(composeLifecycle.listenersActive()===0,'all off cleaned up');
     feature.update({undoShortcutEnabled:true});undo();assert(undone===2,'undo reenabled');
   });
+  for(const bridged of [false,true])for(const action of ['replyAll','forward'])await test(action+' delegates once through '+(bridged?'the persistent toolbar':'Gmail native footer'),()=>{
+    conversation({bridged});assert(actionPress(action).defaultPrevented,'browser chord reserved');
+    assert(composeActions.length===1 && composeActions[0].action===action && !sent && !discarded,'only requested native action');
+  });
+  for(const bridged of [false,true])await test('compose shortcuts preserve floating preferences through '+(bridged?'toolbar':'footer'),()=>{
+    conversation({bridged});app.floatingCompose.start(app.settings.defaults);
+    for(const action of ['replyAll','forward'])actionPress(action);
+    assert(composeActions.length===2 && composeActions.every(x=>x.shift),'native Shift added once');
+    app.floatingCompose.update({floatingReplyEnabled:false,floatingReplyAllEnabled:false,floatingForwardEnabled:false});
+    for(const action of ['replyAll','forward'])actionPress(action);
+    assert(composeActions.length===4 && composeActions.slice(2).every(x=>!x.shift),'inline preferences respected, shortcut Shift not leaked');
+  });
+  await test('compose shortcuts reserve browser reload keys without an open conversation',()=>{
+    for(const action of ['replyAll','forward'])assert(actionPress(action).defaultPrevented,'unavailable action still reserved');
+    assert(!composeActions.length,'no guessed conversation');
+  });
+  await test('compose shortcuts block actions while editing, in menus/dialogs, and with selected rows',()=>{
+    conversation();workspace.querySelector('input').focus();actionPress('replyAll');draft();actionPress('replyAll');workspace.focus();
+    const menu=document.createElement('div');menu.setAttribute('role','menu');menu.textContent='Menu';workspace.append(menu);actionPress('forward');menu.remove();
+    const row=document.createElement('div');row.setAttribute('role','row');row.innerHTML='<span role="checkbox" aria-checked="true"></span>';workspace.append(row);actionPress('replyAll');
+    assert(!composeActions.length && !sent && !discarded,'nothing acts on another context');
+  });
+  await test('compose target discovery rejects disabled, missing and ambiguous footer controls',()=>{
+    const shell=conversation(),reply=shell.querySelector('.bkI');reply.setAttribute('aria-disabled','true');actionPress('replyAll');reply.removeAttribute('aria-disabled');
+    const duplicate=reply.cloneNode(true);reply.after(duplicate);actionPress('replyAll');duplicate.remove();reply.remove();actionPress('replyAll');
+    shell.hidden=true;actionPress('forward');assert(!composeActions.length,'unknown controls fail closed');
+  });
+  await test('compose actions prefer the native sticky footer and ignore authored lookalikes',()=>{
+    const shell=conversation();const other=document.createElement('div');other.className='gA';other.innerHTML='<div class="amn"><span class="ams bkI" role="link">Reply all</span></div>';
+    other.querySelector('span').onclick=()=>{throw Error('wrong message');};shell.prepend(other);
+    actionPress('replyAll');assert(composeActions.length===1,'sticky footer is authoritative');
+    shell.querySelector('.btDi4d').classList.add('a3s');other.remove();actionPress('replyAll');assert(composeActions.length===1,'authored content excluded');
+  });
+  await test('compose shortcuts follow the current conversation across navigation',()=>{
+    const old=conversation();old.remove();currentThread=null;actionPress('forward');assert(!composeActions.length,'detached context ignored');
+    conversation();window.dispatchEvent(new Event('hashchange'));actionPress('forward');assert(composeActions.length===1,'fresh native target');
+  });
+  await test('Gmail page-level focus proxy can act on the open conversation after draft close',()=>{
+    conversation();const proxy=document.createElement('div');proxy.tabIndex=0;document.body.append(proxy);proxy.focus();
+    try {actionPress('forward');assert(composeActions.length===1,'current conversation still owns the action');}
+    finally {proxy.remove();workspace.focus();}
+  });
+  await test('Command R stays native in conversations, search, and drafts',()=>{
+    conversation();
+    const refresh=()=>{for(const type of ['keydown','keypress','keyup'])assert(!key('r',type,{shiftKey:false}).defaultPrevented,'refresh event untouched');};
+    refresh();workspace.querySelector('input').focus();refresh();draft();refresh();
+    assert(!composeActions.length && !sent && !discarded,'refresh never creates a draft');
+  });
+  await test('Reply All requires Shift, rejects extras, and suppresses repeats',()=>{
+    conversation();key('r');key('r','keydown',{repeat:true});key('r','keyup');
+    assert(composeActions.map(x=>x.action).join(',')==='replyAll','exact action once per press');
+    for(const patch of [{altKey:true},{ctrlKey:true},{isComposing:true},{metaKey:false},{shiftKey:false}])assert(!press('r',patch).defaultPrevented,'extra modifiers/native R untouched');
+    assert(!press('f',{shiftKey:false}).defaultPrevented && !press('n',{shiftKey:false}).defaultPrevented,'native Find and reserved browser New Window untouched');
+    key('r');assert(!press('r',{shiftKey:false}).defaultPrevented,'refresh after missing release event stays native');
+  });
+  await test('compose shortcuts toggle independently and restore native browser behavior',()=>{
+    conversation();feature.update({replyAllShortcutEnabled:false});assert(!actionPress('replyAll').defaultPrevented,'hard reload restored');
+    actionPress('forward');assert(composeActions.length===1,'forward remains on');
+    feature.update({replyAllShortcutEnabled:true,forwardShortcutEnabled:false});actionPress('replyAll');
+    assert(!actionPress('forward').defaultPrevented && composeActions.length===2,'independent preferences');
+  });
   await test('start/update/stop deduplicate and release every listener without observers',()=>{
-    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0,'four delegated listeners');feature.update({archiveShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('a').defaultPrevented && !undo().defaultPrevented,'stopped');
+    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0,'four delegated listeners');feature.update({...composeOff,archiveShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('a').defaultPrevented && !undo().defaultPrevented && !actionPress('replyAll').defaultPrevented,'stopped');
   });
   const failures=reports.filter(x=>x.startsWith('FAIL')).length;
   result.textContent=reports.join('\n')+'\n\n'+(reports.length-failures)+'/'+reports.length+' checks passed.';result.dataset.failures=String(failures);
   workspace.replaceChildren();
   document.getElementById('manual').disabled=false;
   document.getElementById('manual').onclick=()=>{
-    setup();const toast=undoNotice(),host=draft();
+    setup();conversation();const toast=undoNotice(),host=draft();
     const output=document.getElementById('manual-results');
-    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,focus:document.activeElement.getAttribute('aria-label')});};
+    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,composeActions,focus:document.activeElement.getAttribute('aria-label')});};
+    for(const control of workspace.querySelectorAll('.ams'))control.addEventListener('click',render);
     toast.querySelector('#link_undo').addEventListener('click',render);
     host.querySelector('.send').addEventListener('click',render);workspace.querySelector('[aria-label="Archive"]').addEventListener('click',render);render();
   };

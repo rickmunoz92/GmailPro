@@ -230,7 +230,7 @@ clicks Gmail’s normal Send button with the draft’s current recipients.
 
 ### Mac keyboard shortcuts
 
-All three shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
+All five shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
 in the extension popup. Use **Save preferences** to apply changes.
 
 - **⌘⇧A — Archive:** clicks Gmail’s main Archive button for selected conversations or
@@ -243,6 +243,16 @@ in the extension popup. Use **Save preferences** to apply changes.
   state. Inside editable fields, composers, menus, and dialogs, normal text undo stays
   untouched. If Gmail’s Undo has expired or is unavailable, nothing happens; Gmail Pro
   keeps no separate action history.
+- **⇧⌘R — Reply All**, **⇧⌘F — Forward:** use the currently open
+  conversation and preserve the existing floating-composer preferences. They do nothing
+  while editing, in menus/dialogs, with selected conversation checkboxes, or without
+  an available native action. Gmail owns recipients, quoted content, and draft creation.
+
+⌘R keeps Chrome’s normal refresh behavior. Reply All replaces Chrome’s ⇧⌘R hard reload
+shortcut inside Gmail while enabled, including while editing. Disable the Reply All
+switch to restore hard reload. **⌘N remains Chrome’s New Window shortcut** because
+Chrome does not deliver it to the page. Gmail’s native **C** opens a new message when
+Gmail keyboard shortcuts are enabled; Gmail Pro does not change that setting.
 
 Enabling ⌘⇧D replaces Gmail’s **Discard draft** shortcut. Even if Send is unavailable,
 the enabled shortcut does nothing instead of discarding. Turning the switch off restores
@@ -257,7 +267,8 @@ Undo Send, and all send behavior. There is no deferred send, retry, recipient re
 or send-time Auto BCC step. Holding a shortcut triggers one action; release and press
 again for another. Native controls are resolved afresh for every action.
 
-See [keyboard shortcut QA](tests/keyboardShortcuts-QA.md) for compatibility and tests.
+See [keyboard shortcut QA](tests/keyboardShortcuts-QA.md) and
+[compose shortcut QA](tests/composeShortcuts-QA.md) for compatibility and tests.
 
 ### Newest Email First
 
