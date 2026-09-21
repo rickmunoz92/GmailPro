@@ -1,6 +1,11 @@
 (async () => {
   "use strict";
-  const feature = GmailPro.appearance, row = GmailProTestRow, result = document.getElementById("results");
+  // Match content.js: both setting consumers participate in the lifecycle.
+  const feature = {
+    start(patch) { GmailPro.messageList.start(patch); GmailPro.appearance.start(patch); },
+    update(patch) { GmailPro.messageList.update(patch); GmailPro.appearance.update(patch); },
+    stop() { GmailPro.messageList.update({appleMailModeEnabled:false}); GmailPro.appearance.stop(); }
+  }, row = GmailProTestRow, result = document.getElementById("results");
   const root = document.documentElement, workspace = document.getElementById("workspace"), reports = [];
   const css = node => getComputedStyle(node), rect = node => node.getBoundingClientRect();
   const assert = (value, message) => { if (!value) throw new Error(message); };
@@ -127,6 +132,10 @@
     assert(css(selected.querySelector("svg")).fill === token("--gp-accent-contrast"), "drop icon matches foreground");
     selected.classList.remove("nY");
     node.classList.remove("aps"); assert(dot(node).visibility === "visible" && css(node).backgroundColor === token("--gp-bg-primary"), "deselect restores unread");
+    assert(css(node.querySelector('.xW > span')).color === 'rgb(156, 158, 160)', 'exact date gray in both themes');
+    assert(node.querySelector('.xW > span').hasAttribute('data-gmail-pro-date'), 'Apple Mail mode formats date');
+    node.querySelector('[role="checkbox"]').setAttribute('aria-checked', 'true');
+    assert(css(node.querySelector('.xW > span')).color === token('--gp-accent-contrast'), 'checked date uses accent contrast');
   });
   await test("list stars and importance markers hide without reserving space and restore on OFF", () => {
     const node = row(), star = node.querySelector(".apU"), importance = node.querySelector(".WA");

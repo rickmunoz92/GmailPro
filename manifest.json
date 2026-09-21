@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "0.9.18",
+  "version": "0.9.24",
   "description": "Power-user enhancements for Gmail: Apple Mail-inspired appearance, Auto BCC, newest-first threads, label ordering, and message-only zoom.",
   "permissions": [
     "storage"
@@ -37,6 +37,7 @@
         "content/readingPane.js",
         "content/floatingCompose.js",
         "content/keyboardShortcuts.js",
+        "content/autoPaging.js",
         "content/content.js"
       ],
       "run_at": "document_start",
@@ -47,7 +48,8 @@
         "content/labelOrder.css",
         "content/messageZoom.css",
         "shared/theme.css",
-        "content/appleMail.css"
+        "content/appleMail.css",
+        "content/autoPaging.css"
       ]
     },
     {

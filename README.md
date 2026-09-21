@@ -21,6 +21,7 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Apple Mail-style Message List:** displays Gmail messages using a cleaner
   two-line sender/subject layout optimized for readability, especially beside
   the reading pane. Labels, attachments, selection and native controls stay available.
+- **Automatic page changes:** scroll down at the bottom for Gmail’s next page or up at the top for the previous page, in Apple Mail Mode with the reading pane on the right.
 - **Message-only Zoom:** enlarge or reduce message content with ⌘+, ⌘−, and ⌘0
   without scaling Gmail’s interface. Resets to 100% for each new conversation.
 - **Custom Label Order:** choose the visual order of custom Gmail labels without
@@ -79,6 +80,13 @@ After updating the source, reload Gmail Pro in `chrome://extensions`, refresh
 Gmail, and reopen the popup. The repository contains the unpacked extension; no
 Chrome Web Store installation or OAuth sign-in is required.
 
+Before reloading, open Gmail Pro's **Details** and verify **Source → Loaded from**.
+Chrome runs that folder, which may differ from the development workspace. Apply
+the tested changes to the loaded folder first, then use the extension's **Reload**
+button and refresh Gmail. Restarting the Gmail app alone does not deploy files
+from a different folder. Verify the version in Details and the visible result in
+Gmail before considering an update applied.
+
 ## How it works
 
 ### Apple Mail Mode
@@ -95,7 +103,9 @@ No Gmail permissions, API calls, data stores, analytics, or dependencies are add
 For the three-pane layout, use Gmail's own **Settings → Reading pane → Right of
 inbox**. Gmail Pro styles the existing panes; it does not enable a Gmail preference
 behind your back or simulate a reading pane. Gmail owns splitters and saved pane
-widths. The expanded mailbox sidebar is about 216px on wide desktop windows; narrow
+widths. The vertical divider paints a single 1px dark line inside Gmail's original
+resize handle, keeping its full drag area. The expanded mailbox sidebar is about
+216px on wide desktop windows; narrow
 windows and collapsed navigation retain Gmail's sizing. Header geometry stays native
 so Gmail's measured scrolling regions remain correct.
 
@@ -155,8 +165,8 @@ First, Message-only Zoom, and Custom Label Order keep their existing implementat
 and independent settings. Reorder controls adopt the selected appearance. Native
 reply, forwarding, attachments, warnings, search, message actions, compose and
 compose Shift-pop-out handlers remain Gmail's. Shift-click on a conversation row
-selects a range while Apple Mail Mode is enabled. No separate browser-window composer, full timestamp,
-or conversation-cleanup feature existed in this baseline, so none is duplicated.
+selects a range while Apple Mail Mode is enabled. Conversation date formatting is
+owned by the existing message-list controller in both appearance modes.
 
 Message fonts, HTML, images and tables are not rewritten or inverted. A light Gmail
 message-wrapper canvas keeps transparent documents readable beside dark chrome.
@@ -276,18 +286,37 @@ Rows are approximately 56px tall, and Gmail continues to control unread weights,
 selected backgrounds, stars, importance, attachment indicators and hover actions.
 
 This is a CSS Grid presentation of Gmail's existing cells, not a replacement inbox.
-No messages or cells are moved, cloned, parsed or rewritten. The shared settings
+No messages or cells are moved or cloned. The shared settings
 adapter stores `gmailPro.v1.appleMailMessageListEnabled` in `chrome.storage.sync`.
-Turning it off and saving restores the native appearance immediately, without a
-Gmail refresh. Auto BCC and Newest Email First remain independent.
+Turning both list appearance modes off restores native dates and layout immediately,
+without a Gmail refresh. Auto BCC and Newest Email First remain independent.
 
-JavaScript toggles one extension-owned class on `<html>`. Persistent CSS handles
-Gmail navigation and inserted/replaced rows automatically. There are no row scans,
-polling, layout reads, event interception or ongoing MutationObservers. If startup
-precedes `<html>`, a one-shot observer watches only the document's direct children
-and disconnects as soon as that element exists. Colors and fonts remain Gmail's,
-including existing dark themes; this standalone feature does not implement a dark mode. Apple Mail Mode adds the
-separate optional color system described above.
+Both this option and Apple Mail Mode display conversation dates as follows:
+
+- Today: `Today, 1:31 PM`.
+- Yesterday: `Yesterday, 1:31 PM`.
+- Other dates: `Mon, 9/14/26, 1:31 PM`.
+
+Dates use English weekday abbreviations, unpadded month/day, a two-digit year, and 12-hour
+time without a leading hour zero. Today/yesterday follow the computer's local
+calendar, including daylight-saving transitions. Normal dates use exact
+`#9C9EA0` in light and dark themes; selected dates retain their existing contrasting
+foreground. Long senders truncate while the full date remains right-aligned.
+Opened-message timestamps are unchanged.
+
+The controller parses the full English date already supplied in Gmail's tooltip.
+Unknown formats or row structures keep Gmail's native date. An extension-owned
+attribute supplies the visible date through CSS; original date nodes, tooltip and
+accessible name remain intact. Disabling both modes removes that attribute and
+reveals Gmail's latest text, including changes made while the feature was active.
+
+Scoped grid observers process changed or added rows, while main-region discovery
+handles Gmail navigation and replaced lists. No polling, layout measurements,
+networking or per-row event handlers are added. A single timer refreshes dates at
+local midnight; focus/visibility return also refreshes them after sleep. Observers,
+retained row references and timers are released on disable/page exit. The standalone
+option retains Gmail's other colors and fonts; Apple Mail Mode supplies the separate
+optional theme described above.
 
 ### Message-only Zoom
 
@@ -460,6 +489,33 @@ bridge; native actions remain the fallback. See [reading-pane QA](tests/readingP
 
 ## Development
 
+### Automatic page changes
+
+Enable **Automatic page changes** in Gmail Pro and save preferences. With Apple Mail
+Mode and Gmail’s reading pane on the right, reaching either end of a supported
+single conversation list shows a small paging prompt. Keep scrolling in that
+direction for about three-quarters of a second to fill the indicator and change
+pages, or click its **Next page / Previous page** button. Stop scrolling to stay
+and read; reaching the edge or waiting there never changes pages by itself.
+This also works backward from a short final page. Forward paging lands at the top;
+backward paging lands at the bottom
+so scrolling can continue in the same direction. Gmail’s page arrows remain native
+and work in both directions, with larger click targets and loading feedback;
+manual clicks take priority over automatic paging.
+Inbox, labels, search, Spam, and Trash use the same native paging mechanism.
+
+The feature defaults off. It pauses while conversations are selected, a composer
+is open, a menu/dialog is open, or the tab is hidden. Scrolling the reading pane,
+startup, and layout changes never load a page. Only one page can load at a time;
+unknown layouts or a failed load leave Gmail’s native controls available. There
+are no retained/cloned conversations, API requests, new permissions, or stored mail.
+
+The earlier row-retention experiment has been removed. Its first live test showed
+Gmail replacing the container holding old rows; the user chose automatic page
+changes instead. See [paging QA](tests/autoPaging-QA.md).
+
+### Validation
+
 Use Node.js 18 or newer for the local validation suite:
 
 ```sh
@@ -480,6 +536,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/autoBcc.html`
 - `http://127.0.0.1:8765/tests/reverseThreads.html`
 - `http://127.0.0.1:8765/tests/popup.html`
+- `http://127.0.0.1:8765/tests/autoPaging.html`
 - `http://127.0.0.1:8765/tests/messageList.html`
 - `http://127.0.0.1:8765/tests/labelOrder.html`
 - `http://127.0.0.1:8765/tests/messageZoom.html`
@@ -515,10 +572,10 @@ the checks intentionally limited to synthetic data.
 - `content/autoBcc.js`: per-composition detection, insertion, and removal state.
 - `content/reverseThreads.js` and `.css`: shared conversation discovery and reversible visual ordering.
 - `content/messageZoom.js` and `.css`: scoped reading magnification, shortcut guards, and per-conversation reset.
-- `content/messageList.js` and `.css`: one preference class and scoped two-line layout.
+- `content/messageList.js` and `.css`: scoped two-line layout and reversible conversation dates.
 - `content/labelOrder.js` and `.css`: reversible custom-label visual ordering and edit handles.
 - `content/gmailSelectors.js`: centralized JavaScript selectors; points to the
-  CSS-only message-list selector contract in `content/messageList.css`.
+  message-list selector contract in `content/messageList.css`.
 - `content/content.js`: one settings subscription and shared lifecycle, started early.
 - `content/autoBccStart.js`: preserves Auto BCC's `document_idle` startup.
 - `shared/settings.js`: the sole preference adapter; no parallel preference store.

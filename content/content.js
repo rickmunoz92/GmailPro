@@ -16,6 +16,7 @@
       if (idle) app.autoBcc.update(patch);
       app.reverseThreads.update(patch);
       app.messageList.update(patch);
+      app.autoPaging.update(patch);
       app.appearance.update(patch);
       app.readingPane.update(patch);
       app.floatingCompose.update(patch);
@@ -35,6 +36,7 @@
     if (idle) app.autoBcc.stop();
     app.reverseThreads.stop();
     app.messageList.stop();
+    app.autoPaging.stop();
     app.readingPane.stop();
     app.floatingCompose.stop();
     app.keyboardShortcuts.stop();
@@ -48,6 +50,7 @@
     if (idle) app.autoBcc.start(current);
     app.reverseThreads.start(current);
     app.messageList.start(current);
+    app.autoPaging.start(current);
     app.appearance.start(current);
     app.readingPane.start(current);
     app.floatingCompose.start(current);

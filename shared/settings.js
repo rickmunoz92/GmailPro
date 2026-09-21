@@ -18,6 +18,7 @@
     bccAddress: "",
     newestEmailFirstEnabled: false,
     appleMailMessageListEnabled: false,
+    autoPagingEnabled: false,
     messageZoomEnabled: false,
     customLabelOrderEnabled: false,
     customLabelOrder: Object.freeze([])
@@ -38,6 +39,7 @@
     bccAddress: "gmailPro.v1.bccAddress",
     newestEmailFirstEnabled: "gmailPro.v1.newestEmailFirstEnabled",
     appleMailMessageListEnabled: "gmailPro.v1.appleMailMessageListEnabled",
+    autoPagingEnabled: "gmailPro.v1.autoPagingEnabled",
     messageZoomEnabled: "gmailPro.v1.messageZoomEnabled",
     customLabelOrderEnabled: "gmailPro.v1.customLabelOrderEnabled",
     customLabelOrder: "gmailPro.v1.customLabelOrder"

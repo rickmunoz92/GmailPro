@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" class="gmail-pro-apple-mail-mode">
+<meta charset="utf-8">
+<title>Gmail Pro — automatic paging checks</title>
+<link rel="stylesheet" href="messageList.native.css">
+<link rel="stylesheet" href="../content/autoPaging.css">
+<style>
+  #workspace { width: 900px; }
+  .panes { display: flex; }
+  .Nu { width: 450px; height: 180px; overflow: auto; }
+  .Di { display: flex; gap: 12px; }
+  .Di > [role="button"] { padding: 4px; }
+  table { width: 100%; } tr { height: 60px; }
+</style>
+<h1>Automatic paging: synthetic checks</h1>
+<pre id="results">Running…</pre>
+<div id="fixture-host"><div id="workspace" role="main"></div></div>
+<script src="../content/gmailSelectors.js"></script>
+<script src="messageRow.fixture.js"></script>
+<script src="../content/autoPaging.js"></script>
+<script src="autoPaging.browser.js"></script>
+</html>

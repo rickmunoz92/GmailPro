@@ -59,6 +59,12 @@
     assert(byId("undo-shortcut-hint").textContent.includes("While editing"), "text undo explained");
     store.writes=0;
   });
+  await test("automatic paging defaults off, saves independently, and follows sync", async () => {
+    const toggle = byId("auto-paging"); assert(!toggle.checked, "default off");
+    edit(toggle, true); await submit(); assert((await GmailPro.settings.load()).autoPagingEnabled, "saved");
+    store.emit({ [key("autoPagingEnabled")]: false }); assert(!toggle.checked && save.disabled, "sync applied");
+    assert(byId("auto-paging-description").textContent.includes("replaces"), "page replacement explained"); store.writes = 0;
+  });
   await test("enabled Auto BCC requires an address", async () => {
     edit(bcc, true); await submit();
     assert(address.getAttribute("aria-invalid") === "true" && store.writes === 0, "missing address rejected");

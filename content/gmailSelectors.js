@@ -6,8 +6,8 @@
   // Verified with Gmail's English desktop UI, September 2026. No generated
   // classes for compose/thread discovery. The form owns addressing but NOT the editable message body.
   // Accessible names are localized; unknown layouts/locales fail closed.
-  // Message-list layout needs no JS discovery: its structural gate and Gmail
-  // presentation hooks are centralized/documented in content/messageList.css.
+  // Message-list layout hooks are documented in content/messageList.css.
+  // messageList.js repeats its structural gate for local timestamp formatting.
   // Apple Mail Mode chrome/state hooks live in appleMail.css; appearance.js
   // repeats the structural row gate solely for modifier-click selection.
   // .zE = native unread, .aps = open split-pane row, .TO.nZ = current mailbox.
@@ -25,6 +25,19 @@
     labelSection: '[aria-labelledby]',
     labelMoreCollapsed: '[gh="mll"][aria-label="More labels"]',
     main: '[role="main"]',
+    // Native automatic paging: English desktop Gmail, September 2026.
+    // Require right-pane geometry, one native grid, and one list pager.
+    // English names supplement the relationship; they are not the sole gate.
+    pagingList: '.Nu.tf',
+    pagingReadingPane: '.Nu.S3',
+    pagingGrid: 'table[role="grid"]',
+    pagingRow: ':scope > tr[role="row"]',
+    pagingIdentity: '[role="link"] [data-thread-id][data-legacy-thread-id]',
+    pagingPager: '.Di',
+    pagingRange: ':scope > [role="button"][aria-label="Show more messages"]',
+    pagingRangeNumber: '.ts',
+    pagingOlder: ':scope > [role="button"]:is([aria-label="Older"], [aria-label="Next results"])',
+    pagingNewer: ':scope > [role="button"]:is([aria-label="Newer"], [aria-label="Previous results"])',
     form: 'form',
     // Native addressing form and action boundaries, English desktop Gmail.
     composeForm: 'form:has(input[name="composeid"])',

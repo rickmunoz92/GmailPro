@@ -28,6 +28,7 @@
     bccAddress: address,
     newestEmailFirstEnabled: document.getElementById("newest-first"),
     appleMailMessageListEnabled: document.getElementById("apple-mail-list"),
+    autoPagingEnabled: document.getElementById("auto-paging"),
     messageZoomEnabled: document.getElementById("message-zoom"),
     customLabelOrderEnabled: document.getElementById("custom-label-order")
   };
@@ -52,6 +53,7 @@
       bccAddress: address.value.trim(),
       newestEmailFirstEnabled: controls.newestEmailFirstEnabled.checked,
       appleMailMessageListEnabled: controls.appleMailMessageListEnabled.checked,
+      autoPagingEnabled: controls.autoPagingEnabled.checked,
       messageZoomEnabled: controls.messageZoomEnabled.checked,
       customLabelOrderEnabled: controls.customLabelOrderEnabled.checked
     };

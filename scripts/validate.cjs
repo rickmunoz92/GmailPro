@@ -16,6 +16,7 @@ for (const key of ["background", "host_permissions", "optional_permissions", "op
   assert.equal(manifest[key], undefined, `Unexpected manifest capability: ${key}`);
 }
 assert.equal(manifest.content_scripts.length, 2);
+assert.ok(manifest.content_scripts.every(content => content.js.every(file => !file.startsWith("tests/"))), "Test probes must never ship in the production manifest");
 for (const content of manifest.content_scripts) {
   assert.deepEqual(content.matches, ["https://mail.google.com/*"]);
   assert.equal(content.all_frames, false);
@@ -23,7 +24,7 @@ for (const content of manifest.content_scripts) {
   assert.ok(!content.world || content.world === "ISOLATED");
 }
 assert.equal(manifest.content_scripts[0].run_at, "document_start");
-assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css", "content/messageZoom.css", "shared/theme.css", "content/appleMail.css"]);
+assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css", "content/messageZoom.css", "shared/theme.css", "content/appleMail.css", "content/autoPaging.css"]);
 assert.equal(manifest.content_scripts[1].run_at, "document_idle");
 assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
 assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/);

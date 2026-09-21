@@ -1,6 +1,6 @@
 /* Message-list selector contract, verified in desktop Gmail September 2026.
-   This is the sole map of Gmail layout selectors for this CSS-only feature;
-   gmailSelectors.js points here rather than duplicating selectors in JavaScript.
+   messageList.js repeats the structural gate for timestamp formatting;
+   gmailSelectors.js points here for the layout contract.
 
    Gate on Gmail's main > grid > row structure, native checkbox, subject link
    with thread metadata, sender cell and dated cell. Unknown structures retain
@@ -11,10 +11,10 @@
    .a4X = optional quick-action wrapper; .y6/.bog = subject; .y2 = separate snippet;
    .yi = labels; .yf = indicators;
    .byZ = extra metadata; .xW = date; .bq4 = native hover toolbar cell;
-   .PF = drag/selection gutter. Never interpret text, IDs, unread or selected state.
+   .PF = drag/selection gutter. Gmail owns read state, selection and row order.
 
    @scope keeps these hooks local to verified rows. Older browsers without @scope
-   keep the native layout. No colors, backgrounds or font weights are replaced. */
+   keep the native layout. Only date colors and display text are replaced. */
 @scope (html:is(.gmail-pro-message-list, .gmail-pro-apple-mail-mode) [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
   :scope {
     display: grid !important;
@@ -141,6 +141,16 @@
     justify-content: flex-end;
     white-space: nowrap;
   }
+  /* Leave selected dates to Gmail or Apple Mail Mode's contrasting foreground.
+     This intentionally does not change the shared muted-text palette. */
+  :scope:not(.aps):not(:has(> td > [role="checkbox"][aria-checked="true"])) > td.xW[role="gridcell"],
+  :scope:not(.aps):not(:has(> td > [role="checkbox"][aria-checked="true"])) > td.xW[role="gridcell"] span {
+    color: #9C9EA0 !important;
+  }
+  /* Keep the native tooltip, accessible name and current date nodes intact.
+     Only verified, successfully parsed dates receive this reversible overlay. */
+  :scope > td.xW > span[data-gmail-pro-date] > span { display: none !important; }
+  :scope > td.xW > span[data-gmail-pro-date]::after { content: attr(data-gmail-pro-date); }
   /* Gmail alone controls whether the date or actions are visible. Their shared
      grid slot reserves actual toolbar width, so neither text line is overlaid. */
   :scope > td:has(> [role="toolbar"]) {

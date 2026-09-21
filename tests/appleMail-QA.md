@@ -247,3 +247,26 @@ checkbox state and the preview. A label navigation populated the loading banner
 with computed display `none`. No mail was sent, deleted, moved or archived.
 The installed unpacked extension was updated and reloaded; existing Gmail views
 need refresh to receive the new content script.
+
+## Conversation dates — September 21, 2026
+
+The existing message-list controller now formats row dates in either appearance
+mode. Normal dates use `#9C9EA0` in both themes; open and checked rows retain the
+selected accent foreground. The 54/54 appearance checks now run both controllers,
+matching the production setting lifecycle, and verify timestamp overlays, exact
+gray, selected contrast across all accents, and full-date narrow-pane geometry.
+See [message-list QA](messageList-QA.md#conversation-timestamp-update--september-21-2026)
+for date rules, lifecycle coverage and the live-validation boundary.
+
+## Thin vertical divider — September 21, 2026
+
+Version 0.9.21 replaces the side-by-side reading-pane divider's gray fill and
+light borders with a centered 1px `#111517` line. The remaining handle area uses
+the pane background; transparent borders preserve Gmail's native box dimensions.
+The `.Nm` side-by-side gate leaves bottom reading-pane dividers unchanged.
+
+Validation: 28/28 Node checks, 54/54 existing appearance checks, and live Gmail
+computed-style/screenshot inspection after updating the loaded extension folder.
+The visible line is 1px, the native drag target remains 5px with `col-resize`, and
+both neighboring pane widths exactly match the pre-change measurements. No pane
+width, cursor, positioning, listener, or Gmail drag behavior was overridden.

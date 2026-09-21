@@ -41,6 +41,7 @@ function fixture(initial = {}) {
   context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
+  context.GmailPro.autoPaging = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
   return { context, run, data, listeners, settings: context.GmailPro.settings,
     get writes() { return writes; }, fail(error) { failure = error; } };
@@ -48,7 +49,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -64,7 +65,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -157,6 +158,9 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   let stops = 0;
   let pagehide;
   const patches = [];
+  let pagingStarted, pagingStops = 0;
+  const pagingPatches = [];
+  f.context.GmailPro.autoPaging = { start: value => { pagingStarted = value; }, update: patch => pagingPatches.push(plain(patch)), stop: () => pagingStops++ };
   let shortcutsStarted, shortcutsStops = 0;
   const shortcutsPatches = [];
   f.context.GmailPro.keyboardShortcuts = { start: value => { shortcutsStarted = value; }, update: patch => shortcutsPatches.push(plain(patch)), stop: () => shortcutsStops++ };
@@ -196,6 +200,7 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(plain(appearanceStarted), plain(started));
   assert.deepEqual(plain(readingStarted), plain(started));
   assert.deepEqual(plain(shortcutsStarted), plain(started));
+  assert.deepEqual(plain(pagingStarted), plain(started));
   assert.equal(f.listeners.size, 1);
   [...f.listeners][0]({ [prefix + "bccAddress"]: { newValue: "next@example.com" } }, "sync");
   assert.deepEqual(patches, [{ bccAddress: "next@example.com" }]);
@@ -206,7 +211,8 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(appearancePatches, reversePatches);
   assert.deepEqual(readingPatches, reversePatches);
   assert.deepEqual(shortcutsPatches, reversePatches);
-  pagehide(); assert.equal(shortcutsStops, 1); assert.equal(readingStops, 1); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
+  assert.deepEqual(pagingPatches, reversePatches);
+  pagehide(); assert.equal(pagingStops, 1); assert.equal(shortcutsStops, 1); assert.equal(readingStops, 1); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 
 test("late initial read after navigation cannot activate Auto BCC", async () => {
@@ -282,19 +288,26 @@ test("message-list preference round-trips independently and resets on sync delet
 
 for (const cancel of [false, true]) test(`message-list early html bootstrap ${cancel ? "cancels cleanly" : "disconnects after one delivery"}`, () => {
   let deliver;
-  let observations = 0, disconnects = 0;
+  let observations = 0, bootstrapDisconnects = 0;
+  const active = new Set(), timers = new Set(), events = new Map();
   const classes = new Set();
   const rootElement = { classList: {
     toggle: (name, enabled) => enabled ? classes.add(name) : classes.delete(name),
     remove: name => classes.delete(name)
   } };
-  const document = { documentElement: null };
-  const context = vm.createContext({ document, MutationObserver: class {
-    constructor(callback) { deliver = callback; }
+  const eventTarget = { addEventListener: (name, fn) => events.set(name, fn), removeEventListener: name => events.delete(name) };
+  const document = { documentElement: null, querySelectorAll: () => [], ...eventTarget };
+  const context = vm.createContext({ document, window: eventTarget,
+    setTimeout: fn => { timers.add(fn); return fn; }, clearTimeout: fn => timers.delete(fn),
+    MutationObserver: class {
+    constructor(callback) { if (!deliver) { deliver = callback; this.bootstrap = true; } }
     observe(target, options) {
-      assert.equal(target, document); assert.deepEqual(plain(options), { childList: true }); observations++;
+      active.add(this);
+      if (this.bootstrap) {
+        assert.equal(target, document); assert.deepEqual(plain(options), { childList: true }); observations++;
+      }
     }
-    disconnect() { disconnects++; }
+    disconnect() { active.delete(this); if (this.bootstrap) bootstrapDisconnects++; }
   } });
   const source = fs.readFileSync(path.join(root, "content/messageList.js"), "utf8");
   vm.runInContext(source, context);
@@ -306,9 +319,11 @@ for (const cancel of [false, true]) test(`message-list early html bootstrap ${ca
   if (cancel) feature.stop();
   document.documentElement = rootElement; deliver();
   assert.equal(classes.has("gmail-pro-message-list"), !cancel);
-  assert.equal(disconnects, 1);
+  assert.equal(bootstrapDisconnects, 1);
+  assert.equal(timers.size, cancel ? 0 : 1);
   vm.runInContext(source, context); assert.equal(context.GmailPro.messageList, feature);
   feature.stop(); assert.equal(classes.size, 0);
+  assert.equal(active.size, 0); assert.equal(timers.size, 0); assert.equal(events.size, 0);
 });
 
 test("label order validates, deduplicates, preserves other settings and handles quota", async () => {
@@ -421,4 +436,16 @@ test("keyboard shortcuts are inert on non-Mac platforms", () => {
   f.run("content/gmailSelectors.js"); f.run("content/keyboardShortcuts.js");
   f.context.GmailPro.keyboardShortcuts.start(f.settings.defaults);
   f.context.GmailPro.keyboardShortcuts.stop();
+});
+
+
+test("automatic paging preference saves independently and normalizes deletion", async () => {
+  const f = fixture({ [prefix + "appleMailModeEnabled"]: true });
+  const patches = []; const stop = f.settings.subscribe(patch => patches.push(plain(patch)));
+  await f.settings.save({ autoPagingEnabled: true });
+  assert.equal((await f.settings.load()).autoPagingEnabled, true);
+  assert.equal((await f.settings.load()).appleMailModeEnabled, true);
+  await assert.rejects(f.settings.save({ autoPagingEnabled: "true" }));
+  [...f.listeners][0]({ [prefix + "autoPagingEnabled"]: {} }, "sync");
+  assert.deepEqual(patches, [{ autoPagingEnabled: true }, { autoPagingEnabled: false }]); stop();
 });

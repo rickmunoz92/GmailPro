@@ -131,6 +131,13 @@
   [role="search"] :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }
   [role="search"]:focus-within { outline: 2px solid var(--gp-accent-ui); outline-offset: -2px; }
   [role="main"] [gh="tl"] > .Nt { background: var(--gp-border) !important; }
+  /* .Nm is Gmail's side-by-side split. Paint one dark hairline inside the
+     native handle; transparent borders retain its full width and drag target. */
+  [role="main"] [gh="tl"].Nm > .Nt {
+    background: linear-gradient(#111517, #111517) center / 1px 100% no-repeat var(--gp-bg-primary) !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
   /* Thread surroundings/headers only. No descendant wildcard, inversion, or
      typography changes on the message envelope or its .ii/.a3s document. */
   [role="main"] .iY:has(h2[data-thread-perm-id]) { margin: 0 !important; border: 0 !important; }
@@ -171,10 +178,11 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
    read/unread/selection changes and SPA replacements need no JS observer. */
 @scope (html.gmail-pro-apple-mail-mode [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
   :scope {
+    position: relative;
     background: var(--gp-bg-primary) !important;
     color: var(--gp-text-secondary) !important;
     border-radius: 0 !important;
-    border-bottom: 1px solid var(--gp-border) !important;
+    border-bottom: 1px solid transparent !important;
     box-shadow: none !important;
     font-family: var(--gp-font) !important;
     grid-template-columns: 3px 0 0 0 minmax(0, 1fr) auto auto auto;
@@ -182,6 +190,17 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     min-height: 46px;
     padding-block: 4px !important;
     row-gap: 0;
+  }
+  /* Paint inside the reserved border, aligned with the text: 3px gutter +
+     13px text indent at the start, and the row's 12px padding at the end. */
+  :scope::after {
+    content: "";
+    position: absolute;
+    inset-inline: 16px 12px;
+    bottom: -1px;
+    height: 1px;
+    background: var(--gp-border);
+    pointer-events: none;
   }
   :scope > td { background: transparent !important; color: inherit !important; font: 13px/18px var(--gp-font) !important; }
   /* Hide only the native list star/importance cells. Keep their state and the
@@ -216,8 +235,8 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope.aps, :scope:has(> td > [role="checkbox"][aria-checked="true"]) {
     background: var(--gp-accent) !important;
     color: var(--gp-accent-contrast) !important;
-    border-bottom-color: transparent !important;
   }
+  :scope.aps::after, :scope:has(> td > [role="checkbox"][aria-checked="true"])::after { visibility: hidden; }
   :scope.aps :is(.yW, .bog, .xW, .yi, .at, .at span, .at .av),
   :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at, .at span, .at .av) {
     color: var(--gp-accent-contrast) !important;

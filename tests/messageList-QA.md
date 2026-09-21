@@ -44,9 +44,8 @@ checks use synthetic handlers and do not prove every Gmail action end to end.
 
 Long/short subjects, very long senders, missing importance markers, label width,
 RTL, unknown structures, CSS leakage, exact DOM restoration and observer cleanup
-are covered by synthetic browser tests. The message-list module creates no
-observer when `<html>` already exists; its early-start one-shot observer and
-cancellation are covered by Node tests. There is no row discovery loop or polling.
+are covered by synthetic browser tests. The original CSS-only lifecycle described
+by these September 18 results is superseded by the timestamp update below.
 
 ## Remaining limits
 
@@ -60,3 +59,53 @@ cancellation are covered by Node tests. There is no row discovery loop or pollin
 - Other Gmail densities, locales and future DOM variants may differ. The known
   semantic and presentation hooks are documented in `content/messageList.css`.
   Unknown structural layouts retain Gmail's native presentation.
+
+## Conversation timestamp update — September 21, 2026
+
+Both Apple Mail Mode and the standalone message-list preference now format the
+full English timestamp supplied in Gmail's date tooltip. Today uses `Today, 1:31 PM`,
+yesterday uses `Yesterday, 1:31 PM`, and other dates use
+`Mon, 9/14/26, 1:31 PM`. Normal dates use exact `#9C9EA0`; native/Apple Mail
+selected foregrounds remain unchanged. Local calendar comparisons handle midnight,
+year/month boundaries and daylight-saving changes. Unsupported formats stay native.
+
+The formatted string lives only in an extension-owned attribute. CSS preserves
+Gmail's original date nodes, tooltip and accessible name; disabling both modes
+reveals the latest native text. Grid observers batch new/changed rows. Main-region
+and shallow ancestor discovery handle staged rendering and replaced Gmail pages.
+One midnight timer, plus focus/visibility refresh, handles relative-day changes.
+There is no polling, added permission, networking, persisted mail data, or per-row
+listener. Cleanup releases observers, timers, row references and owned attributes.
+
+| Current suite | Result |
+| --- | --- |
+| `node scripts/validate.cjs` | Manifest/assets/syntax/permissions pass; 28/28 Node tests |
+| `tests/messageList.html` | 40/40 browser checks |
+| `tests/appleMail.html` | 54/54 browser checks |
+| `tests/reverseThreads.html` | 42/42 browser checks |
+| `tests/autoBcc.html` | 32/32 browser checks |
+| `tests/messageZoom.html` | 16/16 browser checks |
+
+Coverage includes a controlled clock, midnight/noon, unpadded month/day, leap days,
+calendar boundaries, DST transition dates, future dates, invalid metadata, all
+preference combinations, reused/replaced rows, deeply staged main replacement,
+100-row mutation bursts, no idle feedback loops, latest-native-text restoration,
+and observer/timer cleanup. Full older-date strings pass 320/380/560/1200px list
+geometry checks; Apple Mail geometry and selected contrast pass both themes and
+all eight accents. The accessible full date is retained; a screen reader was not
+used for certification.
+
+The first live check verified the metadata contract only. Follow-up testing found
+Chrome loaded a separate installed folder, so workspace changes had not reached
+the running extension. After confirming every installed file matched the prior
+baseline, the tested changes were copied to Chrome's loaded folder. Version
+0.9.19 was confirmed in extension Details, the extension was reloaded, and the
+existing Gmail page was refreshed.
+
+Live verification now confirms all 13 current rows display the formatted text,
+including full older dates, with exact computed `rgb(156, 158, 160)` (`#9C9EA0`).
+All tooltip/accessible labels are preserved, no sender/date bounds overlap, and
+the live page reports no console errors. A screenshot inspection confirmed the
+visible result. The installed copy passes all 28 Node tests. Yesterday and
+selected-row variants remain covered by the synthetic suites above; no mailbox
+actions or preference changes were needed for this deployment check.
