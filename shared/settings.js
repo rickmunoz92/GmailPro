@@ -6,6 +6,7 @@
 
   const defaults = Object.freeze({
     appleMailModeEnabled: false,
+    headerCollapsed: false,
     appearanceTheme: "dark",
     accentColor: "blue",
     floatingReplyEnabled: true,
@@ -29,6 +30,7 @@
   // different extension contexts save changes. Same-key conflicts are last-write-wins.
   const keys = Object.freeze({
     appleMailModeEnabled: "gmailPro.v1.appleMailModeEnabled",
+    headerCollapsed: "gmailPro.v1.headerCollapsed",
     appearanceTheme: "gmailPro.v1.appearanceTheme",
     accentColor: "gmailPro.v1.accentColor",
     floatingReplyEnabled: "gmailPro.v1.floatingReplyEnabled",

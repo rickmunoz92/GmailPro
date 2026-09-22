@@ -18,6 +18,7 @@
       app.messageList.update(patch);
       app.autoPaging.update(patch);
       app.appearance.update(patch);
+      app.headerLayout.update(patch);
       app.readingPane.update(patch);
       app.floatingCompose.update(patch);
       app.keyboardShortcuts.update(patch);
@@ -41,6 +42,7 @@
     app.floatingCompose.stop();
     app.keyboardShortcuts.stop();
     app.appearance.stop();
+    app.headerLayout.stop();
     app.messageZoom.stop();
     app.labelOrder.stop();
   }, { once: true });
@@ -52,6 +54,7 @@
     app.messageList.start(current);
     app.autoPaging.start(current);
     app.appearance.start(current);
+    app.headerLayout.start(current);
     app.readingPane.start(current);
     app.floatingCompose.start(current);
     app.keyboardShortcuts.start(current);

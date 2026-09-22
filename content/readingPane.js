@@ -12,11 +12,157 @@
   let enabled = false, unsubscribe, observer, group, markedShell;
   let queued = false;
   let observedContext;
+  let pendingRead;
+  let readNoticeObserver, readNoticeTimer;
+  const readDelay = 300;
+  const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
   const markedFooters = new Set();
   const recipientLabels = new Map();
   const visible = node => !!node?.isConnected && node.checkVisibility({ visibilityProperty: true }) && !node.closest('[hidden], [aria-hidden="true"], [inert]');
   const usable = node => node && !node.matches('[disabled], [aria-disabled="true"]');
   const ownsChrome = node => !node.closest(S.readingExcluded);
+
+  function nativeGesture(target) {
+    const bounds = target.getBoundingClientRect();
+    // Gmail controls need pressed state; a bare .click() can be ignored.
+    for (const type of ["mousedown", "mouseup", "click"]) {
+      if (!visible(target) || !usable(target)) break;
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true,
+        view: window, button: 0, buttons: type === "mousedown" ? 1 : 0, detail: 1,
+        clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 }));
+    }
+  }
+
+  function stopReadNoticeWatch() {
+    readNoticeObserver?.disconnect(); readNoticeObserver = undefined;
+    clearTimeout(readNoticeTimer); readNoticeTimer = undefined;
+  }
+
+  function quietReadNotice() {
+    stopReadNoticeWatch();
+    // Observe only Gmail's small native notification region while awaiting
+    // this action's confirmation. Never hide the shared alert/Undo container.
+    const roots = [...document.querySelectorAll(S.nativeNotice)].filter(ownsChrome);
+    if (!roots.length) return;
+    readNoticeObserver = new MutationObserver(() => {
+      for (const root of roots) {
+        for (const message of root.querySelectorAll(S.nativeNoticeMessage)) {
+          if (message.textContent.trim() !== "Conversation marked as read.") continue;
+          const close = message.closest('.vh').querySelector(':scope > .bBe[role="button"][aria-label="Close"]');
+          if (!visible(close) || !usable(close)) continue;
+          // Disconnect before Gmail dismisses/reuses the node. Archive,
+          // delete, errors, and third-party notices retain their native UI.
+          stopReadNoticeWatch();
+          nativeGesture(close);
+          return;
+        }
+      }
+    });
+    for (const root of roots) readNoticeObserver.observe(root, {
+      childList: true, subtree: true, characterData: true, attributes: true,
+      attributeFilter: ["class", "style", "role", "aria-label", "hidden", "aria-hidden", "aria-disabled"]
+    });
+    readNoticeTimer = setTimeout(stopReadNoticeWatch, 5000);
+  }
+
+  function cancelRead() {
+    if (!pendingRead) return;
+    clearTimeout(pendingRead.timer);
+    clearTimeout(pendingRead.expiry);
+    pendingRead = undefined;
+    schedule(); // Release temporary row/table observation even without a DOM change.
+  }
+
+  function readIdentity(row) {
+    return row.querySelector('[role="link"] [data-thread-id][data-legacy-thread-id]');
+  }
+
+  function readContext(pending) {
+    const { row, main, thread, legacy, route } = pending;
+    const identity = readIdentity(row);
+    if (!enabled || document.hidden || location.hash !== route || !visible(row) ||
+        !row.matches(S.readingRow) || row.closest(S.main) !== main ||
+        !row.classList.contains("zE") || identity?.getAttribute("data-thread-id") !== thread ||
+        identity.getAttribute("data-legacy-thread-id") !== legacy ||
+        main.querySelector('table[role="grid"] [role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"])')) return null;
+    const current = app.reverseThreads.currentConversation();
+    if (!row.classList.contains("aps") || !current || !visible(current.list) ||
+        ![...current.list.querySelectorAll(S.readingBody)].some(visible) ||
+        current.heading.closest(S.main) !== main ||
+        current.heading.getAttribute("data-thread-perm-id") !== thread.replace(/^#/, "") ||
+        current.heading.getAttribute("data-legacy-thread-id") !== legacy) return null;
+    return current;
+  }
+
+  function markRead(pending) {
+    if (pendingRead !== pending) return;
+    if (!readContext(pending)) return cancelRead();
+    const remaining = readDelay - (performance.now() - pending.started);
+    if (remaining > 0) {
+      pending.timer = setTimeout(() => markRead(pending), remaining);
+      return;
+    }
+    const toolbars = [...pending.main.querySelectorAll(S.primaryToolbar)].filter(visible);
+    const actions = toolbars.length === 1
+      ? [...toolbars[0].querySelectorAll(S.markRead)].filter(node => visible(node) && usable(node)) : [];
+    // Consume the click before delegating. A later explicit Mark as unread
+    // must never restart this timer, and no bulk toolbar action is allowed.
+    cancelRead();
+    if (actions.length !== 1) return;
+    quietReadNotice();
+    nativeGesture(actions[0]);
+  }
+
+  function refreshRead() {
+    const pending = pendingRead;
+    if (!pending) return;
+    if (!pending.row.matches(S.readingRow) || pending.row.closest(S.main) !== pending.main) return cancelRead();
+    // These watches exist only during a click's dwell, never across the inbox
+    // while idle. Selection attributes stay owned by Gmail.
+    if (pending.row.isConnected) {
+      observer.observe(pending.row, { attributes: true, attributeFilter: ["class", "hidden", "style"] });
+      observer.observe(pending.row.parentElement, { childList: true });
+      observer.observe(pending.row.closest('table'), { attributes: true, subtree: true, attributeFilter: ["aria-checked"] });
+      const identity = readIdentity(pending.row);
+      if (identity) observer.observe(identity, { attributes: true, attributeFilter: ["data-thread-id", "data-legacy-thread-id"] });
+    }
+    const current = readContext(pending);
+    if (!current) {
+      if (pending.started !== undefined || !pending.row.isConnected || location.hash !== pending.route) cancelRead();
+      return;
+    }
+    if (pending.started === undefined) {
+      clearTimeout(pending.expiry);
+      pending.started = performance.now();
+      pending.timer = setTimeout(() => markRead(pending), readDelay);
+    }
+  }
+
+  function openForRead(event) {
+    if (!(event.target instanceof Element)) return;
+    const row = event.target.closest(S.readingRow);
+    if (!row || event.target.closest(readExcluded) || event.button !== 0 ||
+        event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (pendingRead?.row === row && readContext(pendingRead)) return;
+    cancelRead();
+    if (!row.classList.contains("zE") || document.hidden) return;
+    const identity = readIdentity(row);
+    const pending = { row, main: row.closest(S.main), route: location.hash,
+      thread: identity.getAttribute("data-thread-id"), legacy: identity.getAttribute("data-legacy-thread-id") };
+    if (!pending.thread || !pending.legacy) return;
+    pendingRead = pending;
+    // Bound a click whose message never opens; normal discovery supplies the
+    // loaded conversation. Loading time never counts as reading time.
+    pending.expiry = setTimeout(cancelRead, 10000);
+    schedule();
+  }
+
+  function interruptRead(event) {
+    if (!pendingRead || !(event.target instanceof Element)) return;
+    const shell = readContext(pendingRead)?.heading.closest(S.readingShell);
+    if (event.target.closest(readExcluded) ||
+        (!shell?.contains(event.target) && !pendingRead.row.contains(event.target))) cancelRead();
+  }
 
   function updateRecipientLabels(shell) {
     for (const [node, change] of recipientLabels) {
@@ -70,6 +216,9 @@
       const nodes = [...footer.querySelectorAll(selector)].filter(node => ownsChrome(node) && visible(node) && usable(node));
       if (nodes.length === 1) actions.set(key, nodes[0]);
     }
+    // Gmail omits Reply all for single-recipient messages. Keep our toolbar
+    // stable and delegate to its ordinary Reply without constructing recipients.
+    if (!actions.has('replyAll') && actions.has('reply')) actions.set('replyAll', actions.get('reply'));
     const known = [...actions.values()];
     const replaceable = footer && [...footer.querySelectorAll('button, [role="button"], [role="link"]')]
       .every(node => !usable(node) || known.includes(node) || !visible(node));
@@ -154,6 +303,7 @@
     if (!enabled) return;
     observer.disconnect();
     restore();
+    refreshRead();
     const current = context();
     updateRecipientLabels(current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell));
     if (!current?.actions.size) { group?.remove(); watch(current); return; }
@@ -177,6 +327,13 @@
 
   function stop() {
     enabled = false;
+    cancelRead();
+    stopReadNoticeWatch();
+    document.removeEventListener("click", openForRead, true);
+    document.removeEventListener("pointerdown", interruptRead, true);
+    document.removeEventListener("keydown", cancelRead, true);
+    document.removeEventListener("visibilitychange", cancelRead);
+    for (const type of ["hashchange", "popstate", "blur"]) window.removeEventListener(type, cancelRead);
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
     updateRecipientLabels(null);
@@ -191,6 +348,11 @@
     if (enabled) return;
     enabled = true;
     observer = new MutationObserver(schedule);
+    document.addEventListener("click", openForRead, true);
+    document.addEventListener("pointerdown", interruptRead, true);
+    document.addEventListener("keydown", cancelRead, true);
+    document.addEventListener("visibilitychange", cancelRead);
+    for (const type of ["hashchange", "popstate", "blur"]) window.addEventListener(type, cancelRead);
     window.addEventListener("resize", schedule);
     unsubscribe = app.reverseThreads.subscribeConversation(schedule);
     refresh();

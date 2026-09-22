@@ -1,0 +1,37 @@
+body { margin: 0; font: 13px Arial; }
+#workspace { width: 1400px; max-width: 100vw; }
+.w-asV { position: relative; }
+header { height: 64px; display: flex; align-items: center; gap: 20px; }
+header > .search-owner { width: 600px; }
+form[role=search] { position: relative; height: 48px; background: #eee; }
+[gh=sb] { height: 46px; margin-left: 44px; margin-right: 48px; display: flex; align-items: center; }
+[gh=sb] input { width: 100%; }
+[gh=sb] > input { height: 46px; box-sizing: border-box; }
+form > button { position: absolute; right: 0; top: 0; height: 46px; }
+.gssb_c { width: 100%; background: white; color: black; }
+/* Native Gmail search internals: fixed padding and absolutely positioned input. */
+[gh=sb]:has(.native-search-table) { display: block; }
+.native-search-table, .native-search-table table { border-spacing: 0; width: 100%; }
+.native-search-table td { padding: 0; vertical-align: middle; }
+.native-search-table .gsib_a { padding: 11px 0; }
+.gsib_a > div { position: relative; height: 0; }
+.gsib_a input { position: absolute; top: 0; left: 0; height: 15px; padding: 0; border: 0; }
+.gsib_a .ghost { visibility: hidden; }
+form > button:has(svg) { border: 0; padding: 0 5px; }
+form > button > svg { width: 24px; height: 24px; padding: 8px; margin: 3px; }
+.stage { display: flex; height: calc(100vh - 65px); }
+[role=navigation] { width: 200px; flex: none; overflow: auto; }
+[role=navigation] > .aic { height: 60px; }
+[gh=mtb] .G-Ni { display: inline-flex; height: 20px; }
+[gh=mtb] .G-as3 { width: 40px; height: 20px; }
+[role=main] { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+[gh=tm] { display: flex; flex: none; align-items: center; height: 48px; position: relative; }
+[gh=mtb] { width: 360px; height: 32px; flex: none; display: flex; }
+[gh=mtb] button { height: 32px; }
+.Di { margin-left: auto; display: flex; width: 160px; height: 32px; flex: none; }
+.panes { display: flex; flex: 1; min-height: 0; }
+.Nu { flex: 1; overflow: auto; }
+.Nu > div { height: 1500px; }
+.ZF-Av { position: fixed; z-index: 200; top: 60px; left: 600px; }
+.ZF-zT { width: 300px; height: 100px; background: white; color: black; }
+#results { position: absolute; top: 160px; left: 240px; pointer-events: none; white-space: pre-wrap; }

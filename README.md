@@ -13,6 +13,8 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
   neutral selected mailbox with accent text/icons. Gmail remains the mail engine.
 
 - **Native floating composer:** automatically open Reply, Reply All, and Forward in Gmail’s own floating composer.
+- **Read after 0.3 seconds:** in Apple Mail Mode, an unread conversation clicked
+  in the reading-pane list is marked read after its message stays visible for 300ms.
 - **Auto BCC:** automatically add a configured address to new messages, replies,
   reply-all messages, and forwards. Each composition is handled independently.
 - **Newest Email First:** show the newest message at the top of an opened Gmail
@@ -106,8 +108,8 @@ behind your back or simulate a reading pane. Gmail owns splitters and saved pane
 widths. The vertical divider paints a single 1px dark line inside Gmail's original
 resize handle, keeping its full drag area. The expanded mailbox sidebar is about
 216px on wide desktop windows; narrow
-windows and collapsed navigation retain Gmail's sizing. Header geometry stays native
-so Gmail's measured scrolling regions remain correct.
+windows and collapsed navigation retain Gmail's sizing. The collapsible header described below reclaims space while fitting the right reading
+pane to Gmail’s measured viewport.
 
 - **Scrollbars:** Gmail pane thumbs appear only on the axis that moves and hide
   after 700ms idle. Tracks keep a stable size, with a square, theme-colored corner.
@@ -119,6 +121,18 @@ so Gmail's measured scrolling regions remain correct.
 - **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
   the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
   The dot is hidden while selected, without changing the native unread state.
+  An ordinary click on an unread reading-pane conversation starts a 300ms dwell
+  once its message body is visible. Gmail Pro then clicks Gmail's native **Mark
+  as read** action, so counts and read status update through Gmail. Leaving the
+  conversation, switching tabs/windows, navigation, bulk selection, or disabling
+  Apple Mail Mode cancels the pending action. Loading time does not count.
+  Manual **Mark as unread** stays in effect until another ordinary opening click.
+  Automatic reads also dismiss the **Conversation marked as read.** confirmation
+  through Gmail's native Close control. Other notifications and their Undo
+  controls stay available. The watch ends after one dismissal or five seconds.
+  Gmail's own automatic-read preference still applies independently; use **Never**
+  in Gmail's reading-pane settings if Gmail currently marks messages immediately.
+  Unsupported layouts/actions are left to Gmail. See [automatic-read QA](tests/autoRead-QA.md).
   Multi-selection follows Gmail's `aria-checked` state, with row checkboxes hidden.
   **Ctrl-click** (or **Command-click** on Mac) toggles individual conversations.
   **Shift-click** selects a range of currently displayed rows; Ctrl/Command-Shift-click
@@ -143,8 +157,9 @@ native checked rows and the range anchor. Gmail's native `u` (back-to-list) key
 sequence clears any open reading pane; Gmail keyboard shortcuts must be enabled
 for that native command. The extension does not change that account preference.
 Row clicks, message content, controls, footers and modified blank clicks remain
-native. The dedicated top-center label-loading banner is hidden; alert/Undo toasts
-remain visible. Both changes apply only while Apple Mail Mode is enabled.
+native. The dedicated top-center label-loading banner is hidden; other alert/Undo
+toasts remain visible, apart from the automatic-read confirmation described above.
+These changes apply only while Apple Mail Mode is enabled.
 The root/row appearance controller has no per-row listeners, polling, message
 parsing, or ongoing DOM observers. Reading-pane actions use the separate narrow
 chrome observation described below.
@@ -210,6 +225,37 @@ See [Apple Mail Mode QA and handoff](tests/appleMail-QA.md) for verification, re
 manual checks, performance boundaries and the implementation file map. The visual
 reference is [Apple's Mail viewing settings](https://support.apple.com/en-nz/guide/mail/cpmlprefview);
 this implementation is independently designed and does not bundle Apple fonts.
+
+### Toolbar search and collapsible header
+
+Apple Mail Mode keeps Gmail’s search field between the mail actions and page
+controls at a stable 360px width. Compose appears as an icon beside the selection
+checkbox, freeing its original sidebar row so Inbox and labels move up. The
+Phish Alert toolbar icon uses a neutral tint while keeping its original action.
+Reply All remains available for single-recipient conversations by using Gmail's
+native Reply when Gmail omits Reply All; recipient handling stays native.
+Use the chevron beside search to collapse or expand the Gmail header.
+The header starts expanded; your choice saves immediately through the existing
+Chrome Sync preferences and applies across Gmail tabs/accounts in this profile.
+Expand it to reach Gmail’s main menu, settings, support, and account controls.
+
+When a full field does not fit, a search icon opens the same native search over
+the toolbar. Close it with its × button or Escape after dismissing native search
+popups; the query is retained. Gmail’s native `/` search shortcut and keyboard
+focus reveal the field too. Suggestions and advanced filters stay native. The
+filter panel’s outer position follows the relocated search field.
+
+The extension positions the original search form without cloning or reparenting
+it. A bounded header controller watches only chrome and shallow ancestor changes,
+with a ten-second initial shell watch. Gmail recalculates its layout when the
+header changes. The right-split main wrapper fills Gmail’s measured viewport to
+remove its otherwise retained header-height allowance. Pane widths and scroll
+positions remain Gmail-owned.
+
+If the native header/search/toolbar cannot be identified, or even the two compact
+buttons cannot fit, Gmail’s original layout returns. Turning Apple Mail Mode off
+restores all native placement and removes the controller. No extra permissions,
+networking, saved queries, or message data are added. See [header layout QA](tests/headerLayout-QA.md).
 
 ### Auto BCC
 
@@ -556,6 +602,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/messageZoom.html`
 - `http://127.0.0.1:8765/tests/appleMail.html`
 - `http://127.0.0.1:8765/tests/readingPane.html`
+- `http://127.0.0.1:8765/tests/headerLayout.html`
 - `http://127.0.0.1:8765/tests/floatingCompose.html`
 - `http://127.0.0.1:8765/tests/keyboardShortcuts.html`
 
@@ -580,6 +627,7 @@ the checks intentionally limited to synthetic data.
 ### Structure and maintenance
 
 - `content/appearance.js`: root appearance lifecycle and optional system-theme listener.
+- `content/headerLayout.js`: reversible toolbar search, header collapse, and responsive layout.
 - `content/readingPane.js`: native message-action bridge and narrow reading-chrome lifecycle.
 - `content/appleMail.css`: gated native chrome, sidebar and message state presentation.
 - `shared/theme.css`: shared light/dark tokens, palette and contrast variants.

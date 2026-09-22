@@ -25,6 +25,17 @@
     labelSection: '[aria-labelledby]',
     labelMoreCollapsed: '[gh="mll"][aria-label="More labels"]',
     main: '[role="main"]',
+    // Header/search ownership inspected in English desktop Gmail, 2026-09-21.
+    // Use the actual HEADER: search suggestions also contain role=banner cells.
+    headerBanner: 'header[role="banner"]',
+    headerShell: '.w-asV',
+    headerSearch: 'form[role="search"]',
+    headerSearchInput: 'input[name="q"]',
+    headerToolbar: '[role="main"] [gh="tm"]',
+    headerViewport: '.Tm',
+    headerRightSplit: ':scope > .Nr.Nm',
+    headerSuggestions: '.gssb_c',
+    headerAdvancedPanel: '.ZF-Av:has(.ZF-zT)',
     // Native automatic paging: English desktop Gmail, September 2026.
     // Require right-pane geometry, one native grid, and one list pager.
     // English names supplement the relationship; they are not the sole gate.
@@ -78,8 +89,14 @@
     // Native Archive / Move to Undo toast, verified in desktop Gmail. Its
     // structured notification boundary excludes arbitrary links in messages.
     nativeUndo: '.b8[role="alert"] > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"][role="link"]',
+    nativeNotice: '.b8[role="alert"]',
+    nativeNoticeMessage: ':scope > .J-J5-Ji > .vh:not(.inboxsdk__butterbar) > .aT > .bAq',
     shortcutArchiveExcluded: 'input, textarea, select, [contenteditable], [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="region"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',
     primaryToolbar: '[gh="tm"] [gh="mtb"]',
+    // Automatic read uses the opened native split-pane row and both IDs;
+    // never infer a conversation from its subject, focus, or checkbox alone.
+    readingRow: '[role="main"] .Nu.tf table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id][data-legacy-thread-id]):not([data-message-id] *)',
+    markRead: '[role="button"][aria-label="Mark as read"], button[aria-label="Mark as read"]',
     toolbarMore: '[role="button"][aria-label="More email options"]',
     nativeFooter: '.btDi4d .amn, .gA .amn',
     nativeReplyAll: '.ams.bkI[role="link"]',

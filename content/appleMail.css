@@ -23,8 +23,8 @@
   }
   [role="navigation"] { border-inline-end: 1px solid var(--gp-border); }
   [role="banner"] { border-bottom: 1px solid var(--gp-border); box-shadow: none !important; }
-  /* Retain the native header height so Gmail's measured viewport/scroll regions
-     stay correct. Compact controls inside it, not Gmail's JS geometry contract. */
+  /* Header geometry stays native unless headerLayout validates and marks the
+     shell. That controller asks Gmail to recalculate after each transition. */
   [role="banner"] a[aria-label="Gmail"] { opacity: .65; }
   [role="banner"] :is([aria-label="Ask Gemini"], [aria-label="Google apps"]) { display: none !important; }
   /* Keep Workspace apps and Chat/Meet reachable: quiet the rail, don't remove
@@ -124,6 +124,10 @@
   }
   [gh="tm"] [role="button"]:hover { background-color: var(--gp-hover) !important; }
   [gh="tm"] :is(svg, .T-I-J3) { filter: var(--gp-icon-filter); }
+  /* Keep the security extension's action intact; neutralize its branded bitmap. */
+  [gh="mtb"] .inboxsdk__button[data-tooltip="Phish Alert"] .inboxsdk__button_iconImg {
+    filter: grayscale(1) brightness(0) invert(.65);
+  }
   [role="search"] {
     background: var(--gp-bg-tertiary) !important;
     border: 1px solid var(--gp-border) !important;
@@ -363,6 +367,24 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
   stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: none !important;
 }
 
+html.gmail-pro-apple-mail-mode [role="navigation"] > .aic[data-gp-compose-relocated] { display: none !important; }
+html.gmail-pro-apple-mail-mode[data-gp-theme="light"] [gh="mtb"] .inboxsdk__button[data-tooltip="Phish Alert"] .inboxsdk__button_iconImg {
+  filter: grayscale(1) brightness(0) invert(.4);
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  align-self: center;
+  vertical-align: middle; width: 32px; height: 32px; padding: 5px; margin-inline: -4px 4px;
+  border: 0; border-radius: 5px; background: transparent;
+  color: var(--gp-text-secondary); cursor: pointer;
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose:hover { background: var(--gp-hover); }
+html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 1px; }
+html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose svg {
+  width: 20px; height: 20px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: none !important;
+}
+
 /* Fixed-size transparent tracks avoid layout jumps. Activity belongs to each
    pane and axis; hovering or scrolling another pane never reveals a thumb. */
 @scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *, [role="region"] *)) to (.a3s, [contenteditable], [role="dialog"], [role="region"]) {
@@ -386,4 +408,89 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
   }
   :scope[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
   :scope[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical { background-color: var(--gp-text-muted) !important; }
+}
+
+/* Toolbar search: the original form stays in its native ancestor chain. Never
+   hide/inert/aria-hide its ancestor: native search shortcuts and popups need it.
+   These rules touch only the validated header shell and extension controls. */
+html.gmail-pro-apple-mail-mode :is(.w-asV, header[role="banner"])[data-gp-header-collapsed] {
+  height: 0 !important; min-height: 0 !important;
+  padding-block: 0 !important; margin-block: 0 !important;
+  border-block-width: 0 !important; overflow: visible !important;
+  visibility: hidden;
+}
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] {
+  position: fixed !important;
+  left: var(--gp-search-left) !important; top: var(--gp-search-top) !important;
+  width: var(--gp-search-width) !important; max-width: none !important;
+  min-width: 0 !important; min-height: 36px !important; height: auto !important;
+  margin: 0 !important; box-sizing: border-box;
+  visibility: visible; z-index: 100;
+}
+html.gmail-pro-apple-mail-mode [role="main"][data-gp-header-main] {
+  height: var(--gp-header-main-height) !important;
+}
+html.gmail-pro-apple-mail-mode .ZF-Av[data-gp-search-panel] {
+  position: fixed !important;
+  left: var(--gp-search-panel-left) !important; top: var(--gp-search-panel-top) !important;
+  width: var(--gp-search-panel-width) !important;
+}
+html.gmail-pro-apple-mail-mode .ZF-Av[data-gp-search-panel] > .ZF-zT { max-width: 100%; box-sizing: border-box; }
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] [gh="sb"] {
+  height: 34px !important;
+}
+/* Gmail initially renders a plain input before installing autocomplete. */
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] [gh="sb"] > input {
+  height: 34px !important; padding-block: 0 !important; box-sizing: border-box;
+}
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] > button {
+  width: 56px !important; height: 34px !important; line-height: 34px !important;
+}
+/* Gmail keeps 48px-header padding inside its icons and a zero-height input
+   wrapper. Center those contents independently of the growing suggestion form. */
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] > button > svg {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 24px; height: 24px; padding: 5px !important; margin: 0 !important;
+  box-sizing: content-box;
+}
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] [gh="sb"] .gsib_a {
+  padding-block: 0 !important;
+}
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] [gh="sb"] .gsib_a > div {
+  height: 34px;
+}
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] [gh="sb"] .gsib_a > div > :is(input, div) {
+  top: 50% !important; transform: translateY(-50%);
+}
+/* The form already supplies the visible focus ring; avoid a second outline
+   through Gmail's absolutely positioned input and autocomplete ghost field. */
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search] input:focus-visible { outline: none !important; }
+html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search="icon"] {
+  left: -10000px !important;
+  clip-path: inset(50%); pointer-events: none;
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-header-controls {
+  position: fixed; z-index: 101; display: flex; gap: 8px;
+  height: 32px; color: var(--gp-text-secondary);
+  background: var(--gp-bg-secondary); border-radius: 5px;
+}
+.gmail-pro-header-controls button {
+  width: 32px; height: 32px; padding: 6px; border: 0; border-radius: 5px;
+  display: grid; place-items: center; cursor: pointer;
+  color: inherit; background: transparent;
+}
+.gmail-pro-header-controls button[hidden] { display: none; }
+.gmail-pro-header-controls button:hover { background: var(--gp-hover); }
+.gmail-pro-header-controls button:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 1px; }
+.gmail-pro-header-controls button:disabled { cursor: wait; }
+.gmail-pro-header-controls svg {
+  width: 20px; height: 20px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.gmail-pro-header-controls [data-collapsed="true"] svg { transform: rotate(180deg); }
+.gmail-pro-header-status:empty { display: none; }
+.gmail-pro-header-status:not(:empty) {
+  position: absolute; right: 0; top: 40px; width: 240px; padding: 12px;
+  color: var(--gp-text-primary); background: var(--gp-bg-tertiary);
+  border: 1px solid var(--gp-border); border-radius: 6px; font: 13px var(--gp-font);
 }

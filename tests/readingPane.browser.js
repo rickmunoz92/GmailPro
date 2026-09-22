@@ -75,9 +75,18 @@
   });
   await test('contextual availability follows native controls, including disabled reaction', async () => {
     const f=fixture('one',{all:false,reaction:false}); start(); await settle();
-    assert(button('replyAll').hidden && button('reaction').hidden && !button('forward').hidden,'unavailable controls hidden');
+    assert(!button('replyAll').hidden && button('reaction').hidden && !button('forward').hidden,'Reply all retained while unavailable reaction is hidden');
     const native=f.footer.querySelector('.bkG'); native.setAttribute('aria-disabled','true'); await settle();
     assert(button('forward').hidden,'dynamic disabled state');
+  });
+  await test('single-recipient Reply all delegates to native Reply and follows replacement', async () => {
+    const f=fixture('one',{all:false}); start(); await settle();
+    button('replyAll').click(); assert(clicks.length===1 && clicks[0].key==='reply','one native Reply activation');
+    const all=document.createElement('span'); all.className='ams bkI'; all.setAttribute('role','link'); all.textContent='Reply all';
+    all.addEventListener('click',()=>clicks.push({key:'replyAll'})); f.footer.append(all); await settle();
+    button('replyAll').click(); assert(clicks.length===2 && clicks[1].key==='replyAll','native Reply all preferred when available');
+    all.remove(); f.footer.querySelector('.bkH').setAttribute('aria-disabled','true'); await settle();
+    assert(button('replyAll').hidden,'no fallback to disabled Reply');
   });
   await test('new native action causes graceful visible-footer fallback', async () => {
     const f=fixture(); start(); await settle(); const extra=document.createElement('button'); extra.textContent='Unknown new action'; f.footer.append(extra); await settle();
