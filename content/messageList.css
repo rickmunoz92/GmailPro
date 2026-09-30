@@ -1,5 +1,5 @@
 /* Message-list selector contract, verified in desktop Gmail September 2026.
-   messageList.js repeats the structural gate for timestamp formatting;
+   messageList.js repeats the structural gate for date formatting;
    gmailSelectors.js points here for the layout contract.
 
    Gate on Gmail's main > grid > row structure, native checkbox, subject link
@@ -14,7 +14,7 @@
    .PF = drag/selection gutter. Gmail owns read state, selection and row order.
 
    @scope keeps these hooks local to verified rows. Older browsers without @scope
-   keep the native layout. Only date colors and display text are replaced. */
+   keep the native layout. Gmail continues to own participants and counts. */
 @scope (html:is(.gmail-pro-message-list, .gmail-pro-apple-mail-mode) [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
   :scope {
     display: grid !important;
@@ -62,11 +62,25 @@
     overflow: hidden;
   }
   :scope > td.yX > .yW {
+    display: flex;
+    align-items: baseline;
     min-width: 0;
     width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  :scope > td.yX > .yW > .bA4 {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :scope > td.yX > .yW > .bx0 {
+    flex: 0 0 auto;
+    margin-inline-start: 4px;
+    font-weight: 400 !important;
   }
 
   :scope > td[role="gridcell"]:has([role="link"] [data-thread-id]) {

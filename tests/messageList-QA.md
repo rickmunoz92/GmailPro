@@ -1,5 +1,42 @@
 # Apple Mail-style Message List QA
 
+## Native sender order and regular counts — September 30, 2026
+
+Sender reordering has been removed at the user's request. The message-list
+controller is restored to date formatting only; it no longer reads sender
+headers, subscribes to conversation discovery or stores sender ordering state.
+Gmail's participant order and native nodes remain unchanged before, during and
+after opening a conversation, on new replies, and on native row replacements.
+The separate Newest Email First feature remains independent.
+
+Both enhanced list modes retain regular-weight message counts (400), including
+read, unread and selected rows, and reserve count space beside truncated names.
+Regression fixtures verify native participant/separator identity, hovercard
+metadata, row handlers, replacements, enable/disable and observer cleanup.
+Existing width, date, label, attachment and appearance checks remain in place.
+
+| Suite | Result |
+| --- | --- |
+| Current validator | Manifest/assets/syntax/permissions pass; 37/37 Node tests |
+| `tests/messageList.html` | 47/47 browser checks |
+| `tests/appleMail.html` | 61/61 browser checks |
+| `tests/reverseThreads.html` | 54/54 browser checks |
+| `tests/readingPane.html` | 31/31 browser checks |
+
+Only `content/messageList.js` and the explanatory comment in
+`content/messageList.css` were updated in Chrome's loaded folder,
+`/Users/rmunoz/Documents/GmailPro`. The retained count styles in both list CSS
+files match the workspace. The original loaded files are backed up at
+`/private/tmp/gmail-pro-remove-order-backup-p29qqugy`.
+
+A temporary harness using the loaded folder's production files and current
+validator/fixtures also passes 37/37 Node tests, 47/47 message-list checks and
+61/61 Apple Mail checks. The loaded folder's older validator still rejects its
+existing background manifest entry; the current validator validates that entry.
+Manual extension Reload followed by a Gmail refresh is required to apply the
+removal in existing Gmail tabs. Live mailbox verification remains pending; no
+mailbox actions were performed during this removal.
+
 Validated September 18, 2026 with the installed unpacked extension and current
 English desktop Gmail in Chrome. No email was sent. No mailbox captures, message
 content, addresses or browser credentials are stored in these fixtures.

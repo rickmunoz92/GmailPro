@@ -29,7 +29,8 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Organize labels:** reorder top-level labels visually, move sublabels to new
   Gmail parents, and hide individual sublabel branches from this sidebar.
 
-Floating Reply, Reply All, and Forward default on. Other features default off.
+Floating Reply, Reply All, Forward, and Mac keyboard shortcuts default on.
+Other features default off.
 Open the extension popup to enable **Apple Mail Mode**. Appearance settings save
 and apply immediately. Compose preferences and **Mail tools & advanced appearance**
 use **Save preferences**.
@@ -148,6 +149,17 @@ pane to Gmail’s measured viewport.
   show no number. Gmail owns the totals and updates, so counts are not limited to
   the currently loaded message page. Nesting and disclosure controls retain
   Gmail's hierarchy and behavior.
+- **Mailboxes sidebar:** the heading sits directly below the Gmail Pro logo.
+  Inbox is the first row, using the same filled label icon and spacing as your
+  labels. Your saved label order and nested branches remain intact. One collapsed
+  **More** at the bottom reveals Starred, Snoozed, Sent, Scheduled, Drafts,
+  Categories, Important, All Mail, Spam, Trash, category links, subscription/label
+  management, and labels Gmail normally keeps under More. **Less** collapses them.
+  Gmail's original links, unread counts, selection and handlers remain the owners;
+  only validated section wrappers receive a visual order. Reloading or enabling
+  the mode starts More collapsed. Gmail's row/section refreshes keep an opened
+  More section and its keyboard focus. Compact and unknown sidebar layouts stay native,
+  and turning the mode off restores original headings and disclosure states.
 
 JavaScript in `content/appearance.js` applies one root class,
 `gmail-pro-apple-mail-mode`, and two preference attributes. Four delegated capture
@@ -248,6 +260,8 @@ above the conversations and stays attached to the toolbar while the list scrolls
 The caption is part of the native toolbar. CSS anchors it below the toolbar border;
 its position does not depend on measurements of the scrolling pane.
 Conversations begin immediately below it, including in short folders and labels.
+The name and total persist while floating Reply, Reply All, and Forward drafts
+open and save. Draft URL parameters do not change the current mailbox.
 Totals use Gmail's conversation pagination, including approximate counts;
 unavailable or pending counts show just the name. No messages are read or tallied
 separately.
@@ -293,7 +307,7 @@ clicks Gmail’s normal Send button with the draft’s current recipients.
 
 ### Mac keyboard shortcuts
 
-All six shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
+All seven shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
 in the extension popup. Use **Save preferences** to apply changes.
 
 - **⌘⇧A — Archive:** clicks Gmail’s main Archive button for selected conversations or
@@ -306,6 +320,11 @@ in the extension popup. Use **Save preferences** to apply changes.
 - **⌘⇧D — Send:** clicks the normal Send button only in the composer currently focused
   in its body, recipients, subject, or controls. It never guesses another draft, sends a
   minimized draft, or substitutes Send & archive.
+- **⌘⇧O — Expand/collapse all:** toggles all messages in the open conversation
+  through Gmail’s current **Expand all** or **Collapse all** button. Opening a
+  conversation keeps Gmail’s normal default. Search/editable fields, composers,
+  menus/dialogs, and selected conversation checkboxes block the action. Each press
+  resolves the native control again; missing or ambiguous controls do nothing.
 - **⌘Z — Undo:** activates Gmail’s currently available native Undo action, including
   manual moves, archives, and Undo Send. Gmail restores the previous labels and Inbox
   state. Inside editable fields, composers, menus, and dialogs, normal text undo stays
@@ -380,6 +399,11 @@ No messages or cells are moved or cloned. The shared settings
 adapter stores `gmailPro.v1.appleMailMessageListEnabled` in `chrome.storage.sync`.
 Turning both list appearance modes off restores native dates and layout immediately,
 without a Gmail refresh. Auto BCC and Newest Email First remain independent.
+
+Both enhanced list modes keep conversation message counts in regular weight and
+reserve space for them beside the participant names. Names truncate at the end.
+Gmail retains its native participant order, sender nodes, hovercards and handlers.
+Opening or closing a conversation does not reorder the names.
 
 Both this option and Apple Mail Mode display conversation dates as follows:
 

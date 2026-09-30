@@ -42,6 +42,10 @@
     color: var(--gp-text-secondary) !important;
     font-size: 13px !important;
   }
+  [role="navigation"] :is(.TN, .n0, .nU, .aio) {
+    font-weight: 400 !important;
+    text-shadow: none !important;
+  }
   [role="navigation"] .aim:has(a[href*="#"]) > .TO {
     box-shadow: none !important;
     margin-inline: 6px !important;
@@ -62,7 +66,6 @@
   }
   [role="navigation"] .TO.nZ :is(.TN, .n0, .aio) {
     color: var(--gp-label-accent) !important;
-    font-weight: 600;
   }
   [role="navigation"] .TO.nZ .TN svg { fill: var(--gp-label-accent) !important; color: var(--gp-label-accent) !important; }
   [role="navigation"] .TN svg { fill: var(--gp-text-secondary); }
@@ -267,6 +270,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope .yW :is(span, .bA4), :scope .bog span, :scope .xW span { color: inherit !important; }
   /* Sender emphasis is identical for read/unread rows; only the dot changes. */
   :scope :is(.yW, .yW span) { font-weight: 700 !important; }
+  :scope > td.yX > .yW > .bx0 { font-weight: 400 !important; }
   :scope :is(.bog, .bog span, .xW, .xW span) { font-weight: 400 !important; }
   :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
   :scope .yi .at { border-radius: 3px !important; font: 10px/16px var(--gp-font) !important; max-height: 16px; }
@@ -409,6 +413,61 @@ html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand[data-compact] { font-siz
 html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand[data-compact] span { font-size: 21px; letter-spacing: -.6px; }
 html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand:hover { background: var(--gp-hover); }
 html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 1px; }
+/* Expanded Mailboxes layout: CSS order keeps Gmail's row ownership, handlers,
+   label-order sequence and native disclosure containers intact. */
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] {
+  display: flex !important; flex-direction: column; align-items: stretch;
+}
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > :is([data-gp-system-section], [data-gp-label-section]),
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > .yJ > .ajl,
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > .yJ > .ajl > .wT,
+html.gmail-pro-apple-mail-mode [data-gp-system-section] > .ajl > .wT > .n3,
+html.gmail-pro-apple-mail-mode [data-gp-system-section] > .ajl > .wT > .n3 > .byl,
+html.gmail-pro-apple-mail-mode [data-gp-system-section] > .ajl > .wT > .n3 > .byl > .TK {
+  display: contents !important;
+}
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > .aic:empty,
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > .yJ > .ajl > h2,
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > .yJ > .ajl > .wT > .n6 {
+  display: none !important;
+}
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes] > .aAw {
+  order: 0; margin: 0 !important; min-height: 36px; padding-block: 0 !important;
+}
+html.gmail-pro-apple-mail-mode [data-gp-system-section] .byl > .TK > .aim { order: 4; }
+html.gmail-pro-apple-mail-mode [data-gp-system-section] .byl > .TK > [data-gp-inbox] { order: 1; }
+html.gmail-pro-apple-mail-mode [data-gp-label-section] > .ajl > .wT > .n3 {
+  order: 2; margin: 0 !important; padding-block: 0 !important;
+}
+html.gmail-pro-apple-mail-mode [data-gp-label-section] > .ajl > .gmail-pro-label-toolbar { order: 2; }
+html.gmail-pro-apple-mail-mode [data-gp-label-section] > .ajl > .wT > .n3 > [gh="cl"] {
+  margin-block: 0 !important; padding-block: 0 !important;
+}
+html.gmail-pro-apple-mail-mode [data-gp-system-section] > .ajl > .wT > :not(.n3, .n6) { order: 5; }
+html.gmail-pro-apple-mail-mode [data-gp-label-section] > .ajl > .wT > :not(.n3, .n6) { order: 6; }
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) [data-gp-system-section] .byl > .TK > .aim:not([data-gp-inbox]),
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) > .yJ > .ajl > .wT > :not(.n3, .n6) {
+  display: none !important;
+}
+html.gmail-pro-apple-mail-mode [data-gp-inbox] .TN > .KCRnif { display: none !important; }
+html.gmail-pro-apple-mail-mode [data-gp-inbox] .TN::before {
+  content: ''; flex: none; width: 20px; height: 20px; margin-inline-end: 12px;
+  background: currentColor;
+  /* Same filled tag silhouette as Gmail's user-label icon. */
+  clip-path: polygon(12.5% 25%, 62.5% 25%, 87.5% 50%, 62.5% 75%, 12.5% 75%);
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-mailboxes-more {
+  order: 3; display: flex; align-items: center; gap: 12px; flex: none;
+  height: 28px; margin: 4px 6px 0; padding: 0 10px 0 26px;
+  border: 0; border-radius: 5px; background: transparent;
+  color: var(--gp-text-secondary); font: 400 13px/28px var(--gp-font);
+  text-align: start; cursor: pointer;
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-mailboxes-more svg {
+  width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7;
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-mailboxes-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+html.gmail-pro-apple-mail-mode .gmail-pro-mailboxes-more:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: -2px; }
 html.gmail-pro-apple-mail-mode[data-gp-theme="light"] [gh="mtb"] .inboxsdk__button[data-tooltip="Phish Alert"] .inboxsdk__button_iconImg {
   filter: grayscale(1) brightness(0) invert(.4);
 }

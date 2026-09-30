@@ -75,6 +75,8 @@
     // without necessarily restoring aria-expanded. They keep the same
     // action attribute and one-div wrapper as their neighboring message slots.
     threadHeading: 'h2[data-thread-perm-id][data-legacy-thread-id]',
+    // Native conversation-header toggle, English desktop Gmail, September 2026.
+    threadToggle: '.bHJ :is(button, [role="button"]):is([aria-label="Expand all"], [aria-label="Collapse all"])',
     threadList: '[role="list"]',
     threadMessage: '[data-message-id][data-legacy-message-id]',
     threadItem: 'div[role="listitem"][tabindex="-1"][jsaction]',

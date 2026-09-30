@@ -4,9 +4,11 @@
   const result=document.getElementById('results'), wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const assert=(ok,why)=>{if(!ok)throw Error(why);};
   let archived=0,sent=0,discarded=0,undone=0,serial=0;
-  let currentThread=null, composeActions=[];
-  app.reverseThreads={currentConversation:()=>currentThread};
-  const composeOff={replyAllShortcutEnabled:false,forwardShortcutEnabled:false,readShortcutEnabled:false};
+  let currentThread=null, composeActions=[], subscriptions=0;
+  const discovery=app.reverseThreads;
+  const threadStub={currentConversation:()=>currentThread,subscribeConversation:()=>{subscriptions++;return()=>subscriptions--;}};
+  app.reverseThreads=threadStub;
+  const composeOff={replyAllShortcutEnabled:false,forwardShortcutEnabled:false,readShortcutEnabled:false,expandShortcutEnabled:false};
   const actionPress=action=>press(action==='forward'?'f':'r',{shiftKey:true});
   const nativeShortcut=event=>{if(event.metaKey&&event.shiftKey&&event.key.toLowerCase()==='d')discarded++;};
   const key=(value='d',type='keydown',patch={})=>{
@@ -67,15 +69,86 @@
     if(bridged)shell.querySelector('.btDi4d').hidden=true;
     return shell;
   }
+  function expansion(shell, expanded=false) {
+    const header=document.createElement('div');header.className='V8djrc';
+    header.innerHTML='<div class="hj"><div class="bHJ"><span><button></button></span></div></div>';
+    shell.prepend(header);const button=header.querySelector('button'),actions=[];
+    const update=()=>{button.setAttribute('aria-label',expanded?'Collapse all':'Expand all');button.textContent=button.getAttribute('aria-label');};
+    let pressed=false,released=false;
+    button.onmousedown=()=>{pressed=true;released=false;};
+    button.onmouseup=()=>{released=pressed;pressed=false;};
+    button.onclick=()=>{if(!released)return;released=false;actions.push(expanded?'collapse':'expand');expanded=!expanded;update();};
+    update();return {header,button,actions};
+  }
   async function test(name, run) {
     setup();try{await run();reports.push('PASS '+name);}catch(e){reports.push('FAIL '+name+': '+e.message);}
     feature.stop();app.autoBcc.stop();app.floatingCompose.stop();for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,nativeShortcut);
-    if(composeLifecycle.listenersActive()||composeLifecycle.observersActive())reports.push('FAIL '+name+': lifecycle leak '+composeLifecycle.describe());
+    if(composeLifecycle.listenersActive()||composeLifecycle.observersActive()||subscriptions)reports.push('FAIL '+name+': lifecycle leak '+composeLifecycle.describe());
     result.textContent=reports.join('\n');
   }
   await test('archive delegates once to the native toolbar for open and bulk selections',()=>{
     for(const selected of [0,1,3]){workspace.dataset.selected=String(selected);const original=workspace.innerHTML;press('a');assert(workspace.innerHTML===original,'selection DOM untouched');}
     assert(archived===3&&sent===0&&discarded===0,'one archive per press');
+  });
+  for(const expanded of [false,true])await test('Command Shift O toggles both directions from '+(expanded?'expanded':'collapsed'),()=>{
+    const shell=conversation(),f=expansion(shell,expanded);const order=[...shell.children];
+    assert(!f.actions.length,'opening does not change default');press('o');press('o');
+    assert(f.actions.join(',')===(expanded?'collapse,expand':'expand,collapse'),'Gmail label resolved each time');
+    assert(order.every((node,i)=>shell.children[i]===node)&&!archived&&!sent&&!discarded&&!composeActions.length,'only native toggle activated');
+  });
+  await test('expand toggle suppresses repeats and companion events',()=>{
+    const f=expansion(conversation());let native=0;const fallback=e=>{if(e.key.toLowerCase()==='o')native++;};
+    for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,fallback);
+    try {assert(key('o').defaultPrevented,'reserved');key('o','keydown',{repeat:true});key('o','keypress');key('o','keyup');
+      assert(f.actions.join(',')==='expand'&&native===0,'one native gesture');key('o');key('o');
+      assert(f.actions.join(',')==='expand,collapse,expand','fresh presses without keyup');
+    } finally {for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,fallback);}
+  });
+  for(const context of ['search','draft','menu','dialog','selection'])await test('expand toggle does nothing in '+context,()=>{
+    const f=expansion(conversation());
+    if(context==='search')workspace.querySelector('input').focus();
+    else if(context==='draft')draft();
+    else {const node=document.createElement('div');
+      if(context==='selection'){node.setAttribute('role','row');node.innerHTML='<span role="checkbox" aria-checked="true"></span>';}
+      else {node.setAttribute('role',context);node.textContent='Overlay';}workspace.append(node);}
+    press('o');assert(!f.actions.length,'conversation state untouched');
+  });
+  await test('expand toggle rejects missing, hidden, disabled, duplicate and unknown controls',()=>{
+    const shell=conversation(),f=expansion(shell);
+    for(const state of ['missing','hidden','disabled','duplicate','opposite','unknown','hidden-shell','hidden-list']) {
+      const host=f.header.querySelector('span');host.replaceChildren();host.append(f.button);f.button.hidden=state==='hidden';f.button.disabled=state==='disabled';
+      f.button.setAttribute('aria-label',state==='unknown'?'Toggle messages':'Expand all');shell.hidden=state==='hidden-shell';currentThread.list.hidden=state==='hidden-list';
+      if(state==='missing')f.button.remove();
+      if(['duplicate','opposite'].includes(state)){const other=f.button.cloneNode(true);if(state==='opposite')other.setAttribute('aria-label','Collapse all');host.append(other);}
+      press('o');assert(!f.actions.length,'no guessed target for '+state);
+    }
+  });
+  await test('expand toggle ignores authored and per-message lookalikes',()=>{
+    const shell=conversation(),f=expansion(shell);currentThread.list.append(f.header);press('o');assert(!f.actions.length,'list controls excluded');
+    const body=document.createElement('div');body.className='a3s';shell.append(body);body.append(f.header);press('o');assert(!f.actions.length,'authored controls excluded');
+    body.remove();shell.append(f.header);f.header.classList.remove('V8djrc');f.header.querySelector('.bHJ').className='unrelated';press('o');assert(!f.actions.length,'header structure required');
+  });
+  await test('expand toggle follows conversation and header replacement',()=>{
+    const old=expansion(conversation());press('o');old.header.remove();const fresh=expansion(currentThread.heading.closest('.iY'),true);press('o');
+    currentThread.heading.closest('.iY').remove();currentThread=null;press('o');const next=expansion(conversation());press('o');
+    assert(old.actions.join(',')==='expand'&&fresh.actions.join(',')==='collapse'&&next.actions.join(',')==='expand','fresh target only');
+  });
+  await test('expand toggle leaves extra modifiers, ordinary O and IME untouched',()=>{
+    const f=expansion(conversation());for(const patch of [{ctrlKey:true},{altKey:true},{metaKey:false},{shiftKey:false},{isComposing:true}])assert(!press('o',patch).defaultPrevented,'native combination');
+    assert(!f.actions.length,'no action');
+  });
+  await test('expand preference defaults on and switches independently',()=>{
+    const f=expansion(conversation());assert(app.settings.defaults.expandShortcutEnabled,'default on');feature.update({expandShortcutEnabled:false});
+    assert(!press('o').defaultPrevented&&!f.actions.length,'disabled native');press('a');assert(archived===1,'other shortcuts still on');
+    feature.update({expandShortcutEnabled:true});press('o');assert(f.actions.join(',')==='expand','reenabled');
+  });
+  await test('expand toggle shares real discovery with all appearance features off',async()=>{
+    feature.stop();app.reverseThreads=discovery;
+    try {
+      feature.start({...app.settings.defaults,...Object.fromEntries(Object.keys(app.settings.defaults).filter(k=>k.endsWith('ShortcutEnabled')).map(k=>[k,false])),expandShortcutEnabled:true});
+      const f=expansion(conversation());await wait(20);press('o');assert(f.actions.join(',')==='expand','native context discovered without appearance or ordering');
+      feature.stop();assert(!discovery.currentConversation(),'shared discovery released');
+    } finally {feature.stop();app.reverseThreads=threadStub;}
   });
   for(const unread of [false,true])await test('Command Shift U toggles both directions from '+(unread?'unread':'read'),()=>{
     const f=readToggle(unread);press('u');press('u');
@@ -310,16 +383,17 @@
     assert(!actionPress('forward').defaultPrevented && composeActions.length===2,'independent preferences');
   });
   await test('start/update/stop deduplicate and release every listener without observers',()=>{
-    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0,'four delegated listeners');feature.update({...composeOff,archiveShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('a').defaultPrevented && !undo().defaultPrevented && !actionPress('replyAll').defaultPrevented,'stopped');
+    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0&&subscriptions===1,'four delegated listeners; one shared subscription');feature.update({...composeOff,archiveShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0&&subscriptions===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('o').defaultPrevented&&!press('a').defaultPrevented && !undo().defaultPrevented && !actionPress('replyAll').defaultPrevented,'stopped');
   });
   const failures=reports.filter(x=>x.startsWith('FAIL')).length;
   result.textContent=reports.join('\n')+'\n\n'+(reports.length-failures)+'/'+reports.length+' checks passed.';result.dataset.failures=String(failures);
   workspace.replaceChildren();
   document.getElementById('manual').disabled=false;
   document.getElementById('manual').onclick=()=>{
-    setup();conversation();const toast=undoNotice(),host=draft(),read=readToggle();
+    setup();const expand=expansion(conversation());const toast=undoNotice(),host=draft(),read=readToggle();
     const output=document.getElementById('manual-results');
-    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,composeActions,readActions:read.actions,focus:document.activeElement.getAttribute('aria-label')});};
+    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,composeActions,readActions:read.actions,expandActions:expand.actions,focus:document.activeElement.getAttribute('aria-label')});};
+    expand.button.addEventListener('click',render);
     read.button.addEventListener('click',render);
     for(const control of workspace.querySelectorAll('.ams'))control.addEventListener('click',render);
     toast.querySelector('#link_undo').addEventListener('click',render);

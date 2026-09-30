@@ -72,6 +72,13 @@
     store.emit({ [key("autoPagingEnabled")]: false }); assert(!toggle.checked && save.disabled, "sync applied");
     assert(byId("auto-paging-description").textContent.includes("replaces"), "page replacement explained"); store.writes = 0;
   });
+  await test("expand shortcut defaults on, saves independently, and follows sync", async () => {
+    const toggle=byId("expand-shortcut");assert(toggle.checked,"default on");
+    edit(toggle,false);await submit();const saved=await GmailPro.settings.load();
+    assert(!saved.expandShortcutEnabled&&saved.readShortcutEnabled,"independent save");
+    store.emit({[key("expandShortcutEnabled")]:true});assert(toggle.checked&&save.disabled,"sync applied");
+    assert(byId("expand-shortcut-hint").textContent.includes("normal default"),"opening behavior explained");store.writes=0;
+  });
   await test("reply all and forward shortcuts default on and save independently", async () => {
     const all=byId("reply-all-shortcut"),forward=byId("forward-shortcut");
     assert(all.checked && forward.checked && !byId("reply-shortcut"),"defaults on; ordinary refresh has no override");

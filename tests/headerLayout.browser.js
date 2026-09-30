@@ -8,6 +8,7 @@
   let passes = 0, failures = 0, saved = {}, failSave = false, saveResolve;
   GmailPro.settings = { save: async patch => { if (failSave) throw Error('storage unavailable'); if (saveResolve) await new Promise(resolve => { saveResolve = resolve; }); Object.assign(saved, patch); } };
   function fixture(width = 1400) {
+    GmailPro.labelOrder.stop();
     feature.stop(); document.documentElement.className = 'gmail-pro-apple-mail-mode';
     history.replaceState(null, '', '#inbox');
     document.documentElement.dataset.gpTheme = 'dark'; document.documentElement.dataset.gpAccent = 'blue';
@@ -27,6 +28,42 @@
     group.innerHTML='<div class="G-as3" role="button" tabindex="0"><span role="checkbox" aria-checked="false">Select</span></div>';
     f.actions.prepend(group);
     return {...f, source:nav.querySelector('[gh=cm]'), composeShell:nav.querySelector('.aic'), mailboxes:nav.querySelector('.mailboxes'), select:group.firstElementChild};
+  }
+  function mailboxRow(name, hash = '#label/' + name, depth = 0) {
+    const row = document.createElement('div'); row.className = 'aim';
+    row.innerHTML = '<div class="TO"><div class="TN"><div class="KCRnif"><svg viewBox="0 0 24 24"><path d="M3 6h12l6 6-6 6H3z"/></svg></div><div class="aio"><span class="nU"><a class="n0" draggable="false"></a></span><div class="bsU">6</div></div></div></div>';
+    const line = row.querySelector('.TN'), link = row.querySelector('a');
+    line.style.marginLeft = `${depth}px`; link.href = hash; link.textContent = name.split('/').at(-1);
+    if (hash.startsWith('#label/')) {
+      const menu = document.createElement('div'); menu.dataset.labelName = name; menu.setAttribute('aria-haspopup', 'true'); line.append(menu);
+    }
+    return row;
+  }
+  function mailboxFixture(expanded = false) {
+    const f = composeFixture(), nav = workspace.querySelector('nav');
+    f.mailboxes.outerHTML = '<div class="V3"><div class="nM"><div class="aic"></div><div class="yJ system"><div class="ajl" aria-labelledby="system-heading"><h2 id="system-heading">Labels</h2><div class="wT"><div class="n3"><div class="byl"><div class="TK"></div></div></div><div class="n6"><span gh="mll" role="button" tabindex="0" aria-label="More labels">More</span></div><div class="extra" style="display:none"><div class="n3"></div></div></div></div></div><div class="aAw"><span class="aAv" role="heading">Labels</span><div class="aAu" role="button" aria-label="Create new label" tabindex="0">+</div></div><div class="yJ labels"><div class="ajl" aria-labelledby="label-heading"><h2 id="label-heading">Labels</h2><div class="wT"><div class="n3"><div gh="cl"><div class="TK"></div></div></div><div class="n6"><span gh="mll" role="button" tabindex="0" aria-label="More labels">More</span></div><div class="extra" style="display:none"><div class="n3"></div></div></div></div></div></div></div>';
+    const root = nav.querySelector('.nM'), system = root.querySelector('.system'), labels = root.querySelector('.labels');
+    const inbox = mailboxRow('Inbox', '#inbox'); inbox.firstElementChild.classList.add('nZ');
+    system.querySelector('.TK').append(inbox, ...['Starred', 'Snoozed', 'Sent', 'Scheduled', 'Drafts', 'Categories'].map(name => mailboxRow(name, '#' + name.toLowerCase())));
+    labels.querySelector('.TK').append(...['Mgr', 'Projects', 'Projects/Child', 'Internal'].map(name => mailboxRow(name, '#label/' + name, name.includes('/') ? 12 : 0)));
+    const toggles = [system, labels].map(section => section.querySelector('[gh=mll]'));
+    for (const [index, section] of [system, labels].entries()) {
+      const toggle = toggles[index], extra = section.querySelector('.extra');
+      toggle.addEventListener('click', () => {
+        const open = extra.style.display === 'none'; extra.style.display = open ? '' : 'none';
+        toggle.setAttribute('aria-label', (open ? 'Less' : 'More') + ' labels'); toggle.textContent = open ? 'Less' : 'More';
+        if (open && !extra.querySelector('.aim')) {
+          if (index) extra.firstElementChild.innerHTML = '<div gh="cl"><div class="TK"></div></div>';
+          const list = index ? extra.querySelector('.TK') : extra.firstElementChild;
+          for (const name of index ? ['Hidden'] : ['Important', 'All Mail', 'Spam', 'Trash', 'Social', 'Updates', 'Forums', 'Promotions']) list.append(mailboxRow(name, index ? '#label/' + name : '#' + name.toLowerCase()));
+          if (!index) for (const name of ['Manage subscriptions', 'Manage labels', 'Create new label']) {
+            const action = document.createElement('button'); action.textContent = name; list.append(action);
+          }
+        }
+      });
+      if (expanded) toggle.click();
+    }
+    return {...f, nav, root, system, labels, inbox, toggles, title:root.querySelector('.aAv'), list:labels.querySelector('.TK')};
   }
   function addLabelFilters(f) {
     const filters=document.createElement('div');
@@ -66,10 +103,12 @@
   async function test(name, run) {
     try { await run(); passes++; results.textContent += `PASS ${name}\n`; }
     catch (error) { failures++; results.textContent += `FAIL ${name}: ${error.message}\n`; }
-    finally { feature.stop(); workspace.querySelectorAll('.ZF-Av').forEach(node=>node.remove()); }
+    finally { feature.stop(); GmailPro.labelOrder.stop(); workspace.querySelectorAll('.ZF-Av').forEach(node=>node.remove()); }
   }
   if (new URLSearchParams(location.search).has('preview')) {
-    fixture(Number(new URLSearchParams(location.search).get('width')) || 1400); await start(); results.hidden=true; return;
+    if (new URLSearchParams(location.search).has('mailboxes')) mailboxFixture();
+    else fixture(Number(new URLSearchParams(location.search).get('width')) || 1400);
+    await start(); results.hidden=true; return;
   }
   results.textContent = '';
   await test('mailbox scroll edge stays seamless beneath the logo in both themes and restores on mode OFF', async () => {
@@ -93,6 +132,84 @@
     assert(getComputedStyle(nav).borderInlineEndWidth === '1px' && getComputedStyle(f.toolbar).borderBottomWidth === '1px', 'pane and toolbar dividers retained');
     feature.stop(); document.documentElement.classList.remove('gmail-pro-apple-mail-mode');
     assert(getComputedStyle(pane).borderTopColor === 'rgba(255, 255, 255, 0.2)' && getComputedStyle(pane).boxShadow !== 'none', 'native scroll decoration restores');
+  });
+  await test('Mailboxes header, label-style Inbox and collapsed More preserve native row ownership', async () => {
+    const f = mailboxFixture(), parent = f.inbox.parentElement, rows = [...f.list.children]; await start(true);
+    const more = f.root.querySelector('.gmail-pro-mailboxes-more'), mgr = f.list.firstElementChild;
+    assert(f.title.textContent === 'Mailboxes' && rect(f.title).top >= rect(f.composeShell).bottom, 'header beneath logo');
+    assert(rect(f.inbox).top >= rect(f.title).bottom && Math.abs(rect(f.inbox).bottom - rect(mgr).top) < 1, 'Inbox directly above Mgr');
+    assert(getComputedStyle(f.inbox.querySelector('.KCRnif')).display === 'none' && getComputedStyle(f.inbox.querySelector('.TN'), '::before').content !== 'none', 'filled label icon');
+    assert(rect(more).top >= rect(f.list).bottom && more.getAttribute('aria-expanded') === 'false', 'single More beneath labels');
+    assert(rect(f.system.querySelector('a[href="#starred"]')).height === 0, 'extra links collapsed by default');
+    assert(f.inbox.parentElement === parent && rows.every((node, i) => f.list.children[i] === node), 'Gmail owns original parent and label sequence');
+    f.inbox.querySelector('.bsU').textContent = '12'; await settle();
+    assert(f.inbox.querySelector('.bsU').textContent === '12' && f.inbox.querySelector('.TO').classList.contains('nZ'), 'native count and selection retained');
+  });
+  await test('one keyboard-accessible More reveals system links, management actions and hidden labels', async () => {
+    const f = mailboxFixture(); await start(); const more = f.root.querySelector('.gmail-pro-mailboxes-more');
+    more.focus(); more.click(); await settle();
+    assert(more.tagName === 'BUTTON' && more.getAttribute('aria-expanded') === 'true' && more.textContent === 'Less', 'native button keyboard semantics');
+    for (const link of f.system.querySelectorAll('a')) assert(rect(link).height > 0, `${link.textContent} visible`);
+    const starred = f.system.querySelector('a[href="#starred"]');
+    assert(rect(starred).top >= rect(more).bottom, 'standard links follow More');
+    assert(rect(f.labels.querySelector('.extra a')).top >= rect(more).bottom, 'hidden labels are in More');
+    let clicks = 0; const action = f.system.querySelector('.extra button'); action.addEventListener('click', () => clicks++); action.click();
+    assert(clicks === 1 && [...f.system.querySelectorAll('.extra button')].every(node => rect(node).height > 0), 'original management actions work');
+    more.click(); await settle(); assert(rect(starred).height === 0 && rect(f.labels.querySelector('.extra a')).height === 0, 'Less collapses all extras');
+    feature.stop(); assert(f.toggles.every(node => node.getAttribute('aria-label') === 'More labels'), 'extension-owned disclosure restored');
+  });
+  await test('saved label ordering, nested branches and organizer coexist with Inbox', async () => {
+    const f = mailboxFixture(), nodes = [...f.list.children];
+    GmailPro.labelOrder.start({customLabelOrderEnabled:true, customLabelOrder:['label/Mgr','label/Internal','label/Projects'], sidebarHiddenSublabels:[]});
+    await start();
+    assert(rect(f.inbox).bottom === rect(nodes[0]).top && rect(nodes[3]).top < rect(nodes[1]).top, 'Inbox and saved label ordering coexist');
+    assert(nodes.every((node, i) => f.list.children[i] === node) && rect(nodes[1]).bottom === rect(nodes[2]).top, 'native sequence and nested group retained');
+    assert(f.title.parentElement.querySelector('.gmail-pro-label-organize') && f.title.parentElement.querySelector('[aria-label="Create new label"]'), 'heading controls retained');
+    assert(GmailPro.labelOrder.edit(), 'organizer opens'); await settle();
+    assert(f.root.hasAttribute('data-gp-mailboxes') && f.list.querySelectorAll('.gmail-pro-label-handle').length === 4, 'organizer works in flattened wrappers');
+  });
+  await test('mode OFF restores headings and disclosures; compact navigation keeps native layout', async () => {
+    const f = mailboxFixture(true), parents = [...f.root.children]; await start();
+    assert(!f.root.hasAttribute('data-gp-mailboxes-open'), 'defaults collapsed despite native expanded state');
+    feature.stop(); assert(f.title.textContent === 'Labels' && !f.root.querySelector('.gmail-pro-mailboxes-more'), 'native headings and controls restored');
+    assert(f.toggles.every(node => node.getAttribute('aria-label') === 'Less labels') && parents.every((node,i) => f.root.children[i] === node), 'original expanded state and DOM order restored');
+    f.nav.style.width = '72px'; await start(); assert(!f.root.hasAttribute('data-gp-mailboxes'), 'compact layout stays native');
+    f.nav.style.width = '200px'; window.dispatchEvent(new Event('resize')); await settle(); assert(f.root.hasAttribute('data-gp-mailboxes'), 'expanded layout recovers');
+  });
+  await test('sidebar replacement and repeated refresh keep one More and remain idle', async () => {
+    const f = mailboxFixture(); await start(); f.root.replaceWith(f.root.cloneNode(true)); await settle();
+    const root = f.nav.querySelector('.nM');
+    assert(root.hasAttribute('data-gp-mailboxes') && root.querySelectorAll('.gmail-pro-mailboxes-more').length === 1, 'cloned sidebar recovered');
+    let writes = 0; const observer = new MutationObserver(records => writes += records.length); observer.observe(root,{childList:true,subtree:true,attributes:true,characterData:true});
+    window.dispatchEvent(new Event('resize')); await settle(); observer.disconnect(); assert(writes === 0, 'unchanged sidebar refresh writes nothing');
+    feature.stop(); assert(root.querySelector('.aAv').textContent === 'Labels', 'cloned heading restores original wording');
+  });
+  await test('native Inbox and section rebuilds preserve an open More and original disclosure states', async () => {
+    const f = mailboxFixture(); await start(); const more = f.root.querySelector('.gmail-pro-mailboxes-more'); more.focus(); more.click(); await settle();
+    f.inbox.replaceWith(f.inbox.cloneNode(true)); await settle();
+    assert(f.root.hasAttribute('data-gp-mailboxes-open') && f.root.querySelector('.gmail-pro-mailboxes-more').getAttribute('aria-expanded') === 'true', 'Inbox replacement keeps More open');
+    assert(document.activeElement === f.root.querySelector('.gmail-pro-mailboxes-more'), 'keyboard focus follows the replacement toggle');
+    const replacement = f.system.cloneNode(true), toggle = replacement.querySelector('[gh=mll]');
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-label') === 'Less labels';
+      toggle.setAttribute('aria-label', (expanded ? 'More' : 'Less') + ' labels');
+      replacement.querySelector('.extra').style.display = expanded ? 'none' : '';
+    });
+    f.system.replaceWith(replacement); await settle();
+    assert(f.root.hasAttribute('data-gp-mailboxes-open') && f.root.querySelectorAll('.gmail-pro-mailboxes-more').length === 1, 'section replacement keeps one open toggle');
+    feature.stop(); assert([...f.root.querySelectorAll('[gh=mll]')].every(node=>node.getAttribute('aria-label') === 'More labels'), 'initial native disclosure restored even after a rebuilt section');
+  });
+  await test('unknown sidebar structure leaves native mailbox controls usable', async () => {
+    const f = mailboxFixture(); f.system.querySelector('.wT').append(document.createElement('div')); await start();
+    assert(!f.root.hasAttribute('data-gp-mailboxes') && f.title.textContent === 'Labels' && rect(f.inbox).height > 0, 'unsupported topology stays native');
+  });
+  await test('ignored native More actions never retry on header refresh and allow a new user gesture', async () => {
+    const f = mailboxFixture(); let attempts = 0;
+    f.toggles[0].addEventListener('click', event => { attempts++; event.stopImmediatePropagation(); }, true);
+    await start(); const more = f.root.querySelector('.gmail-pro-mailboxes-more'); more.click(); await settle();
+    window.dispatchEvent(new Event('resize')); await settle();
+    assert(attempts === 1 && rect(f.system.querySelector('a[href="#starred"]')).height > 0, 'one bounded native attempt, primary links usable');
+    more.click(); more.click(); await settle(); assert(attempts === 2, 'new explicit opening can retry');
   });
   await test('Compose icon follows selection and frees the native sidebar row', async () => {
     const f=composeFixture(), originalTop=rect(f.mailboxes).top; let clicks=0;
@@ -448,6 +565,46 @@
     }
     feature.stop(); const f = captionFixture('#search/subject%3Asynthetic', ''); f.link.parentElement.remove(); await start();
     assert(caption().textContent === 'Search results • 500 messages', 'search title');
+  });
+  await test('caption persists through floating draft URL changes for Reply, Reply All and Forward', async () => {
+    for (const [hash, name] of [['#inbox','Inbox'],['#sent','Sent'],['#label/Projects%2FFlowserve/p2','Flowserve'],['#search/subject%3Asynthetic/p2','Search results']]) {
+      for (const action of ['Reply', 'Reply All', 'Forward']) {
+        const f = captionFixture(hash, name); f.link.href = hash.replace(/\/p[1-9]\d*$/, ''); await start(true);
+        const original = caption(), bounds = rect(original).toJSON(), expected = name + ' • 500 messages';
+        const draft = document.createElement('div'); draft.setAttribute('role', 'dialog');
+        draft.innerHTML = `<form><input name="composeid" value="synthetic"><textarea aria-label="${action} draft"></textarea></form>`;
+        workspace.append(draft); await settle();
+        for (const suffix of ['?compose=new-draft', '?compose=saved-draft', '?compose=saved-draft,second-draft', '']) {
+          history.replaceState(null, '', hash + suffix); window.dispatchEvent(new Event('hashchange')); await settle();
+          assert(caption() === original && caption().textContent === expected, action + ': native draft state keeps the mailbox name and total');
+          assert(rect(caption()).top === bounds.top && rect(caption()).width === bounds.width && f.list.hasAttribute('data-gp-mailbox-caption'), action + ': caption position and reserved space persist');
+        }
+        draft.remove(); feature.stop();
+        assert(!caption() && !f.list.hasAttribute('data-gp-mailbox-caption'), 'mode OFF still cleans up');
+      }
+    }
+  });
+  await test('draft parameters preserve encoded question marks in label names and search identity', async () => {
+    const label = '#label/Projects%2FQuestions%3Fcompose%3Dliteral';
+    captionFixture(label, 'Questions?compose=literal', '231');
+    history.replaceState(null, '', label + '?compose=synthetic'); await start();
+    assert(caption()?.textContent === 'Questions?compose=literal • 231 messages', 'only the actual URL parameter is removed');
+    feature.stop();
+    const search = '#search/subject%3Aquestions%3Fcompose%3Dliteral'; captionFixture(search, 'Search results');
+    history.replaceState(null, '', search + '?compose=synthetic'); await start();
+    history.replaceState(null, '', search + '?compose=saved'); window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(caption()?.textContent === 'Search results • 500 messages', 'draft identity changes never invalidate an unchanged search count');
+  });
+  await test('native totals update and mailbox navigation stays conservative while a draft is open', async () => {
+    const f = captionFixture(); history.replaceState(null, '', '#inbox?compose=synthetic'); await start();
+    assert(caption()?.textContent === 'Inbox • 500 messages', 'startup with an open draft retains the total');
+    f.range.querySelectorAll('.ts')[2].firstChild.data = '501'; await settle();
+    assert(caption()?.textContent === 'Inbox • 501 messages', 'live native total remains the source of truth');
+    const label = '#label/Projects%2FFlowserve'; f.link.href = label; f.link.textContent = 'Flowserve';
+    history.replaceState(null, '', label + '?compose=synthetic'); window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(caption()?.textContent === 'Flowserve', 'a different mailbox never inherits the previous total');
+    f.range.querySelectorAll('.ts')[2].firstChild.data = '231'; await settle();
+    assert(caption()?.textContent === 'Flowserve • 231 messages', 'the new native count completes navigation');
   });
   await test('native count edits update singular, approximate and unavailable totals', async () => {
     const f = captionFixture(); await start();

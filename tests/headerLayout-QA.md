@@ -1,5 +1,40 @@
 # Toolbar search and collapsible header — 0.9.28
 
+## Mailboxes sidebar — 0.9.44 (2026-09-30)
+
+The expanded Apple Mail Mode sidebar now reads Gmail Pro → Mailboxes → Inbox →
+the existing ordered labels → More. Inbox has the same filled tag silhouette,
+28px row height and spacing as a user label. More starts collapsed and combines
+Gmail's system folders, categories, management links and native hidden labels.
+The label organizer and create button remain beside the renamed heading.
+
+`headerLayout.js` validates the inspected English `.nM`/`.yJ`/`.ajl`/`.wT`
+topology, reuses its chrome observer, and installs one accessible disclosure
+button. `appleMail.css` flattens only those section wrappers with `display:
+contents` and applies visual order. Original rows, their parents and the flat
+`[gh=cl] > .TK` sequence are retained. No message data, label settings, saved
+order, permissions, dependencies or new persistent preferences are introduced.
+Native disclosure actions run once per opening/control; a fresh user gesture
+can retry an ignored action. Native row/section replacements retain open state
+and keyboard focus. Mode OFF restores heading text and initial disclosures.
+Compact, ambiguous and unsupported layouts keep native presentation.
+
+Validation: 54/54 header/sidebar browser checks, 45/45 label-order browser
+checks, 57/57 appearance browser checks, and 36/36 settings/lifecycle unit checks
+passed. New cases cover adjacent Inbox/Mgr geometry, label icon/count/selection,
+all More content, original management handlers, saved/nested label ordering,
+organizer controls, OFF/compact/unknown fallback, cloning/replacement, idle
+writes, ignored native actions and open-state/focus restoration after rebuilds.
+
+Live Chrome: verified the installed folder was `~/Documents/GmailPro`, matched
+the workspace baseline, applied production files and reloaded version 0.9.44.
+Verified Mailboxes immediately below the logo, Inbox directly above Mgr,
+collapsed default, all requested native links in expanded More, one toggle
+remaining open after Gmail refreshes, and successful collapse back to the top.
+Sidebar-only screenshots are saved in `output/mailbox-layout/`. No mail was sent
+or edited. Screen-reader reading-order certification and a prolonged soak were
+not performed; native row order remains unchanged by design.
+
 ## Behavior and ownership
 
 Apple Mail Mode places the native search form in the measured gap between the
@@ -285,6 +320,30 @@ folders are distinct, so production files were copied explicitly.
   scrolling reached 812px with the native scrolled class active, a transparent
   1px top border, no shadow, and the sidebar/toolbar dividers retained at 1px.
   No email actions or settings changes were performed.
+
+## Caption persists through floating drafts — 0.9.47
+
+- The attached recording shows the mailbox caption disappearing after the
+  floating draft finishes saving. Gmail's `?compose=...` fragment parameter
+  was being parsed as part of the mailbox route, removing the name and count.
+- Strip fragment parameters before decoding the mailbox route and removing
+  pagination. This preserves encoded question marks in labels and searches,
+  the caption's existing node/position, and Gmail's native total ownership.
+- Three new synthetic browser regressions failed before the fix and pass
+  after it. They cover draft opening/saving/closing and multiple draft IDs
+  across Inbox, Sent, paginated nested labels and search; startup with a draft;
+  encoded question marks; native total updates; and withholding stale totals
+  during actual mailbox navigation. Full header checks pass 58/58, and Node
+  validation passes 37/37. Diff whitespace checks pass.
+- Copied only the tested `content/headerLayout.js` and manifest version to the
+  previously verified extension folder, `~/Documents/GmailPro`, after confirming
+  its header matched the pre-fix workspace and its manifest differed only by
+  version. Verified both written files; all other files were left in place.
+- Live extension reload and real-message draft verification remain manual:
+  Chrome blocked automated access to its extension management page. Reload
+  the extension from its loaded folder, refresh Gmail, then open Reply All,
+  Reply, and Forward. Confirm the caption stays visible after autosave and
+  still follows mailbox changes. Do not send test messages.
 
 ## Compatibility limits
 

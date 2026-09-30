@@ -98,6 +98,21 @@
     assert(JSON.stringify(textStyle()) === readText && css(node).backgroundColor === bg, "read/unread typography and background match");
     node.classList.remove("zE"); assert(dot(node).content === "none", "read clears dot synchronously");
   });
+  for (const width of [320,380,560,1200]) await test(`regular conversation count remains visible in Apple Mail Mode at ${width}px`, () => {
+    workspace.style.width = `${width}px`;
+    const node = row({sender:'Long participant '.repeat(12),count:400,unread:true});
+    for (const theme of ['light','dark']) {
+      enable({appearanceTheme:theme});
+      for (const selected of [false,true]) for (const unread of [false,true]) {
+        node.classList.toggle('aps',selected); node.classList.toggle('zE',unread);
+        const names=node.querySelector('.bA4'), count=node.querySelector('.bx0');
+        assert(css(node.querySelector('.sender')).fontWeight==='700' && css(count).fontWeight==='400','sender stays bold; count stays regular');
+        assert(rect(names).right<=rect(count).left && rect(count).right<=rect(node.querySelector('.yX')).right,'count has reserved space');
+        assert(count.scrollWidth<=count.clientWidth && rect(count).width>0,'count untruncated');
+        assert(css(count).color===css(node.querySelector('.sender')).color,'selected foreground retained');
+      }
+    }
+  });
   await test("unread dot aligns with sender at different row sizes", () => {
     const node = row({unread:true}); enable();
     for (const height of [46, 80]) for (const width of [320, 700]) {

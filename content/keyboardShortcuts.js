@@ -6,18 +6,21 @@
   const bindings = {
     "shift+a": ["archiveShortcutEnabled", "archive"],
     "shift+u": ["readShortcutEnabled", "toggleRead"],
+    "shift+o": ["expandShortcutEnabled", "toggleExpand"],
     "shift+d": ["sendShortcutEnabled", "send"],
     z: ["undoShortcutEnabled", "undo"],
     "shift+r": ["replyAllShortcutEnabled", "replyAll"],
     "shift+f": ["forwardShortcutEnabled", "forward"]
   };
   const preferences = Object.values(bindings).map(([preference]) => preference);
+  const conversationPreferences = ["expandShortcutEnabled", "replyAllShortcutEnabled", "forwardShortcutEnabled"];
   const options = { ...app.settings.defaults };
   const held = new Set();
   const events = ["keydown", "keypress", "keyup"];
   const listenerOptions = { capture: true, passive: false };
   const isMac = /mac/i.test(navigator.userAgentData?.platform || navigator.platform);
   let running = false;
+  let unsubscribeConversation;
 
   const visible = node => !!node?.isConnected && node.checkVisibility({ visibilityProperty: true, opacityProperty: true }) &&
     !node.closest('[hidden], [aria-hidden="true"], [inert]');
@@ -78,6 +81,12 @@
     // draft. The current visible conversation, not focus ancestry, owns replies.
     if (!visible(shell) || !visible(thread.list) || !main ||
         main.querySelector('[role="row"] [role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"])')) return null;
+    if (action === "toggleExpand") {
+      // Gmail's own label owns the current expand/collapse state. Restrict the
+      // action to the conversation header, never controls inside received mail.
+      return one([...shell.querySelectorAll(S.threadToggle)].filter(control => usable(control) &&
+        control.closest(S.readingShell) === shell && !control.closest(`${S.readingExcluded}, ${S.threadList}`)));
+    }
     const toolbar = one([...main.querySelectorAll(S.primaryToolbar)].filter(visible));
     if (!toolbar) return null;
     // Reuse the existing reading-pane bridge when it owns the native footer.
@@ -143,6 +152,7 @@
   }
 
   function stop() {
+    unsubscribeConversation?.(); unsubscribeConversation = undefined;
     for (const type of events) window.removeEventListener(type, keyboard, true);
     window.removeEventListener("blur", reset, true);
     reset(); running = false;
@@ -150,6 +160,11 @@
   function update(patch = {}) {
     for (const preference of preferences) if (Object.hasOwn(patch, preference)) options[preference] = patch[preference];
     if (!isMac || !preferences.some(preference => options[preference])) return stop();
+    // Share thread discovery even when appearance, ordering, and zoom are off.
+    // Resolve the live context on each key press; retain no message state.
+    if (conversationPreferences.some(preference => options[preference])) {
+      unsubscribeConversation ??= app.reverseThreads.subscribeConversation(() => {});
+    } else { unsubscribeConversation?.(); unsubscribeConversation = undefined; }
     if (running) return;
     for (const type of events) window.addEventListener(type, keyboard, listenerOptions);
     window.addEventListener("blur", reset, true);

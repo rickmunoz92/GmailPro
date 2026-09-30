@@ -6,7 +6,7 @@
   const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360;
   let enabled = false, collapsed = false, open = false, saving = false;
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status;
-  let compose, mailboxCaption, captionList, countSnapshot;
+  let compose, mailboxCaption, captionList, countSnapshot, sidebar;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
   let ancestorSpine = new Set();
@@ -41,9 +41,11 @@
       try { return decodeURIComponent(value.replace(/\+/g, ' ')); }
       catch { return value; }
     };
-    // Native sidebar links use literal slashes while Gmail's SPA route may
-    // encode the same nested label path as %2F.
-    const hash = decodeHash(location.hash.replace(/\/p[1-9]\d*$/, ''));
+    // Gmail appends ?compose=... when a floating draft finishes opening/saving.
+    // Strip URL parameters before decoding so encoded '?' in labels/searches
+    // stays part of the mailbox identity. Native links use literal slashes
+    // while Gmail's SPA route may encode the same nested label path as %2F.
+    const hash = decodeHash(location.hash.split('?')[0].replace(/\/p[1-9]\d*$/, ''));
     const selected = [...document.querySelectorAll('[role="navigation"] .TO.nZ .n0[href]')];
     for (const link of selected) {
       const key = decodeHash(new URL(link.href, location.href).hash);
@@ -188,7 +190,108 @@
     searchButton.focus();
   }
 
+  function sidebarSections() {
+    const nav = compose?.shell.parentElement;
+    if (!nav || compose.brand.hasAttribute('data-compact')) return null;
+    const roots = [...nav.querySelectorAll('.nM')];
+    if (roots.length !== 1) return null;
+    const root = roots[0], sections = [...root.children].filter(node => node.matches('.yJ'));
+    if (sections.length !== 2) return null;
+    const system = sections.find(node => node.querySelector('.byl > .TK > .aim a[href$="#inbox"]'));
+    const labels = sections.find(node => node.querySelector('[gh="cl"] > .TK'));
+    const header = root.querySelector(':scope > .aAw'), title = header?.querySelector(':scope > [role="heading"]');
+    if (!system || !labels || system === labels || !title || !/^(Labels|Mailboxes)$/.test(title.textContent) || !header.querySelector(S.labelCreate)) return null;
+    const boxes = [system, labels].map(section => section.querySelector(':scope > .ajl > .wT'));
+    if (boxes.some(box => !box || box.children.length !== 3 || !box.children[0].matches('.n3') ||
+        !box.children[1].matches('.n6') || !box.children[1].querySelector('[gh="mll"][role="button"]'))) return null;
+    const toggles = boxes.map(box => box.children[1].querySelector('[gh="mll"]'));
+    if (toggles.some(toggle => !/^(More|Less) labels$/.test(toggle.getAttribute('aria-label') || ''))) return null;
+    return { root, system, labels, header, title, toggles,
+      inbox: system.querySelector('.byl > .TK > .aim:has(a[href$="#inbox"])') };
+  }
+
+  function restoreSidebar(restoreDisclosure = true) {
+    if (!sidebar) return;
+    const previous = sidebar; sidebar = undefined;
+    previous.more.remove();
+    for (const [node, attribute] of [[previous.root, 'data-gp-mailboxes'], [previous.system, 'data-gp-system-section'],
+      [previous.labels, 'data-gp-label-section'], [previous.inbox, 'data-gp-inbox']]) node.removeAttribute(attribute);
+    previous.root.removeAttribute('data-gp-mailboxes-open');
+    for (const [node, text] of previous.titles) if (node.textContent === 'Mailboxes') node.textContent = text;
+    // Undo only native disclosure changes made by this presentation layer.
+    if (restoreDisclosure) for (const [index, toggle] of previous.toggles.entries()) {
+      const name = toggle.getAttribute('aria-label');
+      if (toggle.isConnected && /^(More|Less) labels$/.test(name || '') &&
+          (name === 'Less labels') !== previous.disclosures[index]) toggle.click();
+    }
+  }
+
+  function discloseSidebar() {
+    if (!sidebar?.open) return;
+    for (const toggle of sidebar.toggles) if (!sidebar.attempted.has(toggle) && toggle.getAttribute('aria-label') === 'More labels') {
+      sidebar.attempted.add(toggle);
+      toggle.click();
+    }
+  }
+
+  function placeSidebar() {
+    const next = sidebarSections();
+    let previousState;
+    if (sidebar && (!next || ['root', 'system', 'labels', 'header', 'title', 'inbox'].some(key => sidebar[key] !== next[key]) ||
+        sidebar.toggles.some((node, index) => node !== next.toggles[index]) || !sidebar.more.isConnected)) {
+      // Gmail can rebuild native rows after a disclosure. Rebind their owners
+      // without closing More or repeatedly toggling Gmail's new controls.
+      if (next && sidebar.nav === compose.shell.parentElement) previousState = {
+        open: sidebar.open, disclosures: sidebar.disclosures, focused: sidebar.more === document.activeElement
+      };
+      restoreSidebar(!previousState);
+    }
+    if (!next) return;
+    if (!sidebar) {
+      // Flatten only validated section wrappers in CSS. Gmail retains every
+      // native row/parent, including the flat label sequence used by labelOrder.
+      next.root.querySelectorAll(':scope > .gmail-pro-mailboxes-more').forEach(node => node.remove());
+      const more = button('More mailboxes', 'M6 9l6 6 6-6');
+      more.className = 'gmail-pro-mailboxes-more';
+      const caption = document.createElement('span'); caption.textContent = 'More'; more.append(caption);
+      more.setAttribute('aria-expanded', 'false');
+      next.root.append(more);
+      sidebar = { ...next, more, nav: compose.shell.parentElement, open: previousState?.open || false,
+        disclosures: previousState?.disclosures || next.toggles.map(toggle => toggle.getAttribute('aria-label') === 'Less labels'),
+        attempted: new Set(), titles: new Map() };
+      for (const node of [next.title, ...next.root.querySelectorAll(':scope > .yJ > .ajl > h2')]) {
+        sidebar.titles.set(node, node.textContent === 'Mailboxes' ? 'Labels' : node.textContent);
+      }
+      more.addEventListener('click', () => {
+        if (!enabled || sidebar?.more !== more) return;
+        sidebar.open = !sidebar.open;
+        if (sidebar.open) for (const toggle of sidebar.attempted) {
+          if (toggle.getAttribute('aria-label') === 'More labels') sidebar.attempted.delete(toggle);
+        }
+        placeSidebar(); schedule();
+      });
+      for (const [node, attribute] of [[next.root, 'data-gp-mailboxes'], [next.system, 'data-gp-system-section'],
+        [next.labels, 'data-gp-label-section'], [next.inbox, 'data-gp-inbox']]) node.setAttribute(attribute, '');
+      if (previousState?.focused) more.focus({ preventScroll: true });
+    }
+    for (const node of [sidebar.title, ...sidebar.root.querySelectorAll(':scope > .yJ > .ajl > h2')]) {
+      if (node.textContent === 'Mailboxes') continue;
+      if (!sidebar.titles.has(node)) sidebar.titles.set(node, node.textContent);
+      node.textContent = 'Mailboxes';
+    }
+    sidebar.root.toggleAttribute('data-gp-mailboxes-open', sidebar.open);
+    const caption = sidebar.open ? 'Less' : 'More';
+    const name = caption + ' mailboxes';
+    if (sidebar.more.lastElementChild.textContent !== caption) sidebar.more.lastElementChild.textContent = caption;
+    if (sidebar.more.getAttribute('aria-label') !== name) {
+      sidebar.more.setAttribute('aria-label', name); sidebar.more.title = name;
+      sidebar.more.setAttribute('aria-expanded', String(sidebar.open));
+    }
+    discloseSidebar();
+  }
+
   function restoreCompose() {
+    restoreSidebar();
     if (!compose) return;
     compose.shell.removeAttribute('data-gp-compose-relocated');
     compose.button.remove();
@@ -293,7 +396,9 @@
     // A subsequent invalid discovery must not drop the watch needed to recover.
     const intact = ctx?.form.isConnected && ctx.toolbar.isConnected && ctx.shell.isConnected;
     const spine = new Set(intact ? [] : [...ancestorSpine].filter(node => node.isConnected));
-    for (const node of ctx ? [ctx.form, ctx.toolbar, ctx.shell, ctx.list, ctx.mailboxLink, ...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"]')].filter(Boolean) : [document.body]) {
+    for (const node of ctx ? [ctx.form, ctx.toolbar, ctx.shell, ctx.list, ctx.mailboxLink,
+      ...document.querySelectorAll('[role="navigation"] .nM'),
+      ...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"]')].filter(Boolean) : [document.body]) {
       for (let parent = node; parent; parent = parent.parentElement) spine.add(parent);
     }
     for (const node of spine) observer.observe(node, { childList: true, attributes: true,
@@ -302,6 +407,17 @@
     if (ctx) observer.observe(ctx.toolbar, { childList: true, subtree: true, characterData: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
     if (ctx?.captionEmpty) observer.observe(ctx.captionEmpty, { childList: true, characterData: true, subtree: true });
+    // Section replacement/disclosure only; never observe label rows or counts.
+    if (sidebar) {
+      for (const section of [sidebar.system, sidebar.labels]) {
+        const inner = section.querySelector(':scope > .ajl'), box = inner?.querySelector(':scope > .wT');
+        for (const node of [section, inner, box, ...box.children,
+          ...box.querySelectorAll(':scope > .n3 > .byl, :scope > .n3 > .byl > .TK')]) observer.observe(node, { childList: true });
+      }
+      for (const toggle of sidebar.toggles) observer.observe(toggle, { attributes: true, attributeFilter: ['aria-label'] });
+      observer.observe(sidebar.header, { childList: true });
+      observer.observe(sidebar.title, { childList: true, characterData: true, subtree: true });
+    }
     for (const panel of document.querySelectorAll(S.headerAdvancedPanel)) observer.observe(panel,
       { childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
     const sizes = new Set(ctx ? [ctx.toolbar, ctx.actionRow, ctx.actions, ctx.pager, ctx.banner, ctx.list].filter(Boolean) : []);
@@ -321,6 +437,7 @@
     placeCompose(current);
     let layout = geometry(current);
     if (!layout) { restore(); watch(next); return; }
+    placeSidebar();
     bootstrap?.disconnect(); bootstrap = undefined; clearTimeout(bootstrapTimer);
     if (!controls) createControls();
     else if (!controls.isConnected) document.body.append(controls);
@@ -422,7 +539,7 @@
       document.addEventListener('keydown', keydown);
       document.addEventListener('pointerdown', outside, true);
       // Bounded initial shell discovery; ongoing watches only cover chrome and
-      // shallow ancestor replacement, never messages, editors or mailbox rows.
+      // shallow ancestor/section replacement, never messages or editors.
       bootstrap = new MutationObserver(schedule);
       bootstrap.observe(document, { childList: true, subtree: true });
       bootstrapTimer = setTimeout(() => { bootstrap?.disconnect(); bootstrap = undefined; }, 10000);

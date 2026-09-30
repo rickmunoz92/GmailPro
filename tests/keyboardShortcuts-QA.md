@@ -1,5 +1,49 @@
 # Mac keyboard shortcuts — 2026-09-21
 
+## v0.9.46 expand/collapse toggle — 2026-09-30
+
+Command-Shift-O delegates one native mouse gesture to the open conversation’s
+current **Expand all** or **Collapse all** header control. Gmail owns the state,
+message loading, and expansion; opening a conversation retains Gmail’s default.
+Each press resolves the current visible control afresh. Missing, hidden, disabled,
+ambiguous, selected-row, and authored-content controls fail closed. Search/editable
+fields, composers, menus, and dialogs block the action. Held-key repeats and
+companion events cannot activate it twice.
+
+The independent `expandShortcutEnabled` preference defaults on and uses the
+existing Chrome Sync settings adapter and popup. Conversation shortcuts subscribe
+to the existing thread discovery owner even with appearance, ordering, and zoom
+off, and release that subscription when disabled or stopped. There is no second
+discovery observer, polling, or stored expansion state.
+
+Validation: **96/96** keyboard checks, **21/21** popup checks, and **37/37** Node
+configuration/lifecycle checks passed. Real macOS Command-Shift-O presses in the
+Chrome synthetic fixture produced exactly `expand, collapse`, with zero Send,
+Discard, Archive, or compose actions. The browser stayed on the fixture.
+Related regressions passed: thread ordering **54/54**, reading pane **31/31**,
+floating compose **33/33**, message zoom **16/16**, and automatic read **59/59**.
+
+The native header-control structure and accessible labels were inspected in live
+English desktop Gmail. A live follow-up found that Chrome loads
+`/Users/rmunoz/Documents/GmailPro`, while this workspace is a separate copy. The
+installed popup omitted the O shortcut and its keyboard module had no O binding,
+despite both manifests already reporting 0.9.47. Version alone did not establish
+that the feature files had been deployed.
+
+Copied and byte-verified the five shortcut production files (keyboard controller,
+selectors, settings adapter, popup markup, and popup controller) into the loaded
+folder. Originals are backed up under
+`/var/folders/lx/klmbtxrd0bjf1bd3hrzf4l1c0000gp/T/gmail-pro-before-expand-shortcut-c7bistth`.
+The installed discovery module exposes the required shared subscription API;
+its unrelated changes were left intact. Installed JavaScript syntax passed.
+After the user reloaded the extension and refreshed Gmail, real macOS
+Command-Shift-O presses passed in a four-message live conversation: the first
+press changed one expanded / three collapsed messages to four expanded and the
+native control to **Collapse all**. The second restored one expanded / three
+collapsed messages and **Expand all**, matching Gmail's native collapse behavior.
+No mail was sent, archived, or changed. The conversation ended in its original
+expansion state.
+
 ## v0.9.35 read/unread toggle
 
 Command-Shift-U invokes exactly one currently visible, enabled native **Mark as

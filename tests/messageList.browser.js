@@ -16,7 +16,9 @@
   const NativeObserver = window.MutationObserver;
   window.MutationObserver = class extends NativeObserver {
     constructor(callback) {
-      const owned = /content\/messageList\.js/.test(new Error().stack);
+      const stack = new Error().stack;
+      const caller = stack.split('\n')[2] || '';
+      const owned = /content\/messageList\.js/.test(caller);
       super(records => {
         // Other installed extensions can add nodes outside the fixture. Measure
         // deliveries inside the list, where our writes must never feed back.
@@ -48,6 +50,44 @@
   const formatted = node => node.querySelector('.xW > span').getAttribute('data-gmail-pro-date');
 
   const row = window.GmailProTestRow;
+  const members = [
+    {name:'George',email:'george@example.com'},
+    {name:'Rayette',email:'rayette@example.com'},
+    {name:'me',email:'self@example.com'}
+  ];
+  const senderOrder = node => [...node.querySelectorAll('.yW > .bA4 > [email]')].map(sender => sender.getAttribute('email')).join(',');
+  function conversation(senders, {thread = 'synthetic-thread', legacy = 'legacy-thread', ids = senders.map((_, index) => `legacy-${index}`)} = {}) {
+    const shell = document.createElement('section'), heading = document.createElement('h2'), list = document.createElement('div');
+    heading.setAttribute('data-thread-perm-id', thread); heading.setAttribute('data-legacy-thread-id', legacy);
+    heading.textContent = 'Synthetic conversation'; list.setAttribute('role','list');
+    const messages = senders.map((sender, index) => {
+      const item = document.createElement('div');
+      item.setAttribute('role','listitem'); item.setAttribute('aria-expanded','true'); item.tabIndex = -1;
+      item.setAttribute('jsaction','syntheticAction:.CLIENT');
+      const wrapper = document.createElement('div'), message = document.createElement('div');
+      message.setAttribute('data-message-id', `message-${ids[index]}`); message.setAttribute('data-legacy-message-id', ids[index]);
+      const header = document.createElement('div'); header.className = 'gE';
+      const name = document.createElement('span'); name.className = 'gD'; name.setAttribute('email',sender.email); name.textContent = sender.name;
+      const recipient = document.createElement('span'); recipient.className = 'g2'; recipient.setAttribute('email','recipient@example.com'); recipient.textContent = 'Synthetic recipient';
+      header.append(name,recipient);
+      const body = document.createElement('div'); body.className = 'ii'; body.innerHTML = '<div class="a3s">Synthetic body</div>';
+      message.append(header,body); wrapper.append(message); item.append(wrapper); return item;
+    });
+    list.append(...messages); shell.append(heading,list); workspace().append(shell);
+    return {shell,heading,list,messages};
+  }
+
+  if (new URLSearchParams(location.search).has('preview')) {
+    workspace().style.width = '480px';
+    document.documentElement.classList.add('gmail-pro-apple-mail-mode');
+    document.documentElement.setAttribute('data-gp-theme','dark');
+    document.documentElement.setAttribute('data-gp-accent','blue');
+    row({participants:members,count:40,subject:'Project planning and support',attachment:true,label:'Project',unread:true}).classList.add('aps');
+    row({sender:'A very long participant name '.repeat(6),count:12,threadId:'other-thread',subject:'Names truncate; the count stays visible'});
+    feature.start({appleMailModeEnabled:true});
+    result.textContent='Synthetic visual preview — native sender order; regular message counts.';
+    return;
+  }
 
   function geometry(node) {
     const r = rect(node), sender = rect(node.querySelector(".yX")), subject = rect(node.querySelector(".a4W")), date = rect(node.querySelector(".xW"));
@@ -63,7 +103,7 @@
   async function test(name, run) {
     try { await run(); reports.push(`PASS ${name}`); }
     catch (error) { reports.push(`FAIL ${name}: ${error.message}`); }
-    feature.stop(); workspace().replaceChildren(); workspace().style.width = "";
+    feature.stop(); GmailPro.reverseThreads.stop(); workspace().replaceChildren(); workspace().style.width = "";
     workspace().classList.remove("dark", "native-narrow"); workspace().removeAttribute("dir");
     document.documentElement.classList.remove("gmail-pro-apple-mail-mode");
     clock(2026, 8, 21, 13, 45);
@@ -109,7 +149,73 @@
     assert(rect(node.querySelector(".yi")).width > 0 && rect(node.querySelector('.yf [role="img"]')).width > 0, "label and attachment visible");
     assert(rect(node.querySelector(".y6")).right < rect(node.querySelector(".yi")).left, "label follows subject with a gap");
     assert(Math.abs(rect(node.querySelector(".at")).right - rect(node.querySelector(".xT")).right) < 1, "label right aligned");
-    assert(node.querySelector(".sender").textContent === "Alex, Morgan 3", "native conversation sender string retained");
+    assert(node.querySelector(".bA4").textContent === "Alex, Morgan" && node.querySelector('.bx0').textContent === '3', "native participants and separate count retained");
+  });
+  for (const width of [320,380,560,1200]) await test(`conversation count remains regular and visible at ${width}px`, () => {
+    workspace().style.width = `${width}px`;
+    const node = row({sender:'A very long participant name '.repeat(12),count:400,unread:true});
+    const native = css(node.querySelector('.bx0')).fontWeight; enable();
+    for (const selected of [false,true]) for (const unread of [false,true]) {
+      node.classList.toggle('aps',selected); node.classList.toggle('zE',unread);
+      const count = node.querySelector('.bx0'), names = node.querySelector('.bA4');
+      assert(css(count).fontWeight === '400','count regular in every state');
+      assert(count.scrollWidth <= count.clientWidth && rect(count).width > 0,'count untruncated');
+      assert(rect(names).right <= rect(count).left && rect(count).right <= rect(node.querySelector('.yX')).right,'names/count/date cannot overlap');
+      assert(css(names).textOverflow === 'ellipsis' && names.scrollWidth > names.clientWidth,'name text truncates');
+    }
+    node.classList.add('zE'); feature.stop(); assert(css(node.querySelector('.bx0')).fontWeight === native,'native count styling restored');
+  });
+  for (const [mode, options] of [
+    ['message-list', {appleMailMessageListEnabled:true}],
+    ['Apple Mail', {appleMailModeEnabled:true}]
+  ]) await test(`${mode} keeps native senders before, during and after opening a conversation`, async () => {
+    if (options.appleMailModeEnabled) document.documentElement.classList.add('gmail-pro-apple-mail-mode');
+    const node = row({participants:members,count:40,lastMessageId:'legacy-1',label:'Project',attachment:true});
+    const original = node.outerHTML, group = node.querySelector('.bA4'), children = [...group.childNodes];
+    const senders = [...group.querySelectorAll('[email]')];
+    let hovers = 0, opens = 0;
+    senders[1].addEventListener('mouseenter',()=>hovers++); node.addEventListener('click',()=>opens++);
+    const unchanged = () => {
+      assert(senderOrder(node)==='george@example.com,rayette@example.com,self@example.com','Gmail order, including me, retained');
+      assert(children.length===group.childNodes.length && children.every((child,index)=>group.childNodes[index]===child),'native participant and separator nodes unchanged');
+      assert(senders.every(sender=>sender.isConnected && sender.getAttribute('data-hovercard-id')===sender.getAttribute('email')),'native hovercard nodes and metadata retained');
+      assert(css(node.querySelector('.bx0')).fontWeight==='400','count remains regular');
+    };
+    feature.start(options); await frame(); unchanged();
+    const thread = conversation([members[0],members[1]]); await frame(); unchanged();
+    node.classList.add('zE','aps'); unchanged();
+    senders[1].dispatchEvent(new MouseEvent('mouseenter')); node.click();
+    assert(hovers===1 && opens===1,'hovercard and row selection handlers preserved');
+    assert(formatted(node) && rect(node.querySelector('.yi')).width>0 && rect(node.querySelector('.yf [role="img"]')).width>0,'dates, labels and attachments retained');
+    thread.shell.remove(); await frame(); unchanged();
+    const identity = node.querySelector('[data-thread-id]');
+    identity.setAttribute('data-legacy-last-message-id','legacy-2');
+    identity.setAttribute('data-legacy-last-non-draft-message-id','legacy-2');
+    conversation([members[0],members[1],members[2]]); await frame(); unchanged();
+    node.classList.remove('zE','aps');
+    identity.setAttribute('data-legacy-last-message-id','legacy-1');
+    identity.setAttribute('data-legacy-last-non-draft-message-id','legacy-1');
+    feature.stop();
+    assert(node.outerHTML===original,'disable restores date-only presentation without touching names');
+    assert(activeObservers.size===0 && timers.size===0,'all list observers and timers released');
+  });
+  await test('native sender replacements and reused rows remain in Gmail order', async () => {
+    const node = row({participants:members});
+    feature.start({appleMailMessageListEnabled:true,appleMailModeEnabled:true});
+    const replacement = row({participants:[members[2],members[0],members[1]]});
+    const group = replacement.querySelector('.bA4'), children = [...group.childNodes];
+    node.querySelector('.bA4').replaceWith(group); replacement.closest('table').remove();
+    const identity = node.querySelector('[data-thread-id]');
+    identity.setAttribute('data-thread-id','reused-thread');
+    identity.setAttribute('data-legacy-last-non-draft-message-id','new-message');
+    const count = node.querySelector('.bx0'); count.textContent='41';
+    await frame();
+    const unchanged = () => assert(senderOrder(node)==='self@example.com,george@example.com,rayette@example.com' && children.every((child,index)=>group.childNodes[index]===child),'Gmail replacement order and nodes retained');
+    unchanged(); assert(count.textContent==='41' && css(count).fontWeight==='400','native count updates retained');
+    feature.update({appleMailModeEnabled:false}); unchanged();
+    feature.update({appleMailMessageListEnabled:false}); unchanged();
+    assert(activeObservers.size===0 && timers.size===0,'both preference owners release date formatting');
+    enable(); await frame(); unchanged(); feature.stop(); unchanged();
   });
   await test("long labels leave space for subject in a narrow pane", () => {
     workspace().style.width = "380px";
