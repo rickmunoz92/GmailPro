@@ -59,6 +59,13 @@
     assert(byId("undo-shortcut-hint").textContent.includes("While editing"), "text undo explained");
     store.writes=0;
   });
+  await test("Delete shortcut defaults on, saves independently, and follows sync", async () => {
+    const toggle=byId("delete-shortcut");assert(toggle.checked,"default on");
+    edit(toggle,false);await submit();const saved=await GmailPro.settings.load();
+    assert(!saved.deleteShortcutEnabled&&saved.undoShortcutEnabled,"independent save");
+    store.emit({[key("deleteShortcutEnabled")]:true});assert(toggle.checked&&save.disabled,"sync applied");
+    assert(byId("delete-shortcut-hint").textContent.includes("While typing"),"text editing explained");store.writes=0;
+  });
   await test("read toggle shortcut defaults on, saves independently, and follows sync", async () => {
     const toggle=byId("read-shortcut");assert(toggle.checked,"default on");
     edit(toggle,false);await submit();const saved=await GmailPro.settings.load();

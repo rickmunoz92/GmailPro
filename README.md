@@ -307,11 +307,16 @@ clicks Gmail’s normal Send button with the draft’s current recipients.
 
 ### Mac keyboard shortcuts
 
-All seven shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
+All eight shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
 in the extension popup. Use **Save preferences** to apply changes.
 
 - **⌘⇧A — Archive:** clicks Gmail’s main Archive button for selected conversations or
   the open conversation. Does nothing in search/editable fields, composers, or menus/dialogs.
+- **Delete — Move to Trash:** both Mac delete keys (Backspace and forward Delete)
+  click Gmail’s native Delete button for selected conversations or the open
+  conversation, without modifiers. Gmail’s Undo stays available. Typing in search,
+  editable fields, and composers keeps normal text deletion; menus/dialogs block
+  the action. It never activates Delete forever.
 - **⌘⇧U — Toggle read/unread:** uses Gmail’s currently available **Mark as read**
   or **Mark as unread** action. Each press toggles the open conversation; selected
   groups follow Gmail’s bulk-action behavior. In Apple Mail Mode, marking unread
@@ -344,8 +349,8 @@ Gmail keyboard shortcuts are enabled; Gmail Pro does not change that setting.
 Enabling ⌘⇧D replaces Gmail’s **Discard draft** shortcut. Even if Send is unavailable,
 the enabled shortcut does nothing instead of discarding. Turning the switch off restores
 Gmail’s native shortcut. Enabled combinations are reserved in the Gmail page, except
-⌘Z in the editing contexts above; outside
-Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native **E**, **Z**, and **⌘Enter**
+⌘Z and Delete in the editing contexts above; Delete also stays native outside the
+mailbox. Outside Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native **E**, **Z**, and **⌘Enter**
 remain available. These features are independent of Apple Mail Mode and Gmail’s own
 keyboard-shortcut preference, and apply only on Mac.
 

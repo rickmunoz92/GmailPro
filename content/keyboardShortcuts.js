@@ -5,6 +5,8 @@
   const S = app.selectors;
   const bindings = {
     "shift+a": ["archiveShortcutEnabled", "archive"],
+    backspace: ["deleteShortcutEnabled", "delete"],
+    delete: ["deleteShortcutEnabled", "delete"],
     "shift+u": ["readShortcutEnabled", "toggleRead"],
     "shift+o": ["expandShortcutEnabled", "toggleExpand"],
     "shift+d": ["sendShortcutEnabled", "send"],
@@ -12,7 +14,7 @@
     "shift+r": ["replyAllShortcutEnabled", "replyAll"],
     "shift+f": ["forwardShortcutEnabled", "forward"]
   };
-  const preferences = Object.values(bindings).map(([preference]) => preference);
+  const preferences = [...new Set(Object.values(bindings).map(([preference]) => preference))];
   const conversationPreferences = ["expandShortcutEnabled", "replyAllShortcutEnabled", "forwardShortcutEnabled"];
   const options = { ...app.settings.defaults };
   const held = new Set();
@@ -47,7 +49,8 @@
     const toolbar = mailboxToolbar(focus);
     // Gmail exposes the action appropriate to its current read state (and
     // bulk selection). Resolve it on every press; never store a second state.
-    const names = action === "toggleRead" ? ["Mark as read", "Mark as unread"] : ["Archive"];
+    // Match only recoverable Delete, never Gmail's Delete forever action.
+    const names = action === "toggleRead" ? ["Mark as read", "Mark as unread"] : action === "delete" ? ["Delete"] : ["Archive"];
     return toolbar && one(buttons(toolbar).filter(button => names.includes(name(button))));
   }
 
@@ -121,15 +124,25 @@
     // macOS can release Command before delivering the letter's keyup, or omit
     // that keyup. Release latches on modifier release and loss of focus as well.
     if (event.type === "keyup" && (key === "meta" || key === "shift")) reset();
-    const binding = event.metaKey && !event.ctrlKey && !event.altKey && bindings[(event.shiftKey ? "shift+" : "") + key];
+    const deleteKey = key === "backspace" || key === "delete";
+    const plainDelete = deleteKey && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+    const binding = deleteKey ? (plainDelete && bindings[key]) : event.metaKey && !event.ctrlKey && !event.altKey &&
+      bindings[(event.shiftKey ? "shift+" : "") + key];
     if (event.type === "keydown" && !binding) held.delete(key);
     const reserved = binding && options[binding[0]];
     const companion = event.type !== "keydown" && held.has(key);
     if ((!reserved && !companion) || event.isComposing || !event.cancelable) return;
     const focus = document.activeElement;
-    // Text editing owns Command-Z throughout a composer, menu, or dialog.
-    // Leave every event untouched, including after focus changes during a chord.
-    if (key === "z" && (!(focus instanceof Element) || focus.closest(S.shortcutArchiveExcluded) || overlayOpen())) {
+    // Text editing owns Delete and Command-Z throughout a composer, menu, or
+    // dialog. Leave every event untouched, even if focus changed after keydown.
+    if ((deleteKey || key === "z") && (!(focus instanceof Element) || focus.closest(S.shortcutArchiveExcluded) || overlayOpen())) {
+      held.delete(key);
+      return;
+    }
+    // Plain Delete applies only in the mailbox, never an outside field or a
+    // received-message/editor lookalike that differs from the active element.
+    if (deleteKey && (!mailboxToolbar(focus) ||
+        (event.target instanceof Element && event.target.closest(S.shortcutArchiveExcluded)))) {
       held.delete(key);
       return;
     }
@@ -146,7 +159,7 @@
     if (prevented) return;
     if (!(focus instanceof Element)) return;
     const action = binding[1];
-    const target = action === "archive" || action === "toggleRead" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
+    const target = action === "archive" || action === "toggleRead" || action === "delete" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
       action === "undo" ? undoButton() : conversationButton(action, focus);
     activate(target); // One native gesture, synchronously; no queued send or retry.
   }

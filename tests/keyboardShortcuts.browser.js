@@ -53,6 +53,19 @@
     return {button,actions};
   }
   const undo=patch=>press('z',{shiftKey:false,...patch});
+  const deleteEvent=(value='Backspace',type='keydown',patch={})=>key(value,type,{key:value,code:value,metaKey:false,shiftKey:false,...patch});
+  function deletePress(value='Backspace',patch={}) {
+    const event=deleteEvent(value,'keydown',patch);deleteEvent(value,'keypress',patch);deleteEvent(value,'keyup',patch);return event;
+  }
+  function deleteControl() {
+    const button=document.createElement('div'),phases=[];let pressed=false,released=false,actions=0;
+    button.setAttribute('role','button');button.setAttribute('aria-label','Delete');button.tabIndex=0;button.textContent='Delete';
+    button.onmousedown=()=>{pressed=true;released=false;phases.push('down');};
+    button.onmouseup=()=>{released=pressed;pressed=false;phases.push('up');};
+    button.onclick=()=>{phases.push('click');if(released){released=false;actions++;}};
+    workspace.querySelector('[gh="mtb"]').append(button);
+    return {button,phases,get actions(){return actions;}};
+  }
   function conversation({bridged=false}={}) {
     const shell=document.createElement('div');shell.className='iY';
     shell.innerHTML='<h2 data-thread-perm-id="thread-fixture" data-legacy-thread-id="fixture">Synthetic conversation</h2><div role="list"></div><div class="btDi4d"><div class="amn"><span class="ams bkH" role="link" tabindex="0">Reply</span><span class="ams bkI" role="link" tabindex="0">Reply all</span><span class="ams bkG" role="link" tabindex="0">Forward</span></div></div>';
@@ -89,6 +102,67 @@
   await test('archive delegates once to the native toolbar for open and bulk selections',()=>{
     for(const selected of [0,1,3]){workspace.dataset.selected=String(selected);const original=workspace.innerHTML;press('a');assert(workspace.innerHTML===original,'selection DOM untouched');}
     assert(archived===3&&sent===0&&discarded===0,'one archive per press');
+  });
+  for(const value of ['Backspace','Delete']) {
+    await test(value+' delegates one native Trash gesture for open and bulk conversations',()=>{
+      const f=deleteControl();
+      for(const selected of [0,1,3]){workspace.dataset.selected=String(selected);const original=workspace.innerHTML;
+        assert(deletePress(value).defaultPrevented,'handled');assert(workspace.innerHTML===original,'selection DOM untouched');}
+      assert(f.actions===3&&f.phases.join(',')==='down,up,click,down,up,click,down,up,click'&&!archived&&!sent&&!discarded,'native Delete only');
+    });
+    for(const field of ['input','textarea','select','[contenteditable]','[role="textbox"]','[role="combobox"]','[role="searchbox"]'])await test(value+' leaves text editing untouched in '+field,()=>{
+      const f=deleteControl(),node=field.startsWith('[')?document.createElement('div'):document.createElement(field);
+      if(field==='[contenteditable]')node.contentEditable='true';
+      else if(field.startsWith('[role=')){node.setAttribute('role',field.match(/"([^"]+)"/)[1]);node.tabIndex=0;}
+      workspace.append(node);node.focus();let native=0;const listener=()=>native++;
+      for(const type of ['keydown','keypress','keyup'])node.addEventListener(type,listener);
+      assert(!deletePress(value).defaultPrevented&&native===3&&!f.actions,'all editing events untouched');
+    });
+    for(const focus of ['[contenteditable]','[aria-label="To recipients"]','[name="subjectbox"]','.send','[aria-label="Discard draft"]'])await test(value+' never deletes mail or discards a composer focused in '+focus,()=>{
+      const f=deleteControl();draft().querySelector(focus).focus();assert(!deletePress(value).defaultPrevented&&!f.actions&&!discarded,'composer owns key');
+    });
+    await test(value+' leaves menus, dialogs, outside focus and extra modifiers untouched',()=>{
+      const f=deleteControl();
+      for(const role of ['menu','dialog','alertdialog']){const node=document.createElement('div');node.setAttribute('role',role);node.textContent='Overlay';workspace.append(node);
+        assert(!deletePress(value).defaultPrevented,'overlay owns key');node.remove();}
+      const outside=document.createElement('button');outside.textContent='Outside';document.body.append(outside);outside.focus();
+      assert(!deletePress(value).defaultPrevented,'outside mailbox');outside.remove();workspace.focus();
+      for(const patch of [{metaKey:true},{ctrlKey:true},{altKey:true},{shiftKey:true},{isComposing:true}])assert(!deletePress(value,patch).defaultPrevented,'native combination');
+      assert(!f.actions,'no delete');
+    });
+    await test(value+' holds once and suppresses companion events',()=>{
+      const f=deleteControl();let native=0;const listener=()=>native++;
+      for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,listener);
+      try{deleteEvent(value);deleteEvent(value,'keydown',{repeat:true});deleteEvent(value,'keypress');deleteEvent(value,'keyup');
+        assert(f.actions===1&&native===0,'one gesture while held');deletePress(value);assert(f.actions===2,'next press');}
+      finally{for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,listener);}
+    });
+    await test(value+' follows replacement controls and ignores unavailable or ambiguous Delete',()=>{
+      const f=deleteControl(),toolbar=workspace.querySelector('[gh="mtb"]');
+      const rowButton=f.button.cloneNode(true);rowButton.onclick=()=>{throw Error('per-row Delete');};workspace.append(rowButton);
+      for(const state of ['hidden','disabled','duplicate','missing','forever','hidden-toolbar','duplicate-toolbar']){
+        toolbar.replaceChildren();toolbar.append(f.button);f.button.hidden=state==='hidden';f.button.setAttribute('aria-disabled',String(state==='disabled'));
+        f.button.setAttribute('aria-label',state==='forever'?'Delete forever':'Delete');toolbar.hidden=state==='hidden-toolbar';
+        if(state==='missing')f.button.remove();if(state==='duplicate')toolbar.append(f.button.cloneNode(true));
+        const other=state==='duplicate-toolbar'?toolbar.parentElement.cloneNode(true):null;if(other)workspace.append(other);
+        deletePress(value);assert(!f.actions,'unavailable '+state);other?.remove();
+      }
+      toolbar.hidden=false;toolbar.replaceChildren();const next=deleteControl();window.dispatchEvent(new Event('hashchange'));
+      deletePress(value);assert(next.actions===1&&!f.actions,'fresh native target');
+    });
+    await test(value+' cannot activate after cancellation, detachment or focus moves to typing',()=>{
+      const f=deleteControl();deleteEvent(value,'keydown',{cancelable:false});
+      const prevented=new KeyboardEvent('keydown',{key:value,bubbles:true,cancelable:true});prevented.preventDefault();workspace.dispatchEvent(prevented);deleteEvent(value,'keyup');
+      assert(!f.actions,'cancelled events');f.button.onmouseup=()=>f.button.remove();deletePress(value);assert(!f.actions,'detached before click');
+      const next=deleteControl();deleteEvent(value);workspace.querySelector('input').focus();assert(!deleteEvent(value,'keyup').defaultPrevented,'editing owns release');
+      assert(next.actions===1,'no action after focus change');
+    });
+  }
+  await test('Delete preference defaults on, switches independently, and Undo remains native',()=>{
+    const f=deleteControl();assert(app.settings.defaults.deleteShortcutEnabled,'default on');feature.update({deleteShortcutEnabled:false});
+    assert(!deletePress().defaultPrevented&&!f.actions,'disabled');press('a');assert(archived===1,'other shortcuts stay active');
+    feature.update({deleteShortcutEnabled:true});deletePress();undoNotice('Conversation moved to Trash.');undo();
+    assert(f.actions===1&&undone===1,'native Trash and Undo');
   });
   for(const expanded of [false,true])await test('Command Shift O toggles both directions from '+(expanded?'expanded':'collapsed'),()=>{
     const shell=conversation(),f=expansion(shell,expanded);const order=[...shell.children];
@@ -317,7 +391,7 @@
     const next=undoNotice('Conversations moved.');undo();assert(undone===1,'fresh notification');next.remove();undo();assert(undone===1,'no replay');
   });
   await test('Undo preference independently activates, disables and restores its listener',()=>{
-    undoNotice();feature.update({...composeOff,archiveShortcutEnabled:false,sendShortcutEnabled:false});undo();assert(undone===1,'undo alone active');
+    undoNotice();feature.update({...composeOff,archiveShortcutEnabled:false,deleteShortcutEnabled:false,sendShortcutEnabled:false});undo();assert(undone===1,'undo alone active');
     feature.update({undoShortcutEnabled:false});assert(!undo().defaultPrevented,'disabled is native');assert(composeLifecycle.listenersActive()===0,'all off cleaned up');
     feature.update({undoShortcutEnabled:true});undo();assert(undone===2,'undo reenabled');
   });
@@ -383,18 +457,19 @@
     assert(!actionPress('forward').defaultPrevented && composeActions.length===2,'independent preferences');
   });
   await test('start/update/stop deduplicate and release every listener without observers',()=>{
-    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0&&subscriptions===1,'four delegated listeners; one shared subscription');feature.update({...composeOff,archiveShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0&&subscriptions===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('o').defaultPrevented&&!press('a').defaultPrevented && !undo().defaultPrevented && !actionPress('replyAll').defaultPrevented,'stopped');
+    feature.start(app.settings.defaults);feature.update({appleMailModeEnabled:true});assert(composeLifecycle.listenersActive()===4&&composeLifecycle.observersActive()===0&&subscriptions===1,'four delegated listeners; one shared subscription');feature.update({...composeOff,archiveShortcutEnabled:false,deleteShortcutEnabled:false,sendShortcutEnabled:false,undoShortcutEnabled:false});assert(composeLifecycle.listenersActive()===0&&subscriptions===0,'disabled cleanup');feature.start(app.settings.defaults);feature.stop();assert(!press('o').defaultPrevented&&!press('a').defaultPrevented && !undo().defaultPrevented && !actionPress('replyAll').defaultPrevented,'stopped');
   });
   const failures=reports.filter(x=>x.startsWith('FAIL')).length;
   result.textContent=reports.join('\n')+'\n\n'+(reports.length-failures)+'/'+reports.length+' checks passed.';result.dataset.failures=String(failures);
   workspace.replaceChildren();
   document.getElementById('manual').disabled=false;
   document.getElementById('manual').onclick=()=>{
-    setup();const expand=expansion(conversation());const toast=undoNotice(),host=draft(),read=readToggle();
+    setup();const expand=expansion(conversation());const toast=undoNotice(),host=draft(),read=readToggle(),deletion=deleteControl();
     const output=document.getElementById('manual-results');
-    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,composeActions,readActions:read.actions,expandActions:expand.actions,focus:document.activeElement.getAttribute('aria-label')});};
+    const render=()=>{output.textContent=JSON.stringify({deleted:deletion.actions,archived,sent,discarded,undone,composeActions,readActions:read.actions,expandActions:expand.actions,focus:document.activeElement.getAttribute('aria-label')});};
     expand.button.addEventListener('click',render);
     read.button.addEventListener('click',render);
+    deletion.button.addEventListener('click',render);
     for(const control of workspace.querySelectorAll('.ams'))control.addEventListener('click',render);
     toast.querySelector('#link_undo').addEventListener('click',render);
     host.querySelector('.send').addEventListener('click',render);workspace.querySelector('[aria-label="Archive"]').addEventListener('click',render);render();

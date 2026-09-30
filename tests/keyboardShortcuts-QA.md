@@ -189,3 +189,29 @@ Supported contract: English desktop Gmail in Mac Chrome/app windows. Browser chr
 focus is outside page interception; disabled features and non-Mac platforms retain
 native behavior. Gmail markup changes fail closed for actions. If the extension fails
 to load or is disabled, Gmail's original Discard shortcut applies.
+
+
+## Delete key — 2026-09-30
+
+Unmodified Backspace and forward Delete now delegate to the visible main
+Gmail toolbar's exact Delete action. Gmail owns the selected/open conversations,
+Trash operation, and Undo. The shortcut defaults on with its own Chrome Sync
+setting and popup switch; it never invokes Delete forever.
+
+Validation: `node scripts/validate.cjs` passed (38 settings/lifecycle tests).
+Real-Chrome synthetic fixtures passed: keyboard shortcuts 131/131, popup 22/22,
+reading pane 31/31, and message zoom 16/16 (238 checks total). Coverage includes
+both keys, editing/search fields, draft controls, overlays, modifier combinations,
+IME, held-key repeats, cancelled events, detached/replaced/ambiguous controls,
+preference changes, native Undo, and listener cleanup.
+
+Real browser key input on the synthetic manual fixture produced one Delete
+activation for Backspace and one for forward Delete, with no Archive, Send,
+or Discard. In its search input, Backspace changed `test` to `tes` without
+another Delete activation.
+
+Reloaded Gmail Pro from the Chrome extension details page, confirmed the loaded
+folder is `~/Documents/GmailPro`, refreshed Gmail, and verified the new Delete
+switch is on in the installed settings page. No real message was moved or deleted;
+end-to-end real-mail deletion remains untested. Current English desktop Gmail's
+native toolbar action remains the compatibility boundary.
