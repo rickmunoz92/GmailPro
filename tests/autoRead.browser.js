@@ -4,12 +4,14 @@
   const assert = (value, message) => { if (!value) throw Error(message); };
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   const settle = () => wait(40);
-  function fixture({ enabled = true, load = true } = {}) {
-    workspace.innerHTML = `<div role="main"><div gh="tm"><div gh="mtb"><button aria-label="Mark as read">Read</button><button aria-label="More email options">More</button></div></div><div class="Nu tf"><table role="grid"><tbody>${['one','two'].map(id => `<tr role="row" class="zA zE" data-test-id="${id}"><td><span role="checkbox" aria-checked="false" tabindex="0">Select</span></td><td role="gridcell"><div role="link"><span data-thread-id="#thread-${id}" data-legacy-thread-id="legacy-${id}">${id}</span></div></td></tr>`).join('')}</tbody></table></div><div class="Nu S3"></div></div>`;
-    const main = workspace.firstElementChild, rows = [...main.querySelectorAll('tr')], pane = main.querySelector('.S3'), action = main.querySelector('[aria-label="Mark as read"]');
-    const reads = [];
+  function fixture({ enabled = true, load = true, ignoreReads = 0, confirmDelay = 0, unreadCloseDelay = 0 } = {}) {
+    workspace.innerHTML = `<div role="main"><div gh="tm"><div gh="mtb"><button aria-label="Mark as read">Read</button><button aria-label="Mark as unread">Unread</button><button role="button" aria-label="More email options">More</button></div></div><div class="Nu tf"><table role="grid"><tbody>${['one','two'].map(id => `<tr role="row" class="zA zE" data-test-id="${id}"><td><span role="checkbox" aria-checked="false" tabindex="0">Select</span></td><td role="gridcell"><div role="link"><span data-thread-id="#thread-${id}" data-legacy-thread-id="legacy-${id}">${id}</span></div></td></tr>`).join('')}</tbody></table></div><div class="Nu S3"></div></div>`;
+    const main = workspace.firstElementChild, rows = [...main.querySelectorAll('tr')], pane = main.querySelector('.S3'), action = main.querySelector('[aria-label="Mark as read"]'), unreadAction = main.querySelector('[aria-label="Mark as unread"]');
+    const reads = [], attempts = [];
     function open(row) {
       rows.forEach(node => node.classList.toggle('aps', node === row));
+      action.hidden = !row.classList.contains('zE');
+      unreadAction.hidden = row.classList.contains('zE');
       const id = row.dataset.testId;
       pane.innerHTML = `<div class="iY"><h2 data-thread-perm-id="thread-${id}" data-legacy-thread-id="legacy-${id}">Synthetic conversation</h2><div role="list"><div role="listitem" tabindex="-1" jsaction="message:.CLIENT" aria-expanded="true"><div><div data-message-id="msg-${id}" data-legacy-message-id="legacy-msg-${id}"><div class="ii"><div class="a3s">Synthetic body</div></div></div></div></div></div></div>`;
     }
@@ -25,17 +27,27 @@
       if (!released) return;
       released=false;
       const row = rows.find(node => node.classList.contains('aps'));
+      attempts.push({ id: row?.dataset.testId, time: performance.now() });
+      if (attempts.length <= ignoreReads) return;
       reads.push({ id: row?.dataset.testId, time: performance.now() });
-      row?.classList.replace('zE', 'yO');
+      const confirm = () => { row?.classList.replace('zE', 'yO'); action.hidden=true; unreadAction.hidden=false; };
+      if (confirmDelay) setTimeout(confirm, confirmDelay); else confirm();
+    });
+    unreadAction.addEventListener('click', () => {
+      const row = rows.find(node => node.classList.contains('aps'));
+      row?.classList.replace('yO', 'zE');
+      action.hidden=false; unreadAction.hidden=true;
+      const close = () => { row?.classList.remove('aps'); pane.replaceChildren(); };
+      if (unreadCloseDelay) setTimeout(close, unreadCloseDelay); else close();
     });
     app.readingPane.start({ appleMailModeEnabled: enabled });
     const click = (index = 0, options = {}) => rows[index].querySelector('[role="link"]').dispatchEvent(new MouseEvent('click', { bubbles:true, button:0, ...options }));
-    return { main, rows, pane, action, reads, open, click };
+    return { main, rows, pane, action, unreadAction, reads, attempts, open, click };
   }
   async function test(name, run) {
     try { await run(); reports.push(`PASS ${name}`); }
     catch (error) { reports.push(`FAIL ${name}: ${error.message}`); }
-    app.readingPane.stop(); app.reverseThreads.stop(); workspace.replaceChildren(); await settle();
+    app.keyboardShortcuts.stop(); app.readingPane.stop(); app.reverseThreads.stop(); workspace.replaceChildren(); await settle();
     result.textContent = reports.join('\n');
   }
   function notice() {
@@ -71,6 +83,43 @@
     const f=fixture({load:false}); f.click(); await wait(360); assert(!f.reads.length,'no action during loading');
     const start=performance.now(); f.open(f.rows[0]); await wait(180); assert(!f.reads.length,'full dwell after load');
     await wait(190); assert(f.reads.length===1 && f.reads[0].time-start>=300,'loaded message read');
+  });
+  await test('nested body rendering without a chrome mutation still starts a full dwell', async () => {
+    const f=fixture({load:false}); f.click(); f.open(f.rows[0]); const body=f.pane.querySelector('.a3s'); body.remove();
+    await wait(360); assert(!f.reads.length,'missing body is not reading time');
+    const start=performance.now(); f.pane.querySelector('.ii').append(body); await wait(180);
+    assert(!f.reads.length,'late body gets its own dwell');
+    await wait(280); assert(f.reads.length===1 && f.reads[0].time-start>=300,'body readiness detected without another click');
+  });
+  await test('an ignored native gesture is retried until Gmail confirms read', async () => {
+    const f=fixture({ignoreReads:2}); f.click(); await wait(380);
+    assert(f.attempts.length===1 && !f.reads.length && f.rows[0].classList.contains('zE'),'first ignored action stays pending');
+    await wait(540); assert(f.reads.length===1 && f.attempts.length===3 && !f.rows[0].classList.contains('zE'),'third attempt confirms read');
+    await wait(360); assert(f.attempts.length===3,'confirmation stops retries');
+  });
+  for (const kind of ['hidden','disabled','missing','ambiguous']) await test(kind+' read control can become ready after the deadline', async () => {
+    const f=fixture(); f.click(); await wait(80); let extra;
+    if (kind==='hidden') f.action.hidden=true;
+    if (kind==='disabled') f.action.disabled=true;
+    if (kind==='missing') f.action.remove();
+    if (kind==='ambiguous') { extra=f.action.cloneNode(true); f.action.after(extra); }
+    await wait(310); assert(!f.reads.length,'no unavailable or guessed control');
+    if (kind==='hidden') f.action.hidden=false;
+    if (kind==='disabled') f.action.disabled=false;
+    if (kind==='missing') f.main.querySelector('[gh="mtb"]').prepend(f.action);
+    extra?.remove();
+    await wait(250); assert(f.reads.length===1,'late control is used without another opening click');
+  });
+  await test('delayed native read acknowledgement stops retries', async () => {
+    const f=fixture({confirmDelay:120}); f.click(); await wait(390);
+    assert(f.attempts.length===1 && f.rows[0].classList.contains('zE'),'waiting on native confirmation');
+    await wait(330); assert(f.attempts.length===1 && !f.rows[0].classList.contains('zE'),'confirmed before another gesture');
+  });
+  await test('switching messages cancels a retry without reading the old target', async () => {
+    const f=fixture({ignoreReads:1}); f.click(); await wait(390); const start=performance.now(); f.click(1);
+    await wait(200); assert(!f.reads.length,'retry deadline cannot read the new target early');
+    await wait(190); assert(f.reads.length===1 && f.reads[0].id==='two' && f.reads[0].time-start>=300,'fresh dwell on new target');
+    assert(f.rows[0].classList.contains('zE'),'previous target remains unread');
   });
   for (const [name, change] of [
     ['closing the conversation', f => { f.rows[0].classList.remove('aps'); f.pane.replaceChildren(); }],
@@ -127,6 +176,44 @@
     const f=fixture(); f.click(); await wait(380); assert(f.reads.length===1,'initial read');
     f.rows[0].classList.replace('yO','zE'); await wait(360); assert(f.reads.length===1,'manual unread respected');
     f.click(); await wait(380); assert(f.reads.length===2,'explicit reopening can read again');
+  });
+  for (const unreadCloseDelay of [0,120]) await test('manual unread keeps the same conversation open after '+unreadCloseDelay+'ms native deselection', async () => {
+    const f=fixture({unreadCloseDelay}); f.click(); await wait(380); f.unreadAction.click(); await wait(520);
+    assert(f.rows[0].classList.contains('aps') && f.rows[0].classList.contains('zE'),'same selected row is unread');
+    assert(f.pane.querySelector('h2')?.getAttribute('data-thread-perm-id')==='thread-one','message remains readable');
+    assert(f.reads.length===1,'restoration does not start an auto-read timer');
+    f.click(1); await wait(380); const start=performance.now(); f.click(0); await wait(180);
+    assert(f.rows[0].classList.contains('zE'),'return waits for a fresh dwell');
+    await wait(200); assert(f.reads.length===3 && f.reads[2].time-start>=300,'return marks read after 300ms');
+  });
+  await test('manual unread cancels an in-flight retry and suppresses restoration reads', async () => {
+    const f=fixture({ignoreReads:1}); f.click(); await wait(380); f.unreadAction.hidden=false; f.unreadAction.click(); await wait(600);
+    assert(f.attempts.length===1 && f.rows[0].matches('.aps.zE'),'no retry or restoration auto-read overrides manual unread');
+  });
+  await test('Command Shift U toggles read/unread without losing selection or restarting auto-read', async () => {
+    const f=fixture();app.keyboardShortcuts.start(app.settings.defaults);f.click();await wait(380);
+    const press=()=>{for(const type of ['keydown','keypress','keyup'])document.body.dispatchEvent(new KeyboardEvent(type,{key:'U',code:'KeyU',metaKey:true,shiftKey:true,bubbles:true,cancelable:true}));};
+    press();await wait(420);assert(f.rows[0].matches('.aps.zE')&&f.pane.querySelector('h2'),'shortcut unread stays open');
+    assert(f.reads.length===1,'unread stays in effect beyond auto-read delay');
+    press();await settle();assert(f.rows[0].matches('.aps.yO')&&f.reads.length===2,'next press marks read');
+    press();await wait(420);assert(f.rows[0].matches('.aps.zE')&&f.reads.length===2,'repeated toggle stays unread');
+  });
+  await test('a user click cancels pending unread restoration', async () => {
+    const f=fixture({unreadCloseDelay:120}); f.click(); await wait(380); f.unreadAction.click(); f.click(1); await wait(180);
+    assert(!f.rows[0].classList.contains('aps') && f.rows[0].classList.contains('zE'),'old message never reopened over the new selection');
+  });
+  await test('manual unread with bulk selection keeps Gmail native behavior', async () => {
+    const f=fixture(); f.click(); await wait(380); f.rows[1].querySelector('[role="checkbox"]').setAttribute('aria-checked','true');
+    f.unreadAction.click(); await wait(380); assert(!f.rows[0].classList.contains('aps') && !f.pane.children.length,'no forced opening for bulk actions');
+  });
+  await test('turning mode off cancels a pending unread restoration', async () => {
+    const f=fixture({unreadCloseDelay:120}); f.click(); await wait(380); f.unreadAction.click(); app.readingPane.stop(); await wait(280);
+    assert(!f.rows[0].classList.contains('aps') && !f.pane.children.length,'native deselection remains after cleanup');
+  });
+  await test('ignored read actions expire without leaving a retry loop', async () => {
+    const f=fixture({ignoreReads:Infinity}); f.click(); await wait(10400); const attempts=f.attempts.length;
+    assert(attempts>1 && !f.reads.length,'bounded retries ran without faking read state');
+    await wait(380); assert(f.attempts.length===attempts,'retry loop stops at its deadline');
   });
   await test('native read during the delay does not trigger another action', async () => {
     const f=fixture(); f.click(); await wait(140); f.rows[0].classList.replace('zE','yO'); await wait(240);

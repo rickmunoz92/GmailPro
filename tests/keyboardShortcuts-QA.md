@@ -1,5 +1,33 @@
 # Mac keyboard shortcuts — 2026-09-21
 
+## v0.9.35 read/unread toggle
+
+Command-Shift-U invokes exactly one currently visible, enabled native **Mark as
+read** or **Mark as unread** main-toolbar control. Each press resolves the current
+Gmail action again; there is no cached read state. Native bulk actions retain
+Gmail's behavior. Missing, hidden, disabled, or ambiguous controls do nothing.
+Search/editable fields, composers, menus, and dialogs block the action. Repeats
+and companion events cannot toggle a message twice, and extra modifiers remain
+native. The independent `readShortcutEnabled` preference defaults on and uses
+the existing settings owner and popup.
+
+In Apple Mail Mode the ordinary native click reaches the existing reading-pane
+controller, so marking unread keeps the conversation open without restarting
+auto-read. A later shortcut press marks it read immediately; leaving and opening
+it again retains the existing 300ms dwell behavior.
+
+Validation: **82/82** keyboard checks, **59/59** automatic-read/integration checks,
+**19/19** popup checks, and **34/34** Node configuration checks passed. Manifest,
+resource, JavaScript syntax, permission, and diff whitespace checks passed.
+Actual Command-Shift-U key presses in the synthetic Chrome fixture produced
+exactly `unread, read`, with zero Send, Discard, Archive, or compose actions.
+
+The five changed production files were copied to the installed extension, with
+backups in `/tmp/gmail-pro-before-0.9.35`. Automatic approval review blocked
+reloading the extension/Gmail while an open compose draft was present. Live
+activation/verification is pending user approval to use **Save & close** first;
+no draft was closed or changed as part of this release's verification.
+
 ## v0.9.18 Undo verification
 
 Command-Z activates Gmail's currently available native Undo notification. Gmail owns

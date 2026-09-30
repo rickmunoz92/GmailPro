@@ -59,6 +59,13 @@
     assert(byId("undo-shortcut-hint").textContent.includes("While editing"), "text undo explained");
     store.writes=0;
   });
+  await test("read toggle shortcut defaults on, saves independently, and follows sync", async () => {
+    const toggle=byId("read-shortcut");assert(toggle.checked,"default on");
+    edit(toggle,false);await submit();const saved=await GmailPro.settings.load();
+    assert(!saved.readShortcutEnabled&&saved.undoShortcutEnabled,"independent save");
+    store.emit({[key("readShortcutEnabled")]:true});assert(toggle.checked&&save.disabled,"sync applied");
+    store.writes=0;
+  });
   await test("automatic paging defaults off, saves independently, and follows sync", async () => {
     const toggle = byId("auto-paging"); assert(!toggle.checked, "default off");
     edit(toggle, true); await submit(); assert((await GmailPro.settings.load()).autoPagingEnabled, "saved");

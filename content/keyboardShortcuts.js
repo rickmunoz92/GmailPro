@@ -5,6 +5,7 @@
   const S = app.selectors;
   const bindings = {
     "shift+a": ["archiveShortcutEnabled", "archive"],
+    "shift+u": ["readShortcutEnabled", "toggleRead"],
     "shift+d": ["sendShortcutEnabled", "send"],
     z: ["undoShortcutEnabled", "undo"],
     "shift+r": ["replyAllShortcutEnabled", "replyAll"],
@@ -31,13 +32,20 @@
       .some(node => visible(node) && !node.querySelector(S.composeForm));
   }
 
-  function archiveButton(focus) {
+  function mailboxToolbar(focus) {
     if (focus.closest(S.shortcutArchiveExcluded) || overlayOpen()) return null;
     const mains = [...document.querySelectorAll(S.main)].filter(visible);
     const main = one(mains);
     if (!main || (focus !== document.body && focus !== document.documentElement && !main.contains(focus))) return null;
-    const toolbar = one([...main.querySelectorAll(S.primaryToolbar)].filter(visible));
-    return toolbar && one(buttons(toolbar).filter(button => name(button) === "Archive"));
+    return one([...main.querySelectorAll(S.primaryToolbar)].filter(visible));
+  }
+
+  function mailboxButton(action, focus) {
+    const toolbar = mailboxToolbar(focus);
+    // Gmail exposes the action appropriate to its current read state (and
+    // bulk selection). Resolve it on every press; never store a second state.
+    const names = action === "toggleRead" ? ["Mark as read", "Mark as unread"] : ["Archive"];
+    return toolbar && one(buttons(toolbar).filter(button => names.includes(name(button))));
   }
 
   function sendButton(focus) {
@@ -129,7 +137,7 @@
     if (prevented) return;
     if (!(focus instanceof Element)) return;
     const action = binding[1];
-    const target = action === "archive" ? archiveButton(focus) : action === "send" ? sendButton(focus) :
+    const target = action === "archive" || action === "toggleRead" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
       action === "undo" ? undoButton() : conversationButton(action, focus);
     activate(target); // One native gesture, synchronously; no queued send or retry.
   }

@@ -12,9 +12,11 @@
   let enabled = false, unsubscribe, observer, group, markedShell;
   let queued = false;
   let observedContext;
-  let pendingRead;
+  let pendingRead, restoringUnread = false;
   let readNoticeObserver, readNoticeTimer;
   const readDelay = 300;
+  const readRetryDelay = 250;
+  const readTimeout = 10000;
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
   const markedFooters = new Set();
   const recipientLabels = new Map();
@@ -77,14 +79,19 @@
     return row.querySelector('[role="link"] [data-thread-id][data-legacy-thread-id]');
   }
 
-  function readContext(pending) {
+  function validReadRow(pending) {
     const { row, main, thread, legacy, route } = pending;
     const identity = readIdentity(row);
-    if (!enabled || document.hidden || location.hash !== route || !visible(row) ||
-        !row.matches(S.readingRow) || row.closest(S.main) !== main ||
-        !row.classList.contains("zE") || identity?.getAttribute("data-thread-id") !== thread ||
-        identity.getAttribute("data-legacy-thread-id") !== legacy ||
-        main.querySelector('table[role="grid"] [role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"])')) return null;
+    return enabled && !document.hidden && location.hash === route && visible(row) &&
+      row.matches(S.readingRow) && row.closest(S.main) === main &&
+      identity?.getAttribute("data-thread-id") === thread &&
+      identity.getAttribute("data-legacy-thread-id") === legacy &&
+      !main.querySelector('table[role="grid"] [role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"])');
+  }
+
+  function readContext(pending) {
+    const { row, main, thread, legacy } = pending;
+    if (!validReadRow(pending)) return null;
     const current = app.reverseThreads.currentConversation();
     if (!row.classList.contains("aps") || !current || !visible(current.list) ||
         ![...current.list.querySelectorAll(S.readingBody)].some(visible) ||
@@ -96,7 +103,7 @@
 
   function markRead(pending) {
     if (pendingRead !== pending) return;
-    if (!readContext(pending)) return cancelRead();
+    if (!readContext(pending) || !pending.row.classList.contains("zE")) return cancelRead();
     const remaining = readDelay - (performance.now() - pending.started);
     if (remaining > 0) {
       pending.timer = setTimeout(() => markRead(pending), remaining);
@@ -105,18 +112,54 @@
     const toolbars = [...pending.main.querySelectorAll(S.primaryToolbar)].filter(visible);
     const actions = toolbars.length === 1
       ? [...toolbars[0].querySelectorAll(S.markRead)].filter(node => visible(node) && usable(node)) : [];
-    // Consume the click before delegating. A later explicit Mark as unread
-    // must never restart this timer, and no bulk toolbar action is allowed.
+    // A ready toolbar is not guaranteed at 300ms, and Gmail can ignore a
+    // gesture while rendering it. Keep checking the native unread state until
+    // confirmed, cancelled, or expired; never click a toggle labeled Unread.
+    if (actions.length === 1) {
+      if (!pending.attempted) quietReadNotice();
+      pending.attempted = true;
+      nativeGesture(actions[0]);
+    }
+    if (pendingRead !== pending) return;
+    if (!pending.row.classList.contains("zE")) return cancelRead();
+    pending.timer = setTimeout(() => markRead(pending), readRetryDelay);
+  }
+
+  function restoreUnread(pending) {
+    if (!validReadRow(pending)) return cancelRead();
+    if (!pending.row.classList.contains("zE")) return;
+    const current = app.reverseThreads.currentConversation();
+    // Some Gmail layouts keep the pane open already. Wait only for the native
+    // deselection caused by this action, and never override another selection.
+    if (pending.row.classList.contains("aps")) return;
+    if (pending.main.querySelector('.Nu.tf tr.aps')) return cancelRead();
+    if (current) {
+      if (current.heading.getAttribute('data-thread-perm-id') !== pending.thread.replace(/^#/, '') ||
+          current.heading.getAttribute('data-legacy-thread-id') !== pending.legacy) cancelRead();
+      return;
+    }
+    const link = readIdentity(pending.row)?.closest('[role="link"]');
+    if (!visible(link)) return cancelRead();
     cancelRead();
-    if (actions.length !== 1) return;
-    quietReadNotice();
-    nativeGesture(actions[0]);
+    restoringUnread = true;
+    try { nativeGesture(link); }
+    finally { restoringUnread = false; }
+  }
+
+  function awaitReadRendering(pending) {
+    if (pendingRead !== pending || pending.timer !== undefined) return;
+    // Gmail can finish nested body rendering without changing the watched
+    // chrome. This short, bounded check exists only for the active gesture.
+    pending.timer = setTimeout(() => {
+      pending.timer = undefined;
+      if (pendingRead === pending) schedule();
+    }, 100);
   }
 
   function refreshRead() {
     const pending = pendingRead;
     if (!pending) return;
-    if (!pending.row.matches(S.readingRow) || pending.row.closest(S.main) !== pending.main) return cancelRead();
+    if (!validReadRow(pending)) return cancelRead();
     // These watches exist only during a click's dwell, never across the inbox
     // while idle. Selection attributes stay owned by Gmail.
     if (pending.row.isConnected) {
@@ -126,39 +169,73 @@
       const identity = readIdentity(pending.row);
       if (identity) observer.observe(identity, { attributes: true, attributeFilter: ["data-thread-id", "data-legacy-thread-id"] });
     }
+    if (pending.keepUnread) {
+      restoreUnread(pending);
+      return awaitReadRendering(pending);
+    }
+    if (!pending.row.classList.contains("zE")) return cancelRead();
     const current = readContext(pending);
     if (!current) {
       if (pending.started !== undefined || !pending.row.isConnected || location.hash !== pending.route) cancelRead();
+      else awaitReadRendering(pending);
       return;
     }
     if (pending.started === undefined) {
-      clearTimeout(pending.expiry);
       pending.started = performance.now();
+      clearTimeout(pending.timer);
+      clearTimeout(pending.expiry);
+      pending.expiry = setTimeout(cancelRead, readTimeout);
       pending.timer = setTimeout(() => markRead(pending), readDelay);
     }
   }
 
+  function readCandidate(row) {
+    const identity = readIdentity(row);
+    if (!identity) return null;
+    const pending = { row, main: row.closest(S.main), route: location.hash,
+      thread: identity.getAttribute("data-thread-id"), legacy: identity.getAttribute("data-legacy-thread-id") };
+    return pending.thread && pending.legacy ? pending : null;
+  }
+
+  function keepUnreadOpen(event) {
+    const control = event.target.closest(S.markUnread);
+    if (!control || !visible(control) || !usable(control) || !ownsChrome(control) ||
+        (!control.closest(S.primaryToolbar) && !control.closest(S.readingRow))) return false;
+    cancelRead();
+    const main = control.closest(S.main);
+    const rows = [...main.querySelectorAll(S.readingRow)].filter(row => row.classList.contains("aps"));
+    if (rows.length !== 1) return true;
+    const pending = readCandidate(rows[0]);
+    if (!pending || !readContext(pending) ||
+        (control.closest(S.readingRow) && control.closest(S.readingRow) !== pending.row)) return true;
+    pending.keepUnread = true;
+    pendingRead = pending;
+    pending.expiry = setTimeout(cancelRead, 5000);
+    schedule();
+    return true;
+  }
+
   function openForRead(event) {
-    if (!(event.target instanceof Element)) return;
+    if (restoringUnread || !(event.target instanceof Element)) return;
+    if (keepUnreadOpen(event)) return;
     const row = event.target.closest(S.readingRow);
     if (!row || event.target.closest(readExcluded) || event.button !== 0 ||
         event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (pendingRead?.row === row && readContext(pendingRead)) return;
+    if (pendingRead?.row === row && !pendingRead.keepUnread && readContext(pendingRead)) return;
     cancelRead();
     if (!row.classList.contains("zE") || document.hidden) return;
-    const identity = readIdentity(row);
-    const pending = { row, main: row.closest(S.main), route: location.hash,
-      thread: identity.getAttribute("data-thread-id"), legacy: identity.getAttribute("data-legacy-thread-id") };
-    if (!pending.thread || !pending.legacy) return;
+    const pending = readCandidate(row);
+    if (!pending) return;
     pendingRead = pending;
     // Bound a click whose message never opens; normal discovery supplies the
     // loaded conversation. Loading time never counts as reading time.
-    pending.expiry = setTimeout(cancelRead, 10000);
+    pending.expiry = setTimeout(cancelRead, readTimeout);
     schedule();
   }
 
   function interruptRead(event) {
     if (!pendingRead || !(event.target instanceof Element)) return;
+    if (pendingRead.keepUnread) return cancelRead();
     const shell = readContext(pendingRead)?.heading.closest(S.readingShell);
     if (event.target.closest(readExcluded) ||
         (!shell?.contains(event.target) && !pendingRead.row.contains(event.target))) cancelRead();

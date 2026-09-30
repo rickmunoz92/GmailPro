@@ -120,13 +120,17 @@ pane to Gmail’s measured viewport.
   alone indicates unread status; both states share the same background.
 - **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
   the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
-  The dot is hidden while selected, without changing the native unread state.
+  An unread dot turns white while selected and disappears only when Gmail marks
+  the conversation read.
   An ordinary click on an unread reading-pane conversation starts a 300ms dwell
   once its message body is visible. Gmail Pro then clicks Gmail's native **Mark
-  as read** action, so counts and read status update through Gmail. Leaving the
+  as read** action, so counts and read status update through Gmail. It checks
+  Gmail's unread state and retries every 250ms if the control is late or ignores
+  the gesture, for at most ten seconds. Leaving the
   conversation, switching tabs/windows, navigation, bulk selection, or disabling
   Apple Mail Mode cancels the pending action. Loading time does not count.
-  Manual **Mark as unread** stays in effect until another ordinary opening click.
+  Manual **Mark as unread** restores the same conversation if Gmail clears the
+  pane, keeping it selected and unread until another ordinary opening click.
   Automatic reads also dismiss the **Conversation marked as read.** confirmation
   through Gmail's native Close control. Other notifications and their Undo
   controls stay available. The watch ends after one dismissal or five seconds.
@@ -276,11 +280,16 @@ clicks Gmail’s normal Send button with the draft’s current recipients.
 
 ### Mac keyboard shortcuts
 
-All five shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
+All six shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
 in the extension popup. Use **Save preferences** to apply changes.
 
 - **⌘⇧A — Archive:** clicks Gmail’s main Archive button for selected conversations or
   the open conversation. Does nothing in search/editable fields, composers, or menus/dialogs.
+- **⌘⇧U — Toggle read/unread:** uses Gmail’s currently available **Mark as read**
+  or **Mark as unread** action. Each press toggles the open conversation; selected
+  groups follow Gmail’s bulk-action behavior. In Apple Mail Mode, marking unread
+  keeps the reading-pane message selected without restarting automatic read.
+  Search/editable fields, composers, and menus/dialogs do not change read status.
 - **⌘⇧D — Send:** clicks the normal Send button only in the composer currently focused
   in its body, recipients, subject, or controls. It never guesses another draft, sends a
   minimized draft, or substitutes Send & archive.

@@ -1,5 +1,26 @@
 # Automatic read after 300ms — 0.9.26
 
+## Read-status consistency and selection — 0.9.34
+
+- **58/58** automatic-read checks passed in Chrome: at least 300ms of visible
+  body time, nested/staged loading, ignored gestures, late/disabled/ambiguous
+  controls, delayed confirmation, quick switching, cancellation, bounded retry
+  expiry, manual unread restoration, reopening, bulk selection, and cleanup.
+- **57/57** Apple Mail appearance checks passed, including white selected
+  unread dots across both themes/eight accents, disappearance after native read,
+  and restoration after native unread. Existing reading-pane checks: **31/31**.
+- Manifest/resource/permission/syntax validation and **33/33** Node checks passed.
+- Updated the four changed production files in the installed unpacked extension,
+  reloaded **0.9.34**, and refreshed Gmail. Live testing on an already-read
+  notification confirmed that **Mark as unread** restores the same selected
+  conversation, retains its readable body, and shows a white dot. It stayed
+  unread while open; switching away and returning marked it read again. The
+  notification ended in its original read state. Exact minimum timing is covered
+  by the synthetic tests. No message was sent and no draft content was edited.
+- Gmail remains the source of truth; its own automatic-read preference still
+  applies. A slow or unavailable native control may delay confirmation beyond
+  300ms. Retries expire rather than claiming a read that Gmail did not confirm.
+
 ## Quiet automatic-read confirmation — 0.9.27
 
 Before the automatic native read gesture, the reading-pane controller briefly
@@ -25,7 +46,7 @@ Unknown markup or a missing Close control falls back to Gmail's notification.
   back offscreen through the native Close action. The reminder ended read.
 
 An ordinary primary click on an unread split-pane conversation in Apple Mail
-Mode starts a single 300ms timer after the matching message body is visible.
+Mode starts a 300ms timer after the matching message body is visible.
 The existing reading-pane controller owns the timer and uses the shared
 conversation discovery. Both native thread IDs and the native `.aps`/`.zE`
 states must match again at activation. Only one visible, enabled **Mark as read**
@@ -37,12 +58,23 @@ synthetic toolbar requires pressed/released state to catch that regression.
 
 Pending reads cancel on conversation changes, identity changes, row removal,
 navigation, keyboard input, tab visibility changes, window blur, mode OFF, and
-page cleanup. There is no startup read, retry loop, mailbox scan, network call,
+page cleanup. There is no startup read, idle polling, network call,
 stored read-state copy, or new permission. Temporary observation is confined
 to the candidate row, its identity, table child list, and checkbox attributes.
 An unopened click expires after ten seconds. Existing chrome observation and
-conversation discovery handle staged rendering. The timer does not run while
-the message body is missing or hidden.
+conversation discovery handle staged rendering, with a bounded 100ms readiness
+check for nested body changes that do not touch the observed chrome. The 300ms
+timer does not run while the message body is missing or hidden. At the deadline,
+Gmail Pro rechecks the native unread state and retries the explicit **Mark as
+read** action every 250ms for up to ten seconds. It stops on confirmation or
+cancellation, and never substitutes a **Mark as unread** toggle.
+
+The native toolbar's **Mark as unread** action is allowed to finish. If it
+clears the reading pane, Gmail Pro reopens the same identified row once through
+Gmail's native link, suppressing auto-read for that restoration. No native
+selection/read classes or received HTML are rewritten. The restoration wait
+expires after five seconds and cancels on user navigation, bulk selection,
+identity loss, or cleanup. Another ordinary opening click gets a fresh dwell.
 
 Run `python3 scripts/serve-tests.py`, then open `/tests/autoRead.html` in the
 foreground. Tests exercise the native-action bridge with synthetic messages,

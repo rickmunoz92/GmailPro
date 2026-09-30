@@ -265,7 +265,8 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     color: var(--gp-accent-contrast) !important;
     background: transparent !important;
   }
-  :scope.aps > .yX::before, :scope:has(> td > [role="checkbox"][aria-checked="true"]) > .yX::before { visibility: hidden; }
+  :scope.aps > .yX::before { background: #fff; }
+  :scope:has(> td > [role="checkbox"][aria-checked="true"]):not(.aps) > .yX::before { visibility: hidden; }
   :scope :is(.T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-icon-filter); }
   :scope.aps :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE),
   :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-selected-icon-filter); }

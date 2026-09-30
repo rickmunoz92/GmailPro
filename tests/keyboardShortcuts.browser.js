@@ -6,7 +6,7 @@
   let archived=0,sent=0,discarded=0,undone=0,serial=0;
   let currentThread=null, composeActions=[];
   app.reverseThreads={currentConversation:()=>currentThread};
-  const composeOff={replyAllShortcutEnabled:false,forwardShortcutEnabled:false};
+  const composeOff={replyAllShortcutEnabled:false,forwardShortcutEnabled:false,readShortcutEnabled:false};
   const actionPress=action=>press(action==='forward'?'f':'r',{shiftKey:true});
   const nativeShortcut=event=>{if(event.metaKey&&event.shiftKey&&event.key.toLowerCase()==='d')discarded++;};
   const key=(value='d',type='keydown',patch={})=>{
@@ -40,6 +40,16 @@
     toast.querySelector('#link_undo').onclick=()=>undone++;
     workspace.append(toast);return toast;
   }
+  function readToggle(unread=false) {
+    const button=document.createElement('button'), actions=[];
+    const update=()=>{button.setAttribute('aria-label',unread?'Mark as read':'Mark as unread');button.textContent=button.getAttribute('aria-label');};
+    let pressed=false,released=false;
+    button.onmousedown=()=>{pressed=true;released=false;};
+    button.onmouseup=()=>{released=pressed;pressed=false;};
+    button.onclick=()=>{if(!released)return;released=false;actions.push(unread?'read':'unread');unread=!unread;update();};
+    update();workspace.querySelector('[gh="mtb"]').append(button);
+    return {button,actions};
+  }
   const undo=patch=>press('z',{shiftKey:false,...patch});
   function conversation({bridged=false}={}) {
     const shell=document.createElement('div');shell.className='iY';
@@ -66,6 +76,50 @@
   await test('archive delegates once to the native toolbar for open and bulk selections',()=>{
     for(const selected of [0,1,3]){workspace.dataset.selected=String(selected);const original=workspace.innerHTML;press('a');assert(workspace.innerHTML===original,'selection DOM untouched');}
     assert(archived===3&&sent===0&&discarded===0,'one archive per press');
+  });
+  for(const unread of [false,true])await test('Command Shift U toggles both directions from '+(unread?'unread':'read'),()=>{
+    const f=readToggle(unread);press('u');press('u');
+    assert(f.actions.join(',')===(unread?'read,unread':'unread,read'),'fresh native state on each press');
+    assert(!archived&&!sent&&!discarded,'only read status changes');
+  });
+  await test('read toggle suppresses native fallthrough and held-key repeats',()=>{
+    const f=readToggle();let native=0;const fallback=e=>{if(e.key.toLowerCase()==='u')native++;};
+    for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,fallback);
+    try {
+      assert(key('u').defaultPrevented,'chord reserved');key('u','keydown',{repeat:true});key('u','keypress');key('u','keyup');
+      assert(f.actions.join(',')==='unread'&&native===0,'one toggle, no native duplicate');
+      key('u');key('u');assert(f.actions.join(',')==='unread,read,unread','fresh presses work without keyup');
+    } finally {for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,fallback);}
+  });
+  await test('read toggle rejects unavailable, ambiguous and per-row controls',()=>{
+    const f=readToggle(),toolbar=workspace.querySelector('[gh="mtb"]');
+    const decoy=f.button.cloneNode(true);decoy.onclick=()=>{throw Error('per-row action');};workspace.append(decoy);
+    for(const state of ['disabled','hidden','missing','duplicate','opposite']) {
+      f.button.disabled=state==='disabled';f.button.hidden=state==='hidden';toolbar.replaceChildren();
+      if(state!=='missing')toolbar.append(f.button);
+      if(['duplicate','opposite'].includes(state)) {const other=f.button.cloneNode(true);if(state==='opposite')other.setAttribute('aria-label','Mark as read');toolbar.append(other);}
+      press('u');assert(!f.actions.length,'no guessed target for '+state);
+    }
+  });
+  for(const context of ['search','draft','menu','dialog'])await test('read toggle does nothing in '+context,()=>{
+    const f=readToggle();
+    if(context==='search')workspace.querySelector('input').focus();
+    else if(context==='draft')draft();
+    else {const overlay=document.createElement('div');overlay.setAttribute('role',context);overlay.textContent='Overlay';workspace.append(overlay);}
+    press('u');assert(!f.actions.length,'read state unchanged');
+  });
+  await test('read toggle follows Gmail bulk action and replacement controls',()=>{
+    const f=readToggle(true);workspace.dataset.selected='3';press('u');assert(f.actions.join(',')==='read','native bulk action');
+    f.button.remove();press('u');const next=readToggle(false);press('u');assert(next.actions.join(',')==='unread','new toolbar state');
+  });
+  await test('read toggle leaves extra modifiers and ordinary U untouched',()=>{
+    const f=readToggle();for(const patch of [{ctrlKey:true},{altKey:true},{metaKey:false},{shiftKey:false},{isComposing:true}])assert(!press('u',patch).defaultPrevented,'native combination');
+    assert(!f.actions.length,'no extra action');
+  });
+  await test('read toggle preference defaults on and switches independently',()=>{
+    const f=readToggle();assert(app.settings.defaults.readShortcutEnabled,'default on');feature.update({readShortcutEnabled:false});
+    assert(!press('u').defaultPrevented&&!f.actions.length,'disabled is native');press('a');assert(archived===1,'other shortcuts stay enabled');
+    feature.update({readShortcutEnabled:true});press('u');assert(f.actions.join(',')==='unread','reenabled');
   });
   for(const field of ['input','textarea','select','[contenteditable]'])await test('archive does nothing while editing '+field,()=>{
     const node=field==='[contenteditable]'?document.createElement('div'):document.createElement(field);if(field==='[contenteditable]')node.contentEditable='true';workspace.append(node);node.focus();assert(press('a').defaultPrevented&&archived===0,'reserved, no archive');
@@ -263,9 +317,10 @@
   workspace.replaceChildren();
   document.getElementById('manual').disabled=false;
   document.getElementById('manual').onclick=()=>{
-    setup();conversation();const toast=undoNotice(),host=draft();
+    setup();conversation();const toast=undoNotice(),host=draft(),read=readToggle();
     const output=document.getElementById('manual-results');
-    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,composeActions,focus:document.activeElement.getAttribute('aria-label')});};
+    const render=()=>{output.textContent=JSON.stringify({archived,sent,discarded,undone,composeActions,readActions:read.actions,focus:document.activeElement.getAttribute('aria-label')});};
+    read.button.addEventListener('click',render);
     for(const control of workspace.querySelectorAll('.ams'))control.addEventListener('click',render);
     toast.querySelector('#link_undo').addEventListener('click',render);
     host.querySelector('.send').addEventListener('click',render);workspace.querySelector('[aria-label="Archive"]').addEventListener('click',render);render();

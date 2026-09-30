@@ -118,7 +118,9 @@
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= selectionContrast, "subject contrast");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= selectionContrast, "date contrast");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".at .av")).color) >= selectionContrast, "nested Gmail label text contrast");
-    assert(dot(node).visibility === "hidden" && node.classList.contains("zE"), "selected unread state retained, redundant dot hidden");
+    assert(dot(node).visibility === "visible" && dot(node).backgroundColor === "rgb(255, 255, 255)" && node.classList.contains("zE"), "selected unread dot stays white until Gmail marks read");
+    node.classList.remove("zE"); assert(dot(node).content === "none", "confirmed read removes selected dot");
+    node.classList.add("zE"); assert(dot(node).backgroundColor === "rgb(255, 255, 255)", "manual unread restores white dot");
     const selected = document.querySelector(".TO.nZ"), link = selected.querySelector("a");
     assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");
     assert(css(link).color === token("--gp-label-accent"), "accent mailbox text");

@@ -97,6 +97,7 @@
     // never infer a conversation from its subject, focus, or checkbox alone.
     readingRow: '[role="main"] .Nu.tf table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id][data-legacy-thread-id]):not([data-message-id] *)',
     markRead: '[role="button"][aria-label="Mark as read"], button[aria-label="Mark as read"]',
+    markUnread: '[role="button"]:is([aria-label="Mark as unread"], [aria-label="Mark unread"]), button:is([aria-label="Mark as unread"], [aria-label="Mark unread"])',
     toolbarMore: '[role="button"][aria-label="More email options"]',
     nativeFooter: '.btDi4d .amn, .gA .amn',
     nativeReplyAll: '.ams.bkI[role="link"]',
