@@ -222,6 +222,101 @@
     assert(composer.attempts === 0 && visual(t.list)[0] === t.nodes[2], "independent settings");
   });
   const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  await test("initially hidden message list recovers when Gmail reveals it", async () => {
+    const t = thread(); t.list.style.display = "none"; enable(); await frame();
+    assert(!isReversed(t.list), "hidden native list is left hidden");
+    t.list.style.removeProperty("display"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "revealed list becomes newest first");
+  });
+  await test("Gmail hiding and reopening a cached list does not permanently disable ordering", async () => {
+    const t = thread(); enable(); await frame();
+    t.list.style.display = "none"; await frame();
+    assert(getComputedStyle(t.list).display === "none", "Gmail can hide the list");
+    t.list.style.removeProperty("display"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "cached list recovers on reopening");
+  });
+  await test("reply rerender clearing the ordering marker revalidates before paint", async () => {
+    const t = thread(); enable(); await frame();
+    const reply = item(3); t.list.append(reply); t.list.removeAttribute("data-gmail-pro-thread-order");
+    await frame();
+    assert(matches(visual(t.list), [reply, ...t.nodes.slice().reverse()]), "new reply is first after native rerender");
+    assert(matches([...t.list.children], [...t.nodes, reply]), "native message nodes never move");
+  });
+  await test("released external layout can recover while active external layout stays untouched", async () => {
+    const t = thread(); enable(); await frame();
+    t.nodes[0].style.order = "99"; await frame();
+    t.nodes[1].setAttribute("aria-expanded", "true"); await frame();
+    assert(!isReversed(t.list) && t.nodes[0].style.order === "99", "external layout remains in control");
+    t.nodes[0].style.removeProperty("order"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "ordering resumes when conflict is gone");
+  });
+  await test("staged replacement is discovered even while another cached list remains", async () => {
+    const cached = thread(); cached.shell.hidden = true;
+    const outer = el("section"), inner = el("div"); outer.append(inner); main().append(outer);
+    const first = thread(3, [], inner); enable(); await frame();
+    first.shell.remove(); await frame();
+    const next = thread(3, [], inner); next.heading.removeAttribute("data-thread-perm-id"); await frame();
+    assert(!isReversed(next.list), "pending pane does not borrow the cached thread's heading");
+    next.heading.setAttribute("data-thread-perm-id", "replacement-thread"); await frame();
+    assert(matches(visual(next.list), next.nodes.slice().reverse()), "cached list cannot cancel replacement discovery");
+  });
+  await test("healthy list updates cannot cancel another conversation's pending metadata", async () => {
+    const ready = thread(); const pending = thread();
+    pending.heading.removeAttribute("data-thread-perm-id"); enable(); await frame();
+    assert(!isReversed(pending.list), "pending metadata must be validated independently");
+    ready.nodes[0].setAttribute("aria-expanded", "true"); await frame();
+    pending.heading.setAttribute("data-thread-perm-id", "pending-thread"); await frame();
+    assert(matches(visual(pending.list), pending.nodes.slice().reverse()), "pending heading still observed");
+  });
+  await test("opening a second deeply staged pane retains discovery until its list is ready", async () => {
+    const cached = thread(); enable(); await frame(); cached.shell.hidden = true;
+    const outer = el("section"), inner = el("div"); outer.append(inner); main().append(outer); await frame();
+    const next = thread(3, [], inner); await frame();
+    assert(matches(visual(next.list), next.nodes.slice().reverse()), "deep pane discovered alongside cache");
+  });
+  await test("hidden attribute on a reused list is respected and ordering resumes on reveal", async () => {
+    const t = thread(); enable(); await frame(); t.list.hidden = true; await frame();
+    assert(getComputedStyle(t.list).display === "none", "ordering cannot override Gmail's hidden state");
+    t.list.hidden = false; await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "shown list recovers");
+  });
+  await test("pending pane discovery excludes message bodies, mailbox rows and compose editors", async () => {
+    const t = thread(), pending = el("section"), row = el("div", { role: "row" });
+    const form = el("form"), editor = el("div", { contenteditable: "true" });
+    main().append(pending, row, form, editor); enable(); await frame();
+    const before = deliveries;
+    for (let i = 0; i < 100; i++) {
+      for (const node of [t.nodes[0].querySelector('[data-message-id]'), row, form, editor]) node.append(el("span"));
+    }
+    await frame();
+    assert(deliveries === before, "content updates do not wake scaffold discovery");
+    const next = thread(3, [], pending); await frame();
+    assert(matches(visual(next.list), next.nodes.slice().reverse()), "pending shell still discovers its conversation");
+  });
+  await test("external marker is preserved until its owner releases the list", async () => {
+    const t = thread(); enable(); await frame();
+    t.list.setAttribute("data-gmail-pro-thread-order", "external"); await frame();
+    assert(t.list.getAttribute("data-gmail-pro-thread-order") === "external", "external marker retained");
+    t.list.removeAttribute("data-gmail-pro-thread-order"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "ordering returns when external owner releases it");
+  });
+  await test("a marker released by its previous owner is not resurrected when disabled", async () => {
+    const t = thread(); t.list.setAttribute("data-gmail-pro-thread-order", "external");
+    enable(); await frame();
+    assert(t.list.getAttribute("data-gmail-pro-thread-order") === "external", "existing marker preserved");
+    t.list.removeAttribute("data-gmail-pro-thread-order"); await frame();
+    assert(matches(visual(t.list), t.nodes.slice().reverse()), "released layout can be ordered");
+    app.reverseThreads.stop();
+    assert(!isReversed(t.list) && matches(visual(t.list), t.nodes), "disable returns the current native layout");
+  });
+  await test("a pane waiting for its heading cannot borrow a cached conversation's identity", async () => {
+    const cached = thread(); cached.shell.hidden = true;
+    const pending = thread(); pending.heading.remove(); enable(); await frame();
+    assert(!isReversed(pending.list) && !app.reverseThreads.currentConversation(), "no identity until this pane has a heading");
+    pending.heading.setAttribute("data-thread-perm-id", "new-conversation"); pending.shell.prepend(pending.heading); await frame();
+    assert(matches(visual(pending.list), pending.nodes.slice().reverse()), "new conversation is ordered");
+    assert(app.reverseThreads.currentConversation()?.heading === pending.heading, "shared consumers receive the new identity");
+  });
   await test("fully read conversation keeps newest first through collapse and setting changes", async () => {
     const t = thread();
     // Read/collapsed Gmail headers have no loaded message body or message IDs.

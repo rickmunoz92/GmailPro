@@ -6,10 +6,10 @@
   const active = new Map();
   const mains = new Set();
   const pendingRoots = new Set();
-  let bootstrap;
-  const discoveryOptions = { childList: true, subtree: true, attributes: true,
+  const discoveryOptions = { childList: true, attributes: true,
     attributeFilter: ["role", "data-thread-perm-id", "data-legacy-thread-id"] };
-  const attributes = ["role", "aria-expanded", "tabindex", "jsaction", "style", "data-gmail-pro-thread-order"];
+  const attributes = ["role", "aria-expanded", "tabindex", "jsaction", "style", "class", "hidden", "data-gmail-pro-thread-order"];
+  const discoveryExcluded = `${S.threadMessage}, ${S.threadRow}, form, [contenteditable], .ii, .a3s`;
   let enabled = false;
   let reverseEnabled = false;
   const conversationListeners = new Set();
@@ -19,9 +19,16 @@
   function headerFor(list) {
     if (list.closest(S.threadMessage) || !list.closest(S.main)) return null;
     for (let parent = list.parentElement; parent; parent = parent.parentElement) {
-      const headings = [...parent.querySelectorAll(S.threadHeading)]
+      const headings = [...parent.querySelectorAll("h2")]
         .filter(heading => !heading.closest(S.threadList));
-      if (headings.length === 1) return headings[0];
+      // A nearby heading awaiting its IDs belongs to this pane. Do not borrow
+      // the identity of another, cached conversation higher in the main shell.
+      if (headings.length) {
+        if (headings.length !== 1 || !headings[0].matches(S.threadHeading)) return null;
+        const lists = [...parent.querySelectorAll(S.threadList)]
+          .filter(node => !node.parentElement.closest(S.threadList) && !node.closest(S.threadMessage));
+        return lists.length === 1 && lists[0] === list ? headings[0] : null;
+      }
       if (parent.matches(S.main)) break;
     }
     return null;
@@ -105,8 +112,7 @@
   function restore(state) {
     const changed = state.mode !== null;
     if (state.mode && state.list.getAttribute(marker) === state.mode) {
-      if (state.originalMarker === null) state.list.removeAttribute(marker);
-      else state.list.setAttribute(marker, state.originalMarker);
+      state.list.removeAttribute(marker);
     }
     state.mode = null;
     state.nativeStyles.clear();
@@ -156,28 +162,25 @@
     if (!enabled || !state.list.isConnected) return release(state);
     state.observer.disconnect(); // Our style writes never feed this observer.
     try {
-      if (conflicted(state)) {
-        state.blocked = true; // Do not compete with another style owner this session.
-        app.debug.log("thread-selector-failure");
-      }
+      // Gmail can clear our marker or hide/rebuild a cached list after replying.
+      // Release stale baselines, then validate the current native layout again.
+      // A live competing layout still fails the checks below; a temporary one
+      // must not disable this conversation for the rest of the page session.
+      if (conflicted(state)) restore(state);
       const plan = state.list.matches(S.threadList) && headerFor(state.list) && ordering(state.list);
-      if (!plan || state.blocked) {
-        const main = state.list.closest(S.main);
-        if (!state.blocked && main) bootstrap.observe(main, discoveryOptions);
+      if (!plan) {
         restore(state);
         if (!state.invalid) app.debug.log("thread-selector-failure");
         state.invalid = true;
         return;
       }
       state.invalid = false;
-      // Gmail can insert an empty list or add its role/heading IDs later.
-      // Finish discovery only once the message structure is actually ready.
-      bootstrap?.disconnect();
       for (const node of state.styles.keys()) {
         if (node !== state.list && node.parentElement !== state.list) restoreNode(state, node);
       }
       if (!reverseEnabled) return restore(state);
       if (plan.messages.length < 2) return restore(state);
+      if (state.list.hidden) return restore(state);
       if (plan.children.length === state.originalOrder.length &&
           plan.children.every((node, i) => node === state.originalOrder[i]) &&
           plan.visual.every((node, i) => node === state.visualOrder[i])) return;
@@ -185,8 +188,7 @@
         // Batch style reads before writes. Avoid taking over an existing layout
         // reversal from another extension or a redesigned Gmail message list.
         const layout = getComputedStyle(state.list);
-        if (!["block", "flow-root"].includes(layout.display)) {
-          state.blocked = true;
+        if (!["block", "flow-root"].includes(layout.display) || state.list.hasAttribute(marker)) {
           app.debug.log("thread-selector-failure");
           return;
         }
@@ -196,7 +198,7 @@
       // A new child could belong to another layout owner. Check before writing.
       for (const node of plan.children) {
         if (!state.nativeStyles.has(node) && !state.styles.has(node) && getComputedStyle(node).order !== "0") {
-          restore(state); state.blocked = true;
+          restore(state);
           app.debug.log("thread-selector-failure");
           return;
         }
@@ -224,7 +226,6 @@
       if (changed) app.debug.log("thread-reordered");
     } catch {
       restore(state);
-      state.blocked = true;
       app.debug.log("thread-selector-failure");
     } finally {
       if (enabled && active.has(state.list)) observeThread(state);
@@ -239,7 +240,7 @@
       return;
     }
     if (!headerFor(list)) return;
-    const state = { list, styles: new Map(), nativeStyles: new Map(), originalMarker: list.getAttribute(marker), mode: null, originalOrder: [], visualOrder: [], blocked: false, invalid: false };
+    const state = { list, styles: new Map(), nativeStyles: new Map(), mode: null, originalOrder: [], visualOrder: [], invalid: false };
     state.observer = new MutationObserver(() => apply(state));
     active.set(list, state);
     observeThread(state);
@@ -248,14 +249,9 @@
   }
 
   function scan(root) {
-    if (!(root instanceof Element) || !root.isConnected || root.closest(S.threadMessage)) return;
+    if (!(root instanceof Element) || !root.isConnected || root.closest(discoveryExcluded)) return;
     const foundMains = root.matches(S.main) ? [root] : [...root.querySelectorAll(S.main)];
-    for (const main of foundMains) {
-      if (!mains.has(main)) {
-        mains.add(main);
-        bootstrap.observe(main, discoveryOptions);
-      }
-    }
+    for (const main of foundMains) mains.add(main);
     const enclosing = root.closest(S.threadList);
     if (enclosing && active.has(enclosing)) return;
     // A heading can arrive after an empty list. Revisit only its local main.
@@ -267,7 +263,7 @@
     for (const list of root.querySelectorAll(S.threadList)) register(list);
   }
 
-  function watchSpines() {
+  function watchScaffold() {
     discovery.disconnect();
     const watched = new Set();
     const watch = start => {
@@ -278,7 +274,21 @@
       }
     };
     for (const main of mains) {
-      if (main.isConnected) watch(main); else mains.delete(main);
+      if (!main.isConnected) { mains.delete(main); continue; }
+      watch(main);
+      // Watch the conversation scaffold, including empty pane containers and
+      // headings whose IDs arrive later. Stop at message lists owned by their
+      // thread observer, message bodies, mailbox rows and compose editors.
+      // Keeping these shallow watches alive lets a new pane finish loading
+      // even when Gmail retains a valid cached conversation beside it.
+      const pending = [main];
+      while (pending.length) {
+        const node = pending.pop();
+        if (active.has(node) || node.matches(discoveryExcluded)) continue;
+        discovery.observe(node, discoveryOptions);
+        watched.add(node);
+        pending.push(...node.children);
+      }
     }
     for (const state of active.values()) watch(state.list.parentElement);
     if (!watched.size) watch(document.body || document.documentElement);
@@ -287,19 +297,15 @@
   function discover() {
     if (!enabled) return;
     for (const state of active.values()) if (!state.list.isConnected) release(state);
-    // Re-arm when a pane is removed. Its replacement may be built deep inside
-    // an existing container, including keyboard navigation with no hash change.
+    // Revalidate a reused list when its heading is temporarily replaced.
     for (const state of active.values()) if (!headerFor(state.list)) apply(state);
-    if (!active.size) for (const main of mains) {
-      if (main.isConnected) bootstrap.observe(main, discoveryOptions);
-    }
     for (const root of pendingRoots) {
       let parent = root.parentElement;
       while (parent && !pendingRoots.has(parent)) parent = parent.parentElement;
       if (!parent) scan(root); // One scan per added subtree, not each descendant.
     }
     pendingRoots.clear();
-    watchSpines();
+    watchScaffold();
     notifyConversation();
   }
 
@@ -320,11 +326,7 @@
 
   function navigation() {
     if (!enabled) return;
-    bootstrap?.disconnect();
     for (const main of document.querySelectorAll(S.main)) {
-      // A newly opening pane can build deep descendants before a list exists.
-      // Watch until validated, not for a fixed timeout that races slow rendering.
-      bootstrap.observe(main, discoveryOptions);
       mains.add(main);
       pendingRoots.add(main);
     }
@@ -344,7 +346,6 @@
     if (!enabled) return;
     enabled = false;
     discovery?.disconnect();
-    bootstrap?.disconnect();
     window.removeEventListener("hashchange", navigation);
     window.removeEventListener("popstate", navigation);
     document.removeEventListener("focusin", focus, true);
@@ -359,14 +360,12 @@
     if (enabled) return;
     enabled = true;
     discovery = new MutationObserver(queue);
-    bootstrap = new MutationObserver(queue);
     window.addEventListener("hashchange", navigation);
     window.addEventListener("popstate", navigation);
     document.addEventListener("focusin", focus, true);
     document.addEventListener("click", openRow, true);
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", navigation, { once: true });
     navigation();
-    watchSpines();
   }
 
   function update(patch = {}) {

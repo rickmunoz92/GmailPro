@@ -329,7 +329,15 @@ numbered group of older messages keeps the newest message first, including Gmail
 summaries that omit `aria-expanded` until opened. Discovery waits
 for Gmail's list role, heading metadata, and complete message wrappers, including
 slow or staged reading-pane loads. Once validated, it returns to shallow watches
-outside message bodies; removing the pane re-arms discovery for its replacement.
+outside message bodies. Those watches also cover empty pane containers, so a cached
+conversation cannot stop discovery of a newly opened or replacement pane. Each pane
+must have its own completed heading metadata before ordering is applied.
+
+Temporary hiding, native layout changes, and cleared ordering markers are revalidated
+when Gmail updates the list. Reopening a cached conversation or rendering a new reply
+can therefore restore newest-first ordering without reloading Gmail. Active competing
+layout styles are still left alone; ordering resumes when they are removed. Mailbox
+row contents, message bodies, and compose editors are excluded from discovery watches.
 
 Complete wrappers keep their sender details, attachments, message controls, and
 inline composers. Message nodes are never moved or cloned; timestamps and server-side
