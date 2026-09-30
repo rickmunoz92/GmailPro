@@ -178,6 +178,95 @@ folders are distinct, so production files were copied explicitly.
   bar's native advanced-search panel opens normally and closes with Escape.
   Returned to Inbox afterward. No messages were opened, sent, or modified.
 
+## Mailbox caption — 0.9.40
+
+- Added an 11px, theme-aware muted caption directly below the toolbar border,
+  inside Gmail's native conversation list. It uses 22px of list space, remains
+  sticky while that list scrolls, and adds no gap to the reading pane.
+- Shows the current mailbox or final nested-label name and Gmail's pagination
+  total. Singular, formatted, approximate, empty, unavailable, and pending totals
+  are covered. Counts describe Gmail's listed conversations using the requested
+  “messages” wording; individual replies are not read or tallied.
+- Normalizes encoded SPA label routes against native sidebar links. Withholds
+  the old total during navigation until native count evidence changes. Uses only
+  the existing header controller, bounded chrome observers, and shallow list
+  replacement watches. Mode OFF removes the caption; cloned/replaced panes
+  recover without duplicate captions or idle writes.
+- Header checks pass 42/42, including eight caption regressions; appearance
+  checks pass 57/57 and Node validation passes 36/36. Diff whitespace checks pass.
+- Applied and reloaded 0.9.40 in Chrome's verified loaded folder. Live captions:
+  Inbox • 10 messages, Sent • 14,483 messages, Starred • 1 message,
+  Flowserve • 680 messages, and Snoozed • 0 messages. Inbox's caption is 22px
+  high at y=49 immediately beneath the 49px toolbar; search remains 360px wide.
+  Returned to Inbox. No messages were opened, sent, or modified.
+
+## Caption spacing in short folders — 0.9.41
+
+- Reproduced the intermittent gap in live Inbox: Gmail's `.Nu.tf` uses
+  `justify-content: space-between`, distributing spare height above and below
+  short conversation lists once the caption becomes an extra section. The
+  measured caption-to-first-row gap was 157.5px.
+- A scoped CSS rule absorbs that spare height after the native `.ae4` list,
+  keeping conversations immediately below the 22px caption and the footer at
+  the bottom. It applies whenever a caption is present across folders, labels,
+  and search results. Native heights, scrolling, and the reading pane are retained;
+  removing the caption or turning the mode off restores native spacing.
+- Added native short-list/loading/footer geometry to browser fixtures. The new
+  regression failed before the fix and passed afterward. Checks cover multiple
+  folders, nested labels, search, both header states, changing content heights,
+  loading sections, content replacement, overflowing lists, scrolling, and OFF.
+  Header checks pass 44/44, appearance checks 57/57, Node validation 36/36,
+  and diff whitespace checks pass.
+- Applied and reloaded 0.9.41 in the verified loaded Chrome extension. Live
+  Inbox, Starred, Sent, and Flowserve have a 0px caption-to-first-row gap.
+  Snoozed's empty-state container also has a 0px gap. Inbox retains a 49px toolbar,
+  360px search, and footer ending 16px above the pane bottom. Returned to Inbox;
+  no message actions were performed during verification.
+
+## Fixed caption while scrolling — 0.9.42
+
+- Moved the caption out of Gmail's native scrolling pane and beside the toolbar.
+  It uses fixed positioning against the measured pane bounds. A 22px pseudo-element
+  reserves its existing space inside the list, retaining the short-list spacing
+  fix, footer placement, and Gmail's scrolling ownership. No scroll listener or
+  per-scroll positioning writes were added.
+- Pane resize observation keeps the caption aligned when the splitter or header
+  layout changes. Reserved space follows native pane replacement and cleans up
+  when the feature stops. The fixed caption shields covered rows from clicks.
+- The new regression failed on the sticky implementation and passed after the
+  change. Checks assert that the caption is outside the scroll surface, keeps
+  identical bounds throughout scrolling, performs no caption writes on scroll,
+  follows native width and header changes, and removes its reserved space on OFF.
+  Header checks pass 45/45, appearance checks 57/57, Node validation 36/36,
+  and diff whitespace checks pass.
+- Applied and reloaded 0.9.42 in Chrome's verified loaded folder. In an isolated
+  live Flowserve view, native wheel scrolling moved the list from 0 to 830 and
+  1719px while caption bounds stayed x=217, y=49, width=434.25, height=22.
+  Advancing from conversations 1–50 to 51–100 retained those exact bounds and
+  the total of 680. The initial conversation-to-caption gap remained 0px.
+  Closed the isolated verification view; no message actions were performed.
+
+## Caption locked to its toolbar — 0.9.43
+
+- The separately positioned caption still used scrolling-pane coordinates.
+  Moved it into the native toolbar itself, with CSS anchoring it directly below
+  the border. Only its width follows the native pane; scrolling cannot update
+  independent top/left coordinates. The existing 22px reservation, short-list
+  spacing, native scroll positions, and reading pane remain intact.
+- Added a regression that shifts the native pane repeatedly while scrolling.
+  It failed on 0.9.42 and now verifies unchanged toolbar-relative placement,
+  zero positioning writes, native toolbar replacement, and duplicate cleanup.
+  Fractional pane widths and native scrollbar gutters remain correctly aligned.
+- Header checks pass 46/46, appearance checks 57/57, Node validation 36/36,
+  and diff whitespace checks pass. No settings, permissions, or dependencies
+  changed.
+- Applied and reloaded 0.9.43 in the verified loaded Chrome extension. Rapid
+  native wheel scrolling through 1719, 59, 1719, and 0px kept the caption at
+  y=49, exactly against the toolbar bottom, with width 434.25px. Native paging
+  to conversations 51–100 kept that same anchor and total. Inbox, Sent, Starred,
+  Snoozed, and Flowserve each retained toolbar ownership and a 0px gap before
+  native list content. No message actions were performed during verification.
+
 ## Compatibility limits
 
 This targets the inspected English desktop Gmail DOM. Native-only fallback is

@@ -125,6 +125,17 @@
   [role="main"] [gh="tm"] > [role="toolbar"][aria-label="search refinement"] {
     display: none !important;
   }
+  [role="main"] [gh="tm"]:has(> .gmail-pro-mailbox-caption) {
+    position: relative !important; overflow: visible !important;
+  }
+  /* Reserve the toolbar caption's space in Gmail's native scroll surface. Its
+     space-between layout absorbs spare height after conversations, not before. */
+  [role="main"] .Nu.tf[data-gp-mailbox-caption]::before {
+    content: ""; display: block; flex: 0 0 22px; height: 22px;
+  }
+  [role="main"] .Nu.tf[data-gp-mailbox-caption] > .ae4 {
+    margin-block-end: auto !important;
+  }
   [gh="tm"] [role="button"] {
     border-radius: 4px !important;
     box-shadow: none !important;
@@ -394,6 +405,15 @@ html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand:hover { background: var(
 html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 1px; }
 html.gmail-pro-apple-mail-mode[data-gp-theme="light"] [gh="mtb"] .inboxsdk__button[data-tooltip="Phish Alert"] .inboxsdk__button_iconImg {
   filter: grayscale(1) brightness(0) invert(.4);
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-mailbox-caption {
+  position: absolute; z-index: 1;
+  left: 0; top: calc(100% + 1px); width: var(--gp-caption-width);
+  box-sizing: border-box; height: 22px; min-height: 22px; padding: 3px 16px;
+  font: 400 11px/16px var(--gp-font);
+  color: color-mix(in srgb, var(--gp-text-primary) 72%, var(--gp-bg-primary));
+  background: var(--gp-bg-primary); text-align: start; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose {
   position: relative; display: inline-flex; align-items: center; justify-content: center;

@@ -242,6 +242,15 @@ Inbox, Sent, Starred, other mailboxes, labels, and search results use the same
 single toolbar row. The redundant From/time/attachment filter row is hidden;
 Gmail's native advanced search remains available from the search bar's filter
 button. Turning Apple Mail Mode off restores the native filter row.
+A slim, muted caption below the toolbar shows the current mailbox or final label
+name and Gmail's total (for example, `Flowserve • 231 messages`). It reserves 22px
+above the conversations and stays attached to the toolbar while the list scrolls.
+The caption is part of the native toolbar. CSS anchors it below the toolbar border;
+its position does not depend on measurements of the scrolling pane.
+Conversations begin immediately below it, including in short folders and labels.
+Totals use Gmail's conversation pagination, including approximate counts;
+unavailable or pending counts show just the name. No messages are read or tallied
+separately.
 Use the chevron beside search to collapse or expand the Gmail header.
 The header starts expanded; your choice saves immediately through the existing
 Chrome Sync preferences and applies across Gmail tabs/accounts in this profile.

@@ -6,7 +6,7 @@
   const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360;
   let enabled = false, collapsed = false, open = false, saving = false;
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status;
-  let compose;
+  let compose, mailboxCaption, captionList, countSnapshot;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
   let ancestorSpine = new Set();
@@ -31,7 +31,85 @@
     let actionRow = actions[0].parentElement;
     while (actionRow !== toolbar && !actionRow.contains(pagers[0])) actionRow = actionRow.parentElement;
     const main = toolbar.closest(S.main), viewport = main.closest(S.headerViewport);
-    return { banner, shell, form, input, toolbar, actionRow, main, viewport, actions: actions[0], pager: pagers[0] };
+    const lists = [...main.querySelectorAll(S.pagingList)].filter(visible);
+    return { banner, shell, form, input, toolbar, actionRow, main, viewport,
+      list: lists.length === 1 ? lists[0] : null, actions: actions[0], pager: pagers[0] };
+  }
+
+  function mailbox() {
+    const decodeHash = value => {
+      try { return decodeURIComponent(value.replace(/\+/g, ' ')); }
+      catch { return value; }
+    };
+    // Native sidebar links use literal slashes while Gmail's SPA route may
+    // encode the same nested label path as %2F.
+    const hash = decodeHash(location.hash.replace(/\/p[1-9]\d*$/, ''));
+    const selected = [...document.querySelectorAll('[role="navigation"] .TO.nZ .n0[href]')];
+    for (const link of selected) {
+      const key = decodeHash(new URL(link.href, location.href).hash);
+      if (hash !== key && !hash.startsWith(key + '/')) continue;
+      let name = link.textContent.trim();
+      if (key.startsWith('#label/')) name = key.slice(7).split('/').pop() || name;
+      if (name) return { key, name, link };
+    }
+    const names = { inbox: 'Inbox', sent: 'Sent', starred: 'Starred', snoozed: 'Snoozed',
+      scheduled: 'Scheduled', drafts: 'Drafts', all: 'All Mail', important: 'Important',
+      spam: 'Spam', trash: 'Trash' };
+    const route = hash.slice(1).split('/')[0];
+    if (names[route]) return { key: '#' + route, name: names[route] };
+    if (route === 'search') return { key: hash, name: 'Search results' };
+    return null;
+  }
+
+  function removeCaption() {
+    captionList?.removeAttribute('data-gp-mailbox-caption'); captionList = undefined;
+    mailboxCaption?.remove(); mailboxCaption = undefined;
+  }
+
+  function updateCaption(ctx) {
+    const view = mailbox();
+    ctx.mailboxLink = view?.link;
+    if (!view || !ctx.list) { removeCaption(); return; }
+    const range = ctx.pager.querySelector(S.pagingRange);
+    const empty = ctx.list.querySelector('.ae4 .TC');
+    const text = range?.textContent || '';
+    // Gmail can change the route before replacing the previous view's count.
+    // Only attach a total after native pagination/empty-state evidence changes.
+    if (!countSnapshot || countSnapshot.range !== range || countSnapshot.text !== text || countSnapshot.empty !== empty) {
+      countSnapshot = { key: view.key, range, text, empty };
+    }
+    let total;
+    if (countSnapshot.key === view.key) {
+      const numbers = [...(range?.querySelectorAll(S.pagingRangeNumber) || [])];
+      const numeric = node => {
+        const value = node?.textContent.replace(/[,\s\u200e\u200f]/g, '');
+        return value && /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : null;
+      };
+      const [first, last, count] = numbers.map(numeric);
+      if (numbers.length === 3 && first > 0 && last >= first && count >= last) {
+        total = (/\babout\b/i.test(text) ? 'about ' : '') + count.toLocaleString() + (count === 1 ? ' message' : ' messages');
+      } else if (!range && visible(empty) && !ctx.list.querySelector('tr[role="row"]')) {
+        total = '0 messages';
+      }
+    }
+    if (!mailboxCaption) {
+      mailboxCaption = document.createElement('div');
+      mailboxCaption.className = 'gmail-pro-mailbox-caption';
+    }
+    // The toolbar owns caption position. Never derive its screen coordinates
+    // from a scrolling pane, including during transient scroll/compositor shifts.
+    if (captionList !== ctx.list) {
+      captionList?.removeAttribute('data-gp-mailbox-caption'); captionList = ctx.list;
+    }
+    if (!ctx.list.hasAttribute('data-gp-mailbox-caption')) ctx.list.setAttribute('data-gp-mailbox-caption', '');
+    ctx.toolbar.querySelectorAll(':scope > .gmail-pro-mailbox-caption').forEach(node => { if (node !== mailboxCaption) node.remove(); });
+    if (mailboxCaption.parentElement !== ctx.toolbar) ctx.toolbar.append(mailboxCaption);
+    const width = `${ctx.list.getBoundingClientRect().width}px`;
+    if (mailboxCaption.style.getPropertyValue('--gp-caption-width') !== width) mailboxCaption.style.setProperty('--gp-caption-width', width);
+    const caption = view.name + (total ? ' • ' + total : '');
+    if (mailboxCaption.textContent !== caption) mailboxCaption.textContent = caption;
+    if (mailboxCaption.title !== caption) mailboxCaption.title = caption;
+    ctx.captionRange = range; ctx.captionEmpty = empty;
   }
 
   function geometry(ctx, reserve = 0) {
@@ -188,6 +266,7 @@
   }
 
   function restore() {
+    removeCaption();
     restoreCompose();
     if (!current) return;
     const wasCollapsed = current.shell.hasAttribute('data-gp-header-collapsed');
@@ -214,17 +293,18 @@
     // A subsequent invalid discovery must not drop the watch needed to recover.
     const intact = ctx?.form.isConnected && ctx.toolbar.isConnected && ctx.shell.isConnected;
     const spine = new Set(intact ? [] : [...ancestorSpine].filter(node => node.isConnected));
-    for (const node of ctx ? [ctx.form, ctx.toolbar, ctx.shell, ...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"]')] : [document.body]) {
+    for (const node of ctx ? [ctx.form, ctx.toolbar, ctx.shell, ctx.list, ctx.mailboxLink, ...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"]')].filter(Boolean) : [document.body]) {
       for (let parent = node; parent; parent = parent.parentElement) spine.add(parent);
     }
     for (const node of spine) observer.observe(node, { childList: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
     ancestorSpine = spine;
-    if (ctx) observer.observe(ctx.toolbar, { childList: true, subtree: true, attributes: true,
+    if (ctx) observer.observe(ctx.toolbar, { childList: true, subtree: true, characterData: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
+    if (ctx?.captionEmpty) observer.observe(ctx.captionEmpty, { childList: true, characterData: true, subtree: true });
     for (const panel of document.querySelectorAll(S.headerAdvancedPanel)) observer.observe(panel,
       { childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
-    const sizes = new Set(ctx ? [ctx.toolbar, ctx.actionRow, ctx.actions, ctx.pager, ctx.banner] : []);
+    const sizes = new Set(ctx ? [ctx.toolbar, ctx.actionRow, ctx.actions, ctx.pager, ctx.banner, ctx.list].filter(Boolean) : []);
     for (const node of observedSizes) if (!sizes.has(node)) resizeObserver.unobserve(node);
     for (const node of sizes) if (!observedSizes.has(node)) resizeObserver.observe(node);
     observedSizes = sizes;
@@ -304,6 +384,7 @@
       panel.style.setProperty('--gp-search-panel-width', `${width}px`);
       panel.setAttribute('data-gp-search-panel', ''); markedPanels.add(panel);
     }
+    updateCaption(current);
     watch(current);
   }
 
@@ -314,7 +395,7 @@
     cancelAnimationFrame(frame); frame = 0;
     clearTimeout(bootstrapTimer); bootstrap?.disconnect(); bootstrap = undefined;
     observer?.disconnect(); resizeObserver?.disconnect(); observedSizes.clear();
-    ancestorSpine.clear(); lastContext = undefined;
+    ancestorSpine.clear(); lastContext = undefined; countSnapshot = undefined;
     window.removeEventListener('resize', schedule);
     window.removeEventListener('hashchange', navigate);
     window.removeEventListener('popstate', navigate);
@@ -329,7 +410,10 @@
     if (Object.hasOwn(patch, 'appleMailModeEnabled') && !patch.appleMailModeEnabled) return stop();
     if (!enabled && patch.appleMailModeEnabled) {
       enabled = true; generation++;
-      observer = new MutationObserver(schedule);
+      observer = new MutationObserver(records => {
+        if (records.some(record => current?.captionRange?.contains(record.target) || current?.captionEmpty?.contains(record.target))) countSnapshot = undefined;
+        schedule();
+      });
       resizeObserver = new ResizeObserver(schedule);
       window.addEventListener('resize', schedule);
       window.addEventListener('hashchange', navigate);

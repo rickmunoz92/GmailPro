@@ -9,6 +9,7 @@
   GmailPro.settings = { save: async patch => { if (failSave) throw Error('storage unavailable'); if (saveResolve) await new Promise(resolve => { saveResolve = resolve; }); Object.assign(saved, patch); } };
   function fixture(width = 1400) {
     feature.stop(); document.documentElement.className = 'gmail-pro-apple-mail-mode';
+    history.replaceState(null, '', '#inbox');
     document.documentElement.dataset.gpTheme = 'dark'; document.documentElement.dataset.gpAccent = 'blue';
     saved = {}; failSave = false; saveResolve = undefined;
     workspace.style.width = `${width}px`;
@@ -38,6 +39,26 @@
     pagerOwner.append(f.pager); row.append(f.actions,pagerOwner);
     f.toolbar.classList.add('native-label-toolbar'); f.toolbar.prepend(filters,row);
     return {filters,row};
+  }
+  function captionFixture(hash = '#inbox', name = 'Inbox', total = '500') {
+    const f = fixture(); history.replaceState(null, '', hash);
+    const selected = document.createElement('div'); selected.className = 'TO nZ';
+    const link = document.createElement('a'); link.className = 'n0'; link.href = hash; link.textContent = name;
+    selected.append(link); workspace.querySelector('nav').append(selected);
+    const range = f.pager.querySelector('[aria-label="Show more messages"]');
+    range.setAttribute('role', 'button');
+    range.innerHTML = `<span class="ts">1</span>–<span class="ts">50</span> of <span class="ts">${total}</span>`;
+    const list = workspace.querySelector('.Nu.tf'); list.style.display = 'flex'; list.style.flexDirection = 'column';
+    list.firstElementChild.style.flexShrink = '0';
+    return { ...f, range, list, link };
+  }
+  function spacedListFixture(hash = '#inbox', name = 'Inbox') {
+    const f = captionFixture(hash, name);
+    // Native Gmail shares spare space between list sections. Include its short
+    // content, hidden loading section, and footer so caption placement is real.
+    f.list.style.justifyContent = 'space-between';
+    f.list.innerHTML = '<div class="ae4" style="height:96px;flex:none">Synthetic conversations</div><div class="zchc9b" style="display:none;margin-top:auto;height:30px">Loading</div><div role="contentinfo" class="l2" style="height:16px;flex:none;margin:16px 0">Synthetic footer</div>';
+    return { ...f, content: f.list.querySelector('.ae4'), loading: f.list.querySelector('.zchc9b'), footer: f.list.querySelector('[role="contentinfo"]') };
   }
   window.addEventListener('resize', nativeResize);
   const start = async (collapsed = false) => { feature.start({appleMailModeEnabled:true, headerCollapsed:collapsed}); await settle(); };
@@ -310,6 +331,149 @@
     const body=workspace.querySelector('.ii');
     for (let i=0;i<100;i++) body.append(document.createTextNode('synthetic'));
     await settle(); observer.disconnect(); assert(writes===0,'no work from message mutations or idle frames');
+  });
+  const caption = () => document.querySelector('.gmail-pro-mailbox-caption');
+  await test('mailbox caption uses the native total and occupies only 22px in the list', async () => {
+    const f = captionFixture(), paneTop = rect(workspace.querySelector('.Nu.S3')).top;
+    await start(true);
+    assert(caption().textContent === 'Inbox • 500 messages', 'total rather than 50 visible conversations');
+    assert(!f.list.contains(caption()) && f.list.hasAttribute('data-gp-mailbox-caption') && rect(caption()).height === 22, 'slim caption outside native scroll surface');
+    assert(Math.abs(rect(caption()).top - rect(f.toolbar).bottom) < 1, 'directly below toolbar border');
+    assert(rect(workspace.querySelector('.Nu.S3')).top < paneTop && rect(workspace.querySelector('.Nu.S3')).top === rect(f.list).top, 'reading pane receives no caption gap');
+    assert(getComputedStyle(caption()).fontSize === '11px', 'small text');
+    const top = rect(caption()).top; f.list.scrollTop = 80; await settle();
+    assert(rect(caption()).top === top, 'caption remains pinned during native list scrolling');
+    feature.stop(); assert(!caption(), 'OFF removes caption');
+  });
+  await test('short mailbox and label lists stay directly beneath the caption after native layout changes', async () => {
+    for (const [hash, name] of [['#inbox','Inbox'],['#sent','Sent'],['#starred','Starred'],['#snoozed','Snoozed'],['#label/Projects%2FFlowserve','Flowserve'],['#search/synthetic','Search results']]) {
+      for (const collapsed of [false, true]) {
+        feature.stop(); const f = spacedListFixture(hash, name); await start(collapsed);
+        const check = () => {
+          assert(Math.abs(rect(f.content).top - rect(caption()).bottom) < 1, name + ': conversations immediately follow caption');
+          assert(Math.abs(rect(f.footer).bottom + 16 - rect(f.list).bottom) < 1, name + ': short-list footer remains at bottom');
+        };
+        check();
+        for (const height of [48, 288]) {
+          f.content.style.height = height + 'px'; window.dispatchEvent(new Event('resize')); await settle(); check();
+        }
+        f.loading.style.display = 'flex'; await settle(); check();
+        f.loading.style.display = 'none'; f.content.replaceWith(f.content.cloneNode(true));
+        f.content = f.list.querySelector('.ae4'); window.dispatchEvent(new Event('hashchange')); await settle(); check();
+        feature.stop(); assert(!caption(), 'caption removed on OFF');
+        assert(Math.abs(rect(f.content).top - rect(f.list).top) < 1 && getComputedStyle(f.content).marginBottom === '0px', 'native spacing restored');
+      }
+    }
+  });
+  await test('long lists keep native scrolling with no gap before conversations', async () => {
+    const f = spacedListFixture(); f.content.style.height = '1500px'; await start(true);
+    assert(Math.abs(rect(f.content).top - rect(caption()).bottom) < 1, 'overflowing list immediately follows caption');
+    const scrollHeight = f.list.scrollHeight, top = rect(caption()).top;
+    f.list.scrollTop = 100; await settle();
+    assert(f.list.scrollTop === 100 && f.list.scrollHeight === scrollHeight && rect(caption()).top === top, 'native scrolling and fixed caption retained');
+  });
+  await test('caption belongs to the toolbar outside the native scroll surface', async () => {
+    const f = spacedListFixture('#label/Projects%2FFlowserve', 'Flowserve');
+    f.content.style.height = '1500px'; await start(true);
+    assert(!f.list.contains(caption()) && caption().parentElement === f.toolbar, 'caption outside scrolling pane, within toolbar');
+    assert(getComputedStyle(caption()).position === 'absolute', 'toolbar-anchored header');
+    const before = rect(caption()).toJSON();
+    assert(document.elementFromPoint(before.left + before.width / 2, before.top + before.height / 2) === caption(), 'caption shields scrolled rows from header clicks');
+    let writes = 0; const observer = new MutationObserver(records => { writes += records.length; });
+    observer.observe(caption(), { attributes: true, characterData: true, childList: true, subtree: true });
+    for (const offset of [1, 12, 150, 600, 10000, 0]) {
+      f.list.scrollTop = offset; await settle();
+      assert(rect(caption()).top === before.top && rect(caption()).left === before.left && rect(caption()).width === before.width, 'fixed bounds throughout native scrolling');
+      assert(document.elementFromPoint(before.left + before.width / 2, before.top + before.height / 2) === caption(), 'scrolled content cannot cover the caption');
+    }
+    observer.disconnect(); assert(writes === 0, 'scrolling never rewrites caption');
+    f.list.style.flex = 'none'; f.list.style.width = '320px'; await settle();
+    assert(Math.abs(rect(caption()).width - rect(f.list).width) < 1, 'caption follows native splitter width');
+    f.list.scrollTop = 100;
+    feature.update({ headerCollapsed: false }); await settle();
+    assert(Math.abs(rect(caption()).top - rect(f.toolbar).bottom) < 1 && f.list.scrollTop === 100, 'header expansion moves caption without resetting scroll');
+    feature.stop(); assert(!caption() && !f.list.hasAttribute('data-gp-mailbox-caption'), 'OFF cleans up caption and reserved space');
+  });
+  await test('caption is locked to its toolbar through rapid scroll-pane movement', async () => {
+    const f = spacedListFixture('#label/Projects%2FFlowserve', 'Flowserve');
+    f.content.style.height = '1500px'; await start(true);
+    assert(caption().parentElement === f.toolbar, 'caption is part of the toolbar itself');
+    const anchor = rect(f.toolbar).bottom;
+    let writes = 0; const observer = new MutationObserver(records => { writes += records.length; });
+    observer.observe(caption(), { attributes: true });
+    for (const shift of [12, -8, 25, -15, 0]) {
+      f.list.style.transform = `translateY(${shift}px)`;
+      f.list.scrollTop = shift > 0 ? 600 : 0; await settle();
+      assert(rect(caption()).top === anchor && rect(f.toolbar).bottom === anchor, 'caption follows toolbar, never transient pane coordinates');
+    }
+    observer.disconnect(); assert(writes === 0, 'pane movement cannot rewrite caption positioning');
+    assert(!caption().style.getPropertyValue('--gp-caption-top') && !caption().style.getPropertyValue('--gp-caption-left'), 'no independent screen positioning');
+    f.toolbar.replaceWith(f.toolbar.cloneNode(true)); await settle();
+    const replacement = workspace.querySelector('[gh=tm]');
+    assert(caption().parentElement === replacement && Math.abs(rect(caption()).top - rect(replacement).bottom) < 1, 'native toolbar replacement retains its own caption');
+    assert(document.querySelectorAll('.gmail-pro-mailbox-caption').length === 1, 'no duplicate captions');
+  });
+  await test('nested labels show a decoded final name, including literal markup characters', async () => {
+    const f = captionFixture('#label/Projects%2FCustomers%2FFlowserve', 'Projects/Customers/Flowserve', '231');
+    f.link.href = '#label/Projects/Customers/Flowserve'; await start();
+    assert(caption().textContent === 'Flowserve • 231 messages', 'last label component');
+    feature.stop(); captionFixture('#label/Projects%2F%3Cb%3E%20%26%20Co', '<b> & Co', '1,250'); await start();
+    assert(caption().textContent === '<b> & Co • 1,250 messages' && !caption().querySelector('b'), 'safe text and formatted total');
+  });
+  await test('caption follows all native mailboxes and search results', async () => {
+    for (const [route, name] of [['sent','Sent'],['starred','Starred'],['snoozed','Snoozed'],['drafts','Drafts'],['all','All Mail'],['important','Important'],['spam','Spam'],['trash','Trash'],['scheduled','Scheduled']]) {
+      feature.stop(); captionFixture('#' + route, name); await start(); assert(caption().textContent === name + ' • 500 messages', name);
+    }
+    feature.stop(); const f = captionFixture('#search/subject%3Asynthetic', ''); f.link.parentElement.remove(); await start();
+    assert(caption().textContent === 'Search results • 500 messages', 'search title');
+  });
+  await test('native count edits update singular, approximate and unavailable totals', async () => {
+    const f = captionFixture(); await start();
+    f.range.innerHTML = '<span class="ts">1</span>–<span class="ts">1</span> of <span class="ts">1</span>'; await settle();
+    assert(caption().textContent === 'Inbox • 1 message', 'singular');
+    f.range.querySelectorAll('.ts')[2].firstChild.data = '2,013'; await settle();
+    assert(caption().textContent === 'Inbox • 2,013 messages', 'in-place native text mutation');
+    f.range.innerHTML = '<span class="ts">1</span>–<span class="ts">50</span> of about <span class="ts">2,013</span>'; await settle();
+    assert(caption().textContent === 'Inbox • about 2,013 messages', 'approximation preserved');
+    f.range.innerHTML = '<span class="ts">1</span>–<span class="ts">50</span> of <span class="ts">many</span>'; await settle();
+    assert(caption().textContent === 'Inbox', 'unknown total is never invented');
+  });
+  await test('navigation withholds an old count until native pagination updates, including equal totals', async () => {
+    const f = captionFixture(); await start();
+    history.replaceState(null, '', '#label/Projects%2FFlowserve'); f.link.href = location.hash; f.link.textContent = 'Flowserve';
+    window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(caption().textContent === 'Flowserve', 'new name does not use Inbox total');
+    f.range.querySelectorAll('.ts')[2].firstChild.data = '500'; await settle();
+    assert(caption().textContent === 'Flowserve • 500 messages', 'equal native count still completes transition');
+    history.replaceState(null, '', location.hash + '/p2'); window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(caption().textContent === 'Flowserve • 500 messages', 'pagination retains mailbox identity');
+  });
+  await test('explicit native empty state shows zero and missing structure stays conservative', async () => {
+    const f = captionFixture('#snoozed', 'Snoozed'); f.range.remove();
+    f.list.innerHTML = '<div class="ae4"><table role="grid"><tbody></tbody></table><table><tbody><tr><td class="TC" style="height:28px">No snoozed conversations</td></tr></tbody></table></div>';
+    await start(); assert(caption().textContent === 'Snoozed • 0 messages', 'confirmed empty');
+    f.list.querySelector('.TC').remove(); window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(caption().textContent === 'Snoozed', 'missing native count is not zero');
+  });
+  await test('caption recovers from replaced and cloned list roots without duplicates', async () => {
+    const f = captionFixture(); await start();
+    f.list.replaceWith(f.list.cloneNode(true)); await settle();
+    assert(document.querySelectorAll('.gmail-pro-mailbox-caption').length === 1 && caption().textContent === 'Inbox • 500 messages', 'one caption in replacement list');
+    assert(!f.list.hasAttribute('data-gp-mailbox-caption') && workspace.querySelector('.Nu.tf').hasAttribute('data-gp-mailbox-caption'), 'reserved space follows replacement owner');
+    caption().remove(); await settle(); assert(caption()?.isConnected, 'native removal recovered');
+    await start(); assert(document.querySelectorAll('.gmail-pro-mailbox-caption').length === 1, 'repeated start');
+  });
+  await test('caption is legible in both themes, truncates long labels, and remains idle', async () => {
+    const f = captionFixture('#label/Projects%2F' + 'Long'.repeat(60), 'Long'.repeat(60)); await start();
+    assert(getComputedStyle(caption()).textOverflow === 'ellipsis' && rect(caption()).width <= rect(f.list).width, 'bounded long title');
+    assert(caption().title === caption().textContent, 'complete title available');
+    const dark = getComputedStyle(caption()).color;
+    document.documentElement.dataset.gpTheme = 'light'; assert(getComputedStyle(caption()).color !== dark, 'theme-aware neutral color');
+    let writes = 0; const observer = new MutationObserver(records => { writes += records.length; });
+    observer.observe(caption(), { childList: true, characterData: true, attributes: true, subtree: true });
+    for (let i=0; i<100; i++) workspace.querySelector('.ii').append(document.createTextNode('synthetic'));
+    window.dispatchEvent(new Event('resize')); await settle(); observer.disconnect();
+    assert(writes === 0, 'no caption writes from unchanged counts or message contents');
   });
   window.removeEventListener('resize',nativeResize);
   results.textContent += `\n${passes} passed; ${failures} failed.\n`;
