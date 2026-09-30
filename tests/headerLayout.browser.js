@@ -72,6 +72,28 @@
     fixture(Number(new URLSearchParams(location.search).get('width')) || 1400); await start(); results.hidden=true; return;
   }
   results.textContent = '';
+  await test('mailbox scroll edge stays seamless beneath the logo in both themes and restores on mode OFF', async () => {
+    const f = composeFixture(), nav = workspace.querySelector('nav'), pane = document.createElement('div');
+    pane.className = 'V3';
+    pane.style.height = '164px'; pane.style.overflowY = 'auto';
+    f.mailboxes.style.height = '500px'; pane.append(f.mailboxes); nav.append(pane);
+    pane.addEventListener('scroll', () => pane.classList.toggle('adh', pane.scrollTop > 0));
+    await start(true);
+    for (const theme of ['dark', 'light']) {
+      document.documentElement.dataset.gpTheme = theme;
+      for (const offset of [0, 80, pane.scrollHeight]) {
+        pane.scrollTop = offset; await settle();
+        const style = getComputedStyle(pane);
+        assert((pane.scrollTop > 0) === pane.classList.contains('adh'), 'native scroll state applied');
+        assert(style.borderTopColor === 'rgba(0, 0, 0, 0)' && style.boxShadow === 'none', `${theme} scroll edge has no visible border or shadow`);
+        assert(style.borderTopWidth === '1px', 'native border geometry preserved');
+      }
+    }
+    assert(pane.scrollTop > 0 && pane.scrollHeight > pane.clientHeight, 'mailboxes still scroll');
+    assert(getComputedStyle(nav).borderInlineEndWidth === '1px' && getComputedStyle(f.toolbar).borderBottomWidth === '1px', 'pane and toolbar dividers retained');
+    feature.stop(); document.documentElement.classList.remove('gmail-pro-apple-mail-mode');
+    assert(getComputedStyle(pane).borderTopColor === 'rgba(255, 255, 255, 0.2)' && getComputedStyle(pane).boxShadow !== 'none', 'native scroll decoration restores');
+  });
   await test('Compose icon follows selection and frees the native sidebar row', async () => {
     const f=composeFixture(), originalTop=rect(f.mailboxes).top; let clicks=0;
     f.source.addEventListener('click',()=>clicks++);

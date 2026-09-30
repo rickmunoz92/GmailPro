@@ -267,6 +267,25 @@ folders are distinct, so production files were copied explicitly.
   Snoozed, and Flowserve each retained toolbar ownership and a 0px gap before
   native list content. No message actions were performed during verification.
 
+## Seamless mailbox scroll edge — 0.9.45
+
+- Gmail's native `.V3.adh` scroller adds a top border and inset shadow after
+  scrolling, directly beneath the Gmail Pro wordmark. Apple Mail Mode now keeps
+  that border transparent and removes the scroller shadow. Native border width,
+  scrolling, the vertical sidebar divider, and the mail-toolbar border remain.
+- The new regression failed before the CSS fix. It checks top, middle, and bottom
+  scroll positions in both themes, stable border geometry, and restoration of
+  native decoration when the mode is disabled. The full workspace passed
+  55/55 header checks; the isolated staged commit passed 47/47 header checks
+  and 36/36 Node checks without the earlier uncommitted sidebar changes.
+  Reviewed both diffs; whitespace checks pass.
+- Confirmed Chrome loads `~/Documents/GmailPro`, verified its CSS and manifest
+  matched the pre-edit workspace, and applied only the tested CSS and version.
+  Reloaded 0.9.45 and refreshed Gmail, including its app window. Live mailbox
+  scrolling reached 812px with the native scrolled class active, a transparent
+  1px top border, no shadow, and the sidebar/toolbar dividers retained at 1px.
+  No email actions or settings changes were performed.
+
 ## Compatibility limits
 
 This targets the inspected English desktop Gmail DOM. Native-only fallback is

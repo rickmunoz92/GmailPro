@@ -2,7 +2,7 @@
    CSS owns this map; gmailSelectors.js deliberately does not duplicate it.
    Native states: .zE unread; .aps open in split pane; checkbox aria-checked
    multi-select; .TO.nZ selected mailbox. .btb is keyboard focus, NOT selection.
-   Layout: [role=navigation] .aeN, [gh=tm] toolbar, [gh=tl] list/split host,
+   Layout: [role=navigation] .aeN, .V3 mailbox scroller, [gh=tm] toolbar, [gh=tl] list/split host,
    .Nu scroll panes, .Nt native splitter, .iY thread shell, .gE message header.
    Gmail exposes no semantic equivalents for these presentation/state hooks.
    Every rule is gated by our single root switch. No DOM or email mutation.
@@ -22,6 +22,12 @@
     font-family: var(--gp-font) !important;
   }
   [role="navigation"] { border-inline-end: 1px solid var(--gp-border); }
+  /* Gmail paints this edge when mailboxes scroll beneath the wordmark.
+     Retain its border width so the native scroll geometry stays stable. */
+  [role="navigation"] > .V3 {
+    border-top-color: transparent !important;
+    box-shadow: none !important;
+  }
   [role="banner"] { border-bottom: 1px solid var(--gp-border); box-shadow: none !important; }
   /* Header geometry stays native unless headerLayout validates and marks the
      shell. That controller asks Gmail to recalculate after each transition. */
