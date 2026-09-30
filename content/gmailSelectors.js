@@ -23,7 +23,11 @@
     labelLink: 'a[href*="#label/"]',
     labelMenu: '[data-label-name][aria-haspopup="true"]',
     labelSection: '[aria-labelledby]',
-    labelMoreCollapsed: '[gh="mll"][aria-label="More labels"]',
+    labelCreate: '[role="button"][aria-label="Create new label"]',
+    labelAccount: 'header[role="banner"] [aria-label^="Google Account:"]',
+    labelNativeMenu: '[role="menu"].aka',
+    labelEditor: '[role="alertdialog"], [role="dialog"]',
+    labelExpand: '[role="link"][aria-label^="Expand label:"], [role="link"][title^="Expand label:"]',
     main: '[role="main"]',
     // Header/search ownership inspected in English desktop Gmail, 2026-09-21.
     // Use the actual HEADER: search suggestions also contain role=banner cells.

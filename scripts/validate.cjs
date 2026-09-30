@@ -12,7 +12,8 @@ assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.name, "Gmail Pro");
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
 assert.deepEqual(manifest.permissions, ["storage"]);
-for (const key of ["background", "host_permissions", "optional_permissions", "optional_host_permissions", "web_accessible_resources", "externally_connectable", "oauth2"]) {
+assert.deepEqual(manifest.background, { service_worker: 'background/settings.js' });
+for (const key of ["host_permissions", "optional_permissions", "optional_host_permissions", "web_accessible_resources", "externally_connectable", "oauth2"]) {
   assert.equal(manifest[key], undefined, `Unexpected manifest capability: ${key}`);
 }
 assert.equal(manifest.content_scripts.length, 2);
@@ -29,7 +30,7 @@ assert.equal(manifest.content_scripts[1].run_at, "document_idle");
 assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
 assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/);
 
-const references = [manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
+const references = [manifest.background.service_worker, manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
   ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)];
 const html = fs.readFileSync(path.join(root, manifest.action.default_popup), "utf8");
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
@@ -52,7 +53,7 @@ for (const [size, relative] of Object.entries(manifest.icons)) {
   assert.equal(png.readUInt32BE(16), Number(size));
   assert.equal(png.readUInt32BE(20), Number(size));
 }
-for (const directory of ["shared", "content", "popup", "tests"]) {
+for (const directory of ["background", "shared", "content", "popup", "tests"]) {
   for (const file of fs.readdirSync(path.join(root, directory)).filter((file) => file.endsWith(".js"))) {
     const filename = path.join(root, directory, file);
     const source = fs.readFileSync(filename, "utf8");

@@ -1,4 +1,45 @@
-/* Only extension-owned edit controls are styled; ordinary Gmail rows stay native. */
+/* Extension-owned controls and explicit Gmail Pro sublabel visibility only. */
+.gmail-pro-label-organize, .gmail-pro-label-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 28px;
+  padding: 2px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.gmail-pro-label-organize { margin-inline-end: 4px; }
+.gmail-pro-label-organize svg, .gmail-pro-label-eye svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.gmail-pro-label-organize:hover, .gmail-pro-label-eye:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.gmail-pro-label-organize[aria-pressed="true"] { color: var(--gp-accent-ui, currentColor); }
+.gmail-pro-label-eye { position: relative; flex-basis: 20px; width: 20px; margin-inline-end: 2px; }
+.gmail-pro-label-eye[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+[data-gmail-pro-label-hidden="hidden"] { display: none !important; }
+[data-gmail-pro-label-hidden="revealed"] { opacity: .65; }
 .gmail-pro-label-toolbar {
   color: inherit;
   background: color-mix(in srgb, currentColor 6%, transparent);
@@ -10,6 +51,8 @@
 }
 .gmail-pro-label-toolbar strong { display: inline-block; margin-right: 8px; }
 .gmail-pro-label-toolbar [role="status"] { display: block; margin-top: 6px; }
+.gmail-pro-label-toolbar label { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.gmail-pro-label-toolbar input { margin: 0; }
 .gmail-pro-label-toolbar button, .gmail-pro-label-handle {
   color: inherit;
   background: transparent;
@@ -29,7 +72,36 @@
   touch-action: none;
   user-select: none;
 }
-.gmail-pro-label-handle:focus-visible { outline: 2px solid currentColor; }
+.gmail-pro-label-handle:focus-visible, .gmail-pro-label-organize:focus-visible,
+.gmail-pro-label-eye:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+[data-gmail-pro-label-ui] button:disabled, button[data-gmail-pro-label-ui]:disabled { cursor: default; }
 .gmail-pro-label-dragging { opacity: .5; }
 .gmail-pro-label-before { box-shadow: inset 0 2px currentColor; }
 .gmail-pro-label-after { box-shadow: inset 0 -2px currentColor; }
+.gmail-pro-label-parent { outline: 2px solid var(--gp-accent-ui, currentColor); outline-offset: -2px; }
+.gmail-pro-label-menu-divider { border-top: 1px solid currentColor; opacity: .2; margin-block: 4px; }
+.gmail-pro-label-menu-action {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.gmail-pro-label-menu-action:is(:hover, :focus-visible, .gmail-pro-label-menu-selected) { background: color-mix(in srgb, currentColor 10%, transparent); }
+.gmail-pro-label-menu-action:is(:focus-visible, .gmail-pro-label-menu-selected) { outline: 2px solid currentColor; outline-offset: -2px; }
+.gmail-pro-label-menu-action:disabled { cursor: default; opacity: .6; }
+.gmail-pro-label-notice {
+  color: inherit;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 6px;
+  margin: 6px 8px;
+  padding: 8px;
+  font: 12px/1.4 system-ui, sans-serif;
+}
+.gmail-pro-label-notice button { display: block; margin-top: 6px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 4px; font: inherit; cursor: pointer; }

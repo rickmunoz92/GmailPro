@@ -143,6 +143,41 @@ folders are distinct, so production files were copied explicitly.
   360px and visible after reload; single-recipient activation was tested with
   synthetic messages. No live email was opened or sent for this verification.
 
+## Label navigation header fix — 0.9.38
+
+- Gmail's label/search toolbar wraps a native filter row and a separate mail-action
+  row. Its 101px wrapper exceeded the previous 80px geometry limit, restoring the
+  native header, search, and Compose row. Measure the shared action/pagination
+  row instead, and include that row in the existing resize observation.
+- Retain the 360px field, saved header preference, native search parent/handlers,
+  filter controls, Compose, and branding. Unknown or oversized action rows and
+  insufficient horizontal room still retain the usable native fallback.
+- New regressions failed before the fix. Header checks now pass 34/34; Node
+  validation passes 36/36, including resources/syntax/settings/lifecycle checks.
+  `git diff --check` passes. No permissions, dependencies, or settings changed.
+- Verified Chrome's loaded folder and applied/reloaded 0.9.38. Live custom labels,
+  Starred, and Snoozed retain inline search and the collapsed header. The affected
+  custom label has a 101px toolbar, 32px native filters, 360px search with a 0px
+  center offset from the mail actions, and one Compose icon and sidebar wordmark.
+  No messages were opened, sent, or changed during these checks.
+
+## Single toolbar across mail views — 0.9.39
+
+- Apple Mail Mode hides only the native mail-toolbar refinement row (`From`,
+  time, attachment, calendar, and recipient chips) and restores Gmail's compact
+  48px action row plus its 1px border. The rule applies to every mailbox, label,
+  and search-results view. There is no route-specific state or DOM removal.
+- Gmail's original search form and advanced-search button remain available.
+  Turning the mode off restores the native refinement row and toolbar height.
+- Header checks pass 34/34, including advanced-search hit targets, reclaimed
+  height, late filter insertion, navigation, compact search, and mode OFF.
+  Appearance checks pass 57/57; Node validation passes 36/36.
+- Applied and reloaded 0.9.39 in Chrome's verified loaded folder. Sent, Starred,
+  and a custom label each show a 49px toolbar, a hidden refinement row with no
+  reserved height, inline search, and the saved collapsed header. The search
+  bar's native advanced-search panel opens normally and closes with Escape.
+  Returned to Inbox afterward. No messages were opened, sent, or modified.
+
 ## Compatibility limits
 
 This targets the inspected English desktop Gmail DOM. Native-only fallback is

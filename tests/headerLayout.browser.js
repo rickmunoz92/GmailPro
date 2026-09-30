@@ -27,6 +27,18 @@
     f.actions.prepend(group);
     return {...f, source:nav.querySelector('[gh=cm]'), composeShell:nav.querySelector('.aic'), mailboxes:nav.querySelector('.mailboxes'), select:group.firstElementChild};
   }
+  function addLabelFilters(f) {
+    const filters=document.createElement('div');
+    filters.className='native-label-filters'; filters.setAttribute('role','toolbar');
+    filters.setAttribute('aria-label','search refinement');
+    filters.innerHTML='<button type="button">From</button><button type="button">Has attachment</button>';
+    const row=document.createElement('div'); row.className='native-mail-action-row';
+    // Gmail nests pagination separately from the action group inside this row.
+    const pagerOwner=document.createElement('div'); pagerOwner.className='native-pager-owner';
+    pagerOwner.append(f.pager); row.append(f.actions,pagerOwner);
+    f.toolbar.classList.add('native-label-toolbar'); f.toolbar.prepend(filters,row);
+    return {filters,row};
+  }
   window.addEventListener('resize', nativeResize);
   const start = async (collapsed = false) => { feature.start({appleMailModeEnabled:true, headerCollapsed:collapsed}); await settle(); };
   const control = name => document.querySelector(`[data-gp-header-action="${name}"]`);
@@ -62,6 +74,21 @@
     assert(document.querySelectorAll('.gmail-pro-toolbar-compose').length===1,'one Compose after toolbar replacement');
     window.dispatchEvent(new Event('hashchange')); await settle();
     assert(document.querySelectorAll('.gmail-pro-toolbar-compose').length===1,'one Compose after navigation');
+  });
+  await test('sidebar wordmark is centered, accent-aware, opens settings, and cleans up', async () => {
+    const f=composeFixture(); await start(true);
+    const brand=document.querySelector('.gmail-pro-sidebar-brand');
+    assert(brand.textContent==='Gmail Pro' && brand.getAttribute('aria-label')==='Open Gmail Pro settings','named wordmark');
+    assert(getComputedStyle(brand).fontSize==='21px' && rect(f.composeShell).height===44,'compact popup-sized branding');
+    assert(Math.abs(rect(brand).left+rect(brand).width/2-rect(f.composeShell).left-rect(f.composeShell).width/2)<0.5,'centered in sidebar');
+    const before=getComputedStyle(brand.querySelector('span')).color;
+    document.documentElement.dataset.gpAccent='purple';
+    assert(getComputedStyle(brand.querySelector('span')).color!==before,'Pro follows accent');
+    const original=globalThis.chrome; let request;
+    globalThis.chrome={runtime:{sendMessage:async message=>{request=message;return {ok:true};}}};
+    try { brand.click(); await settle(); assert(request?.type==='gmail-pro-open-settings' && !brand.disabled,'settings bridge activated'); }
+    finally { globalThis.chrome=original; }
+    feature.stop(); assert(!brand.isConnected && getComputedStyle(f.source.parentElement).display!=='none','branding removed and native Compose restored');
   });
   await test('missing selection or unsafe sidebar restores native Compose', async () => {
     const f=composeFixture(); await start(); f.select.remove(); await settle();
@@ -204,6 +231,55 @@
   await test('route changes close compact overlay and retain saved collapse', async () => {
     const f=fixture(1000); await start(true); control('search').click(); await settle(); control('toggle').focus(); window.dispatchEvent(new Event('hashchange')); await settle();
     assert(control('close').hidden && rect(f.shell).height===0,'navigation resets temporary overlay');
+  });
+  await test('mail views hide redundant filter chips and reclaim space while retaining advanced search', async () => {
+    for (const collapsed of [false,true]) {
+      const f=composeFixture(), {filters,row}=addLabelFilters(f); await start(collapsed);
+      assert(rect(filters).height===0 && getComputedStyle(filters).display==='none','redundant filter row hidden');
+      assert(rect(f.toolbar).height===49,'single toolbar row reclaims filter space');
+      assert(f.form.getAttribute('data-gp-toolbar-search')==='field','inline field remains available');
+      assert(rect(f.form).width===360 && Math.abs(rect(f.form).top+18-rect(row).top-rect(row).height/2)<0.5,'search centered on mail actions');
+      assert((rect(f.shell).height===0)===collapsed,'saved header preference respected');
+      assert(f.form.parentElement===f.parent,'native search ownership unchanged');
+      assert(document.querySelectorAll('.gmail-pro-toolbar-compose').length===1 && document.querySelector('.gmail-pro-sidebar-brand'),'Compose and branding retained');
+      const advanced=f.form.querySelector('[aria-label="Advanced search options"]');
+      let clicks=0; advanced.addEventListener('click',()=>clicks++);
+      const target=rect(advanced);
+      assert(document.elementFromPoint(target.x+target.width/2,target.y+target.height/2)===advanced,'native advanced search receives hits');
+      advanced.click(); assert(clicks===1,'native advanced-search handler retained');
+      feature.stop(); document.documentElement.classList.remove('gmail-pro-apple-mail-mode');
+      assert(!f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height>0 && rect(filters).height===32 && rect(f.toolbar).height===101,'mode OFF restores native filters and toolbar height');
+    }
+  });
+  await test('Inbox, mailboxes, and replacement action rows retain one consistent header', async () => {
+    const f=composeFixture(); f.input.value='label:synthetic'; await start(true);
+    const label=addLabelFilters(f); await settle();
+    assert(f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height===0,'filter insertion discovered without route event');
+    assert(rect(label.filters).height===0 && rect(f.toolbar).height===49,'late filter row hidden without leaving a gap');
+    label.row.replaceWith(label.row.cloneNode(true)); window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(f.form.hasAttribute('data-gp-toolbar-search') && document.querySelectorAll('.gmail-pro-toolbar-compose').length===1,'replacement row recovered without duplicate Compose');
+    const row=f.toolbar.querySelector('.native-mail-action-row');
+    f.toolbar.append(...row.children); row.remove(); label.filters.remove(); f.toolbar.classList.remove('native-label-toolbar');
+    window.dispatchEvent(new Event('popstate')); await settle();
+    assert(f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height===0,'returning to Inbox retains collapse');
+    assert(document.querySelectorAll('.gmail-pro-header-controls').length===1 && document.querySelectorAll('.gmail-pro-toolbar-compose').length===1,'one header and Compose after round trip');
+    assert(f.input.value==='label:synthetic' && f.form.parentElement===f.parent,'query and native ownership retained');
+  });
+  await test('compact search stays aligned when hidden mailbox filters change height', async () => {
+    const f=fixture(1000), {filters,row}=addLabelFilters(f); f.input.value='synthetic'; await start(true);
+    assert(control('search') && !control('search').hidden,'compact search available on labels');
+    control('search').click(); await settle();
+    assert(document.activeElement===f.input && f.form.getAttribute('data-gp-toolbar-search')==='field','original search focused');
+    const top=rect(f.form).top;
+    filters.style.height='64px'; f.toolbar.style.height='133px'; await settle();
+    assert(rect(filters).height===0 && rect(f.toolbar).height===49 && rect(f.form).top===top,'hidden filter changes reserve no extra space');
+    assert(Math.abs(rect(f.form).top+18-rect(row).top-rect(row).height/2)<0.5,'search stays centered on action row');
+    window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(control('close').hidden && rect(f.shell).height===0 && f.input.value==='synthetic','navigation closes overlay and retains query/preference');
+  });
+  await test('an oversized mail-action row still restores usable native layout', async () => {
+    const f=fixture(), {row}=addLabelFilters(f); row.style.height='100px'; f.toolbar.style.height='181px';
+    await start(true); assert(!f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height>0,'unsupported action row falls back safely');
   });
   await test('failed preference write restores previous layout and offers retry', async () => {
     const f=fixture(); await start(); failSave=true; control('toggle').click(); await settle();

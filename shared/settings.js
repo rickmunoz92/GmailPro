@@ -25,7 +25,8 @@
     autoPagingEnabled: false,
     messageZoomEnabled: false,
     customLabelOrderEnabled: false,
-    customLabelOrder: Object.freeze([])
+    customLabelOrder: Object.freeze([]),
+    sidebarHiddenSublabels: Object.freeze([])
   });
   // Independent, versioned keys avoid overwriting unrelated preferences when
   // different extension contexts save changes. Same-key conflicts are last-write-wins.
@@ -50,7 +51,8 @@
     autoPagingEnabled: "gmailPro.v1.autoPagingEnabled",
     messageZoomEnabled: "gmailPro.v1.messageZoomEnabled",
     customLabelOrderEnabled: "gmailPro.v1.customLabelOrderEnabled",
-    customLabelOrder: "gmailPro.v1.customLabelOrder"
+    customLabelOrder: "gmailPro.v1.customLabelOrder",
+    sidebarHiddenSublabels: "gmailPro.v1.sidebarHiddenSublabels"
   });
   const choices = Object.freeze({
     appearanceTheme: Object.freeze(["dark", "light", "system"]),
@@ -70,9 +72,27 @@
       new TextEncoder().encode(JSON.stringify(value)).length <= 7500;
   }
 
+  function validHiddenSublabels(value) {
+    return Array.isArray(value) && value.length <= 500 && value.every(entry =>
+      entry && typeof entry === "object" && !Array.isArray(entry) &&
+      Object.keys(entry).length === 2 && isValidEmail(entry.account) &&
+      typeof entry.path === "string" && entry.path.startsWith("label/") &&
+      entry.path.length > 6 && entry.path.length <= 1024) &&
+      new TextEncoder().encode(JSON.stringify(value)).length <= 7500;
+  }
+
   function normalize(name, value) {
     if (choices[name]) return choices[name].includes(value) ? value : defaults[name];
     if (name === "customLabelOrder") return validOrder(value) ? [...new Set(value)] : [];
+    if (name === "sidebarHiddenSublabels") {
+      if (!validHiddenSublabels(value)) return [];
+      const entries = new Map();
+      for (const { account, path } of value) {
+        const normalized = { account: account.toLowerCase(), path };
+        entries.set(JSON.stringify(normalized), normalized);
+      }
+      return [...entries.values()];
+    }
     if (name === "bccAddress") {
       const address = typeof value === "string" ? value.trim() : "";
       return address === "" || isValidEmail(address) ? address : "";
@@ -102,6 +122,8 @@
         }
       } else if (name === "customLabelOrder") {
         if (!validOrder(value)) throw new TypeError("Label order is too large or invalid.");
+      } else if (name === "sidebarHiddenSublabels") {
+        if (!validHiddenSublabels(value)) throw new TypeError("Hidden sublabels are too large or invalid.");
       } else if (typeof value !== "boolean") {
         throw new TypeError("Setting must be a boolean.");
       }

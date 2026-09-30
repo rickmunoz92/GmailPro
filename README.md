@@ -26,8 +26,8 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Automatic page changes:** scroll down at the bottom for Gmail’s next page or up at the top for the previous page, in Apple Mail Mode with the reading pane on the right.
 - **Message-only Zoom:** enlarge or reduce message content with ⌘+, ⌘−, and ⌘0
   without scaling Gmail’s interface. Resets to 100% for each new conversation.
-- **Custom Label Order:** choose the visual order of custom Gmail labels without
-  renaming or modifying those labels in Gmail.
+- **Organize labels:** reorder top-level labels visually, move sublabels to new
+  Gmail parents, and hide individual sublabel branches from this sidebar.
 
 Floating Reply, Reply All, and Forward default on. Other features default off.
 Open the extension popup to enable **Apple Mail Mode**. Appearance settings save
@@ -238,6 +238,10 @@ checkbox, freeing its original sidebar row so Inbox and labels move up. The
 Phish Alert toolbar icon uses a neutral tint while keeping its original action.
 Reply All remains available for single-recipient conversations by using Gmail's
 native Reply when Gmail omits Reply All; recipient handling stays native.
+Inbox, Sent, Starred, other mailboxes, labels, and search results use the same
+single toolbar row. The redundant From/time/attachment filter row is hidden;
+Gmail's native advanced search remains available from the search bar's filter
+button. Turning Apple Mail Mode off restores the native filter row.
 Use the chevron beside search to collapse or expand the Gmail header.
 The header starts expanded; your choice saves immediately through the existing
 Chrome Sync preferences and applies across Gmail tabs/accounts in this profile.
@@ -438,49 +442,76 @@ zoom, other browsers, non-US keyboard layouts, competing extensions, and future
 Gmail/Chrome changes are not covered by that guarantee. Existing browser zoom is
 never forcibly reset. See [message zoom QA](tests/messageZoom-QA.md).
 
-### Custom Label Order
+### Organize labels
 
-Under **LABELS**, turn on **Custom label order**, save preferences, then select
-**Edit label order** while Gmail is active with its sidebar expanded. Small handles
-appear beside top-level labels. Drag a handle or focus it and press **↑ / ↓**.
-Each completed move saves automatically; **Done** or **Escape** exits. A failed
-save leaves the prior order in place and shows a retry message. **Reset label
-order** clears the saved ordering; disabling restores Gmail's native presentation.
+Click the **↑↓ Organize labels** button immediately left of Gmail's Labels **+**,
+or **Organize labels** in the extension popup. The sidebar must be expanded.
+**Done** or **Escape** outside a native menu/editor exits editing. The organizer works even when **Custom label
+order** is off.
 
-The feature uses CSS `order` on Gmail's original custom-label rows inside a column
-layout. It never moves, clones or replaces Gmail rows: live testing showed that
-Gmail relies on its native child sequence during incremental rendering. Each parent
-and all rendered descendants receive consecutive visual positions. Gmail retains
-expand/collapse, unread counts, icons, colors, menus and message-drop handlers.
-Pointer Events are confined to extension-owned handles during editing; no native
-HTML drag/drop listeners are installed. Keyboard moves follow the visual order.
+- Drag a top-level label's handle to change its visual position, or focus the
+  handle and press **↑ / ↓**. Each move saves and enables Custom label order.
+  Turning that switch off restores native presentation; **Reset label order**
+  clears only visual ranks.
+- Drag a sublabel's handle onto another custom label to **Move under [parent]**.
+  Dropping saves the real Gmail parent change through its native **Edit → Nest
+  label under** dialog. Its name and descendants move together. Gmail owns the
+  labels and message assignments; the resulting hierarchy applies in other clients.
+  Sublabel order within the same parent stays native. Focus a sublabel handle
+  and press **Enter** or **Space** for Gmail's accessible parent picker and Save/Cancel.
+  Edge scrolling helps reach distant destinations.
+- Click a sublabel's eye button, **Hide from sidebar — Gmail Pro**, to hide its
+  branch here. While editing, **Show hidden sublabels** temporarily reveals these
+  rows; click the crossed eye on the hidden branch to restore it. A descendant
+  hidden by its parent must be restored through that parent. Expand collapsed
+  parents first. This changes neither email label badges nor Gmail's own settings.
 
-Identity is the decoded `#label/…` navigation path, validated against the row's
-`data-label-name`. No immutable Gmail label ID was exposed in the inspected rows.
-Deleted/stale entries are ignored. Renames act like new labels, which follow saved
-labels in Gmail's native relative order. Missing entries remain in the preference
-so editing a partially rendered section cannot erase ordering for unseen labels.
+You can also open a sublabel's ordinary **three-dot menu → Hide from sidebar —
+Gmail Pro** without entering the organizer. This separate action hides the same
+branch and works with Custom label order off. Gmail's **In message list → Hide**
+continues to control email badges. Existing badge-hiding choices are not converted
+into sidebar hiding. In the organizer, reveal hidden rows and use the eye or their
+menu's **Show in sidebar — Gmail Pro** to restore them. Descendants hidden with a
+parent must be restored through that parent. The new menu action supports arrow
+keys, End, Enter/Space, and Escape; other menu actions stay native.
 
-Gmail renders visible labels and labels behind **More** in separate containers.
-Editing temporarily opens the custom-label More control and restores it on exit
-if the user has not already collapsed it. Ordering is stored as one logical list,
-but each native visibility section is ordered independently: labels never cross
-Gmail's visible/More boundary. Nested children are never independently draggable.
-Some children exist only while expanded; they inherit their parent's rank when
-Gmail renders them. No parent/child relationships or visibility settings change.
+Gmail's native **Hide / Show / Show if unread**, More, collapse controls, and
+message-list settings retain their behavior. On the inspected Gmail interface,
+top-level labels have native sidebar visibility settings; sublabel Show/Hide
+controls message badges. Editing never opens More automatically. Visual ranks
+apply within Gmail's existing visibility containers and preserve hidden entries.
+Gmail Pro hiding stays active independently of Custom label order.
 
-The shared settings adapter saves `gmailPro.v1.customLabelOrderEnabled` and
-`gmailPro.v1.customLabelOrder` through `chrome.storage.sync`. The order is limited
-to 500 entries and 7,500 JSON bytes to stay below Sync's per-item quota. Only label
-path/order preferences are stored, never message data or authentication information.
-As with other preferences, this applies across Gmail accounts in a Chrome profile;
-matching label paths share their position. Reset removes stale entries too.
+The existing controller uses reversible CSS order on original Gmail rows and
+never moves, clones or replaces them. Gmail relies on that native DOM sequence.
+Pointer Events are confined to extension handles; ordinary message dragging stays
+native. Each top-level branch keeps consecutive visual positions. Idle observation
+is confined to sidebar sections and their shallow ancestor chain; native editor
+discovery uses bounded temporary watches. Moves are serialized, reject self,
+descendant, unchanged-parent and name-collision destinations, and verify Gmail's
+committed path before reporting success. Unknown controls or failed saves show
+an actionable message without automatic retries. Exiting after Save still allows
+verification and hidden-path migration to finish.
 
-Ordering is local presentation behavior: **Gmail mobile and other clients are
-unaffected**, and actual Gmail label names/hierarchy remain unchanged. Chrome Sync
-can carry the preference to other installations of Gmail Pro. Screen readers and
-Tab navigation retain Gmail's native DOM sequence. Gmail DOM changes may require
-Gmail Pro selector updates; unsupported structures retain native presentation.
+Identity is the decoded `#label/…` navigation path, checked against native menu
+metadata and indentation. External renames are treated as new paths. Missing
+ordering entries are retained for unseen labels. `gmailPro.v1.customLabelOrder`
+and its existing enable switch remain shared across accounts in a Chrome profile.
+The new `gmailPro.v1.sidebarHiddenSublabels` stores `{ account, path }` records only
+for a verified Gmail account; another account's sidebar remains unaffected. After
+a confirmed parent move, that account's hidden branch paths are migrated. Both
+arrays have a 500-entry / 7,500-byte JSON bound and use the sole shared settings
+adapter and Chrome Sync. Storage failures leave previous preferences unchanged;
+if Gmail already saved, a partial-success message explains the visibility issue.
+Outside editing, sidebar visibility confirmation and dismissible errors appear
+beneath the Labels heading. A bounded menu-discovery watch associates the native
+popup with its triggering label; only that open menu is watched afterward. Closing
+or reusing the popup removes extension controls and temporary presentation styles.
+
+Visual ordering and custom hiding affect Gmail Pro sidebars only. Screen readers
+and Tab traversal retain Gmail's native DOM sequence. English desktop Gmail is
+required for the native editor bridge; interface changes may require selector
+updates. See [label organization QA](tests/labelOrder-QA.md).
 
 ## Privacy
 
@@ -492,7 +523,8 @@ Gmail Pro selector updates; unsupported structures retain native presentation.
 - Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
   Gmail network traffic or call undocumented Gmail APIs.
 - Preferences are stored through **`chrome.storage.sync`**. This includes the configured
-  BCC address, feature toggles, theme/accent choices, and custom-label navigation paths/order. Chrome can
+  BCC address, feature toggles, theme/accent choices, custom-label navigation paths/order,
+  and verified Gmail account addresses paired with hidden sublabel paths. Chrome can
   synchronize those preferences through Google's Chrome Sync service when enabled;
   this is not strictly device-only storage.
 - Gmail may save recipient changes as part of its normal draft behavior. If you send
@@ -652,7 +684,8 @@ the checks intentionally limited to synthetic data.
 - `content/reverseThreads.js` and `.css`: shared conversation discovery and reversible visual ordering.
 - `content/messageZoom.js` and `.css`: scoped reading magnification, shortcut guards, and per-conversation reset.
 - `content/messageList.js` and `.css`: scoped two-line layout and reversible conversation dates.
-- `content/labelOrder.js` and `.css`: reversible custom-label visual ordering and edit handles.
+- `content/labelOrder.js` and `.css`: visual label ordering, native parent moves,
+  account-scoped sidebar hiding, and organizer controls.
 - `content/gmailSelectors.js`: centralized JavaScript selectors; points to the
   message-list selector contract in `content/messageList.css`.
 - `content/content.js`: one settings subscription and shared lifecycle, started early.

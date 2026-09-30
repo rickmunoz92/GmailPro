@@ -124,12 +124,32 @@
     edit(byId("custom-label-order"), true); await submit();
     assert(store.values[key("customLabelOrderEnabled")] === true, "label feature enabled");
     store.emit({ [key("customLabelOrder")]: ["label/B", "label/A"] });
+    const hidden = [{ account: "one@example.test", path: "label/A/Child" }];
+    store.emit({ [key("sidebarHiddenSublabels")]: hidden });
     assert(save.disabled, "order metadata does not become an input or dirty edit");
     byId("reset-label-order").click(); await settle();
     assert(store.values[key("customLabelOrder")].length === 0, "reset clears order only");
     assert(store.values[key("customLabelOrderEnabled")] === true, "reset keeps toggle");
+    assert(JSON.stringify(store.values[key("sidebarHiddenSublabels")]) === JSON.stringify(hidden), "reset preserves hidden sublabels");
     store.failWrite = true; byId("reset-label-order").click(); await settle(); store.failWrite = false;
     assert(byId("save-status").dataset.state === "error" && !byId("settings-fields").disabled, "reset failure recoverable");
+  });
+  await test("organizer opens with visual ordering off through the existing Gmail entry point", async () => {
+    edit(byId('custom-label-order'), false); await submit();
+    let closed = 0, accept = true; const messages = [], previousClose = window.close;
+    const writesBefore = store.writes;
+    window.chrome.tabs = {
+      async query() { return [{id:7}]; },
+      async sendMessage(id, message) { messages.push({id,message}); return {ok:accept}; }
+    };
+    window.close = () => { closed++; };
+    try {
+      byId('edit-label-order').click(); await settle();
+      assert(closed === 1 && messages[0].id === 7 && messages[0].message.type === 'gmail-pro-edit-label-order', 'existing entry point used');
+      assert(store.writes === writesBefore && !store.values[key('customLabelOrderEnabled')], 'organizing alone leaves ordering off');
+      accept = false; byId('edit-label-order').click(); await settle();
+      assert(closed === 1 && byId('save-status').textContent.includes('Open Gmail'), 'unavailable sidebar gets an actionable message');
+    } finally { window.close = previousClose; delete window.chrome.tabs; }
   });
   await test("message zoom toggle saves independently", async () => {
     edit(byId("message-zoom"), true); await submit();

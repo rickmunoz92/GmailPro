@@ -50,7 +50,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, readShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, readShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -66,7 +66,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, readShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, readShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -88,6 +88,37 @@ test("Chrome storage failures propagate so the UI can offer retry", async () => 
   await assert.rejects(f.settings.load(), /QUOTA_BYTES/);
   await assert.rejects(f.settings.save({ newestEmailFirstEnabled: true }), /QUOTA_BYTES/);
   assert.equal(f.writes, 0);
+});
+
+test("hidden sublabels validate, deduplicate by account/path, and preserve unrelated preferences", async () => {
+  const f = fixture({ [prefix + "customLabelOrder"]: ["label/Keep"] });
+  const entries = [{ account: "ONE@example.test", path: "label/Alpha/Child" },
+    { account: "one@example.test", path: "label/Alpha/Child" }, { account: "two@example.test", path: "label/Alpha/Child" }];
+  await f.settings.save({ sidebarHiddenSublabels: entries });
+  const saved = plain(await f.settings.load());
+  assert.deepEqual(saved.sidebarHiddenSublabels, [entries[1], entries[2]]);
+  assert.deepEqual(saved.customLabelOrder, ["label/Keep"]);
+  for (const invalid of [null, {}, [{ account: "unknown", path: "label/Alpha/Child" }],
+    [{ account: "one@example.test", path: "#inbox" }], [{ account: "one@example.test", path: "label/" }],
+    [{ account: "one@example.test", path: "label/Alpha", extra: true }], Array(501).fill(entries[1]),
+    Array(20).fill({ account: "one@example.test", path: "label/" + "x".repeat(500) })]) {
+    await assert.rejects(f.settings.save({ sidebarHiddenSublabels: invalid }));
+  }
+  assert.equal(f.writes, 1);
+  f.fail(new Error("QUOTA_BYTES"));
+  await assert.rejects(f.settings.save({ sidebarHiddenSublabels: [] }), /QUOTA_BYTES/);
+  assert.equal(f.writes, 1);
+});
+
+test("hidden sublabel sync deletion resets only visibility, and malformed data is read safely", async () => {
+  const f = fixture({ [prefix + "sidebarHiddenSublabels"]: [{ account: "bad", path: "label/Child" }] });
+  assert.deepEqual(plain((await f.settings.load()).sidebarHiddenSublabels), []);
+  assert.equal(f.writes, 0);
+  const patches = [];
+  const unsubscribe = f.settings.subscribe(patch => patches.push(plain(patch)));
+  for (const listener of f.listeners) listener({ [prefix + "sidebarHiddenSublabels"]: { oldValue: [] } }, "sync");
+  assert.deepEqual(patches, [{ sidebarHiddenSublabels: [] }]);
+  unsubscribe();
 });
 
 test("subscriptions deduplicate, ignore unrelated changes, normalize deletion, and clean up", () => {
@@ -473,4 +504,25 @@ test("header preference starts expanded, validates, syncs, and surfaces save fai
   await assert.rejects(f.settings.save({ headerCollapsed: false }));
   assert.equal(f.data[prefix + "headerCollapsed"], true);
   stop();
+});
+
+test('sidebar settings bridge validates sender and reuses popup with safe fallback', async () => {
+  let listener; const calls=[];
+  const chrome={runtime:{id:'extension-id',getURL:path=>'chrome-extension://extension-id/'+path,onMessage:{addListener:fn=>{listener=fn;}}},
+    action:{openPopup:async options=>{calls.push(['popup',options]);}},
+    tabs:{create:async options=>{calls.push(['tab',options]);}}};
+  vm.runInNewContext(fs.readFileSync(path.join(root,'background/settings.js'),'utf8'),{chrome});
+  const message={type:'gmail-pro-open-settings'}, sender={id:'extension-id',frameId:0,url:'https://mail.google.com/mail/u/0/',tab:{windowId:7}};
+  for (const invalid of [{...sender,id:'other'},{...sender,frameId:1},{...sender,url:'https://example.com/'}]) {
+    assert.equal(listener(message,invalid,()=>assert.fail('unexpected response')),undefined);
+  }
+  assert.equal(calls.length,0);
+  const invoke=()=>new Promise(resolve=>assert.equal(listener(message,sender,resolve),true));
+  assert.deepEqual(plain(await invoke()),{ok:true});
+  assert.deepEqual(plain(calls),[['popup',{windowId:7}]]);
+  chrome.action.openPopup=async()=>{throw Error('unsupported window');};
+  assert.deepEqual(plain(await invoke()),{ok:true});
+  assert.deepEqual(plain(calls.at(-1)),['tab',{url:'chrome-extension://extension-id/popup/popup.html'}]);
+  chrome.tabs.create=async()=>{throw Error('unavailable');};
+  assert.deepEqual(plain(await invoke()),{ok:false});
 });

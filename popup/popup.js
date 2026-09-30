@@ -206,10 +206,6 @@
 
   document.getElementById("edit-label-order").addEventListener("click", async () => {
     if (!loaded || saving) return;
-    if (dirty.has("customLabelOrderEnabled") || !saved.customLabelOrderEnabled) {
-      setStatus("Turn on Custom label order and save preferences first.", "error");
-      return;
-    }
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const response = await chrome.tabs.sendMessage(tab.id, { type: "gmail-pro-edit-label-order" });

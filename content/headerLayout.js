@@ -26,25 +26,30 @@
     const actions = [...toolbar.querySelectorAll('[gh="mtb"]')].filter(visible);
     const pagers = [...toolbar.querySelectorAll(S.pagingPager)].filter(visible);
     if (!input || actions.length !== 1 || pagers.length !== 1) return null;
+    // Labels/search add a refinement row above the native mail actions. Use
+    // their shared row, rather than the height of the whole toolbar wrapper.
+    let actionRow = actions[0].parentElement;
+    while (actionRow !== toolbar && !actionRow.contains(pagers[0])) actionRow = actionRow.parentElement;
     const main = toolbar.closest(S.main), viewport = main.closest(S.headerViewport);
-    return { banner, shell, form, input, toolbar, main, viewport, actions: actions[0], pager: pagers[0] };
+    return { banner, shell, form, input, toolbar, actionRow, main, viewport, actions: actions[0], pager: pagers[0] };
   }
 
   function geometry(ctx, reserve = 0) {
     const bar = ctx.toolbar.getBoundingClientRect();
+    const row = ctx.actionRow.getBoundingClientRect();
     const action = ctx.actions.getBoundingClientRect(), pager = ctx.pager.getBoundingClientRect();
     // Include actual hit targets (including Gmail Pro / third-party actions),
     // not just Gmail's sometimes shorter action-group box.
     const buttons = [...ctx.actions.querySelectorAll('button, [role="button"]')].filter(visible);
     const left = Math.max(bar.left + GAP, action.right, ...buttons.map(node => node.getBoundingClientRect().right)) + GAP + reserve;
     const right = Math.min(bar.right - GAP, pager.left - GAP);
-    if (bar.top < 0 || bar.height < 32 || bar.height > 80 || right - left < BUTTON * 2 + GAP) return null;
+    if (row.top < 0 || row.height < 20 || row.height > 80 || right - left < BUTTON * 2 + GAP) return null;
     // Keep the field stable as selection actions appear/disappear. If the
     // complete field cannot fit, use the existing compact search control.
     const narrow = right - left < SEARCH_WIDTH + BUTTON + GAP;
     const width = narrow ? Math.min(SEARCH_WIDTH, right - bar.left - BUTTON * 2 - GAP * 3) : SEARCH_WIDTH;
     if (width < 180) return null;
-    return { narrow, width, right, top: bar.top + (bar.height - 36) / 2 };
+    return { narrow, width, right, top: row.top + (row.height - 36) / 2 };
   }
 
   function schedule() {
@@ -109,6 +114,7 @@
     if (!compose) return;
     compose.shell.removeAttribute('data-gp-compose-relocated');
     compose.button.remove();
+    compose.brand.remove();
     compose = undefined;
     window.dispatchEvent(new Event('resize'));
   }
@@ -119,9 +125,11 @@
     const source = sources.length === 1 ? sources[0] : null;
     const select = selects.length === 1 ? selects[0] : null;
     const shell = source?.closest('.aic');
+    shell?.querySelectorAll('.gmail-pro-sidebar-brand').forEach(node => { if (node !== compose?.brand) node.remove(); });
     // Hide only the dedicated native Compose row, never other sidebar content.
-    const safe = shell && shell.children.length === 1 && source.parentElement.children.length === 1 && geometry(ctx, compose ? 0 : 32);
-    if (compose && (!safe || !select || compose.source !== source || compose.select !== select || !compose.button.isConnected)) restoreCompose();
+    const safe = shell && [...shell.children].filter(node => node !== compose?.brand).length === 1 && source.parentElement.children.length === 1 && geometry(ctx, compose ? 0 : 32);
+    if (compose && (!safe || !select || compose.source !== source || compose.select !== select || !compose.button.isConnected || !compose.brand.isConnected)) restoreCompose();
+    if (compose) compose.brand.toggleAttribute('data-compact', shell.parentElement.getBoundingClientRect().width < 140);
     if (!safe || !select || compose) return;
     // Gmail/other extensions may copy toolbar markup without our listeners.
     ctx.actions.querySelectorAll('.gmail-pro-toolbar-compose').forEach(node => node.remove());
@@ -131,7 +139,25 @@
       if (enabled && source.isConnected) source.click();
     });
     select.after(node);
-    compose = { source, shell, select, button: node };
+    const brand = document.createElement('button');
+    brand.type = 'button'; brand.className = 'gmail-pro-sidebar-brand';
+    brand.toggleAttribute('data-compact', shell.parentElement.getBoundingClientRect().width < 140);
+    brand.title = 'Open Gmail Pro settings'; brand.setAttribute('aria-label', brand.title);
+    brand.append(document.createTextNode('Gmail '));
+    const pro = document.createElement('span'); pro.textContent = 'Pro'; brand.append(pro);
+    brand.addEventListener('click', async () => {
+      if (!enabled || brand.disabled) return;
+      brand.disabled = true;
+      try {
+        const result = await chrome.runtime.sendMessage({ type: 'gmail-pro-open-settings' });
+        if (!result?.ok) throw new Error('Settings unavailable');
+        brand.title = 'Open Gmail Pro settings';
+      } catch {
+        brand.title = 'Could not open settings. Click to try again or use the extension icon.';
+      } finally { brand.disabled = false; }
+    });
+    shell.append(brand);
+    compose = { source, shell, select, button: node, brand };
     shell.setAttribute('data-gp-compose-relocated', '');
     window.dispatchEvent(new Event('resize'));
   }
@@ -198,7 +224,7 @@
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
     for (const panel of document.querySelectorAll(S.headerAdvancedPanel)) observer.observe(panel,
       { childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
-    const sizes = new Set(ctx ? [ctx.toolbar, ctx.actions, ctx.pager, ctx.banner] : []);
+    const sizes = new Set(ctx ? [ctx.toolbar, ctx.actionRow, ctx.actions, ctx.pager, ctx.banner] : []);
     for (const node of observedSizes) if (!sizes.has(node)) resizeObserver.unobserve(node);
     for (const node of sizes) if (!observedSizes.has(node)) resizeObserver.observe(node);
     observedSizes = sizes;

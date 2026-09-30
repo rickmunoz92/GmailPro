@@ -117,6 +117,14 @@
   :is(.gmail-pro-label-before, .gmail-pro-label-after) { color: var(--gp-accent-ui); }
 
   [gh="tm"] { border-bottom: 1px solid var(--gp-border); }
+  /* All mail views use the same native 48px action row. Advanced search stays
+     in the original search form; hide only Gmail's redundant refinement bar. */
+  [role="main"] [gh="tm"]:has(> [role="toolbar"][aria-label="search refinement"]) {
+    display: flex !important; align-items: center !important; height: 48px !important;
+  }
+  [role="main"] [gh="tm"] > [role="toolbar"][aria-label="search refinement"] {
+    display: none !important;
+  }
   [gh="tm"] [role="button"] {
     border-radius: 4px !important;
     box-shadow: none !important;
@@ -368,7 +376,22 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions svg {
   stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: none !important;
 }
 
-html.gmail-pro-apple-mail-mode [role="navigation"] > .aic[data-gp-compose-relocated] { display: none !important; }
+html.gmail-pro-apple-mail-mode [role="navigation"] > .aic[data-gp-compose-relocated] {
+  height: 44px !important; min-height: 44px; display: flex !important;
+  align-items: center; justify-content: center;
+}
+html.gmail-pro-apple-mail-mode .aic[data-gp-compose-relocated] > .z0 { display: none !important; }
+html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand {
+  max-width: calc(100% - 12px); overflow: hidden; white-space: nowrap;
+  border: 0; border-radius: 5px; padding: 3px 6px; background: transparent;
+  font: 650 21px/28px var(--gp-font); letter-spacing: -.6px;
+  color: var(--gp-text-primary); cursor: pointer;
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand span { color: var(--gp-accent-ui); }
+html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand[data-compact] { font-size: 0; letter-spacing: 0; }
+html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand[data-compact] span { font-size: 21px; letter-spacing: -.6px; }
+html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand:hover { background: var(--gp-hover); }
+html.gmail-pro-apple-mail-mode .gmail-pro-sidebar-brand:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 1px; }
 html.gmail-pro-apple-mail-mode[data-gp-theme="light"] [gh="mtb"] .inboxsdk__button[data-tooltip="Phish Alert"] .inboxsdk__button_iconImg {
   filter: grayscale(1) brightness(0) invert(.4);
 }

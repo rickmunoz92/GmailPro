@@ -29,6 +29,11 @@ form > button > svg { width: 24px; height: 24px; padding: 8px; margin: 3px; }
 [gh=mtb] { width: 360px; height: 32px; flex: none; display: flex; }
 [gh=mtb] button { height: 32px; }
 .Di { margin-left: auto; display: flex; width: 160px; height: 32px; flex: none; }
+.native-label-toolbar[gh=tm] { display: block; height: 100px; border-bottom: 1px solid #888; }
+.native-label-filters { display: flex; gap: 8px; height: 32px; margin: 16px 8px 22px; }
+.native-mail-action-row { display: flex; align-items: center; height: 20px; flex: 1; margin-inline: 16px; }
+.native-pager-owner { margin-left: auto; }
+.native-mail-action-row :is([gh=mtb], .Di, button) { height: 20px; }
 .panes { display: flex; flex: 1; min-height: 0; }
 .Nu { flex: 1; overflow: auto; }
 .Nu > div { height: 1500px; }
