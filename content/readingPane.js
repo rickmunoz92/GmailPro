@@ -13,6 +13,10 @@
   let queued = false;
   let observedContext;
   let pendingRead, restoringUnread = false;
+  let pendingFiling, filingGesture = false, heldFilingKey;
+  let filingNotice, filingNoticeTimer;
+  const filingPointerEvents = ["pointerdown", "mousedown", "mouseup", "click"];
+  const filingKeyEvents = ["keydown", "keypress", "keyup"];
   let readNoticeObserver, readNoticeTimer;
   const readDelay = 300;
   const readRetryDelay = 250;
@@ -24,11 +28,11 @@
   const usable = node => node && !node.matches('[disabled], [aria-disabled="true"]');
   const ownsChrome = node => !node.closest(S.readingExcluded);
 
-  function nativeGesture(target) {
+  function nativeGesture(target, guard = () => true) {
     const bounds = target.getBoundingClientRect();
     // Gmail controls need pressed state; a bare .click() can be ignored.
     for (const type of ["mousedown", "mouseup", "click"]) {
-      if (!visible(target) || !usable(target)) break;
+      if (!guard() || !visible(target) || !usable(target)) break;
       target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true,
         view: window, button: 0, buttons: type === "mousedown" ? 1 : 0, detail: 1,
         clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 }));
@@ -79,6 +83,201 @@
     return row.querySelector('[role="link"] [data-thread-id][data-legacy-thread-id]');
   }
 
+  function clearFilingNotice() {
+    clearTimeout(filingNoticeTimer); filingNoticeTimer = undefined;
+    filingNotice?.remove(); filingNotice = undefined;
+  }
+
+  function filingFeedback(message) {
+    clearFilingNotice();
+    if (!enabled || !message) return;
+    const node = document.createElement("div"), text = document.createElement("span"), dismiss = document.createElement("button");
+    node.className = "gmail-pro-filing-notice";
+    text.setAttribute("role", "status"); text.setAttribute("aria-live", "polite"); text.setAttribute("aria-atomic", "true");
+    text.textContent = message;
+    dismiss.type = "button"; dismiss.textContent = "Dismiss"; dismiss.addEventListener("click", clearFilingNotice);
+    node.append(text, dismiss); document.body.append(node); filingNotice = node;
+    filingNoticeTimer = setTimeout(clearFilingNotice, 6000);
+  }
+
+  function filingNative(target, checkbox = false, guard) {
+    filingGesture = true;
+    try {
+      // Apple Mail Mode hides native checkboxes. Gmail's existing selection
+      // bridge uses .click() on them; toolbar actions require all mouse phases.
+      if (checkbox) target.click(); else nativeGesture(target, guard);
+    } finally { filingGesture = false; }
+  }
+
+  function checkedBoxes(main) {
+    return [...main.querySelectorAll('table[role="grid"] [role="checkbox"]:is([aria-checked="true"], [aria-checked="mixed"])')]
+      .filter(ownsChrome);
+  }
+
+  function filingRow(pending) {
+    const matches = [...pending.grid.querySelectorAll('tr[role="row"]')].filter(row => {
+      const id = readIdentity(row);
+      return id?.getAttribute("data-thread-id") === pending.thread && id.getAttribute("data-legacy-thread-id") === pending.legacy && ownsChrome(row);
+    });
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  function filingHealthy(pending) {
+    return enabled && !document.hidden && location.hash === pending.route && location.pathname === pending.page && visible(pending.main) &&
+      visible(pending.grid) && pending.grid.closest(S.main) === pending.main;
+  }
+
+  function filingActionValid(pending) {
+    if (pendingFiling !== pending || !filingHealthy(pending)) return false;
+    const row = filingRow(pending), box = row?.querySelector(':scope > td > [role="checkbox"]');
+    const checked = checkedBoxes(pending.main);
+    if (!visible(row) || !box || checked.length !== 1 || checked[0] !== box || box.getAttribute("aria-checked") !== "true") return false;
+    if (pending.phase === "archiving" && (row.classList.contains("zE") || !row.classList.contains("yO"))) return false;
+    return [...row.querySelectorAll('.yi .at[title]')].some(badge =>
+      badge.getAttribute("title") === pending.label && app.messageList?.filingTarget(badge)?.row === row);
+  }
+
+  function finishFiling(message = "", release = true) {
+    const pending = pendingFiling;
+    if (!pending) return;
+    pendingFiling = undefined;
+    clearTimeout(pending.timer); clearTimeout(pending.expiry);
+    stopReadNoticeWatch();
+    // Relinquish only the selection introduced by this operation, while its
+    // original context and sole target still agree. Never clear a user's bulk selection.
+    const row = release && pending.selectionOwned && filingHealthy(pending) ? filingRow(pending) : null;
+    const box = row?.querySelector(':scope > td > [role="checkbox"]'), checked = row && checkedBoxes(pending.main);
+    if (box && checked.length === 1 && checked[0] === box && box.getAttribute("aria-checked") === "true" && usable(box)) filingNative(box, true);
+    if (message) filingFeedback(message);
+    schedule();
+  }
+
+  function filingFailure(pending) {
+    return pending.readConfirmed ? "Marked read, but couldn’t file. Try again." :
+      "Couldn’t mark this conversation read, so it wasn’t filed. Try again.";
+  }
+
+  function nativeToolbarAction(main, selector) {
+    const toolbars = [...main.querySelectorAll(S.primaryToolbar)].filter(visible);
+    const actions = toolbars.length === 1 ? [...toolbars[0].querySelectorAll(selector)]
+      .filter(node => visible(node) && usable(node) && ownsChrome(node)) : [];
+    return actions.length === 1 ? actions[0] : null;
+  }
+
+  function waitForFiling(pending) {
+    if (pending.timer !== undefined) return;
+    pending.timer = setTimeout(() => { pending.timer = undefined; if (pendingFiling === pending) schedule(); }, readRetryDelay);
+  }
+
+  function watchFiling(pending) {
+    observer.observe(pending.grid, { childList: true, subtree: true, attributes: true,
+      attributeFilter: ["class", "aria-checked", "data-thread-id", "data-legacy-thread-id", "title", "hidden", "style", "aria-disabled"] });
+    for (let node = pending.grid.parentElement; node; node = node.parentElement) {
+      observer.observe(node, { childList: true, attributes: true, attributeFilter: ["style", "hidden", "aria-hidden"] });
+      if (node === pending.main) break;
+    }
+    for (const toolbar of pending.main.querySelectorAll(S.primaryToolbar)) {
+      observer.observe(toolbar, { childList: true, subtree: true, attributes: true,
+        attributeFilter: ["aria-label", "style", "class", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
+      for (let node = toolbar.parentElement; node; node = node.parentElement) {
+        observer.observe(node, { childList: true }); if (node === pending.main) break;
+      }
+    }
+  }
+
+  function refreshFiling() {
+    const pending = pendingFiling;
+    if (!pending) return;
+    if (!filingHealthy(pending)) return finishFiling();
+    watchFiling(pending);
+    const row = filingRow(pending);
+    if (!row) {
+      if (pending.phase === "archiving") return finishFiling("", false);
+      // A staged native row replacement can have a short gap. No action is
+      // taken until both thread IDs and the selection can be verified again.
+      return waitForFiling(pending);
+    }
+    if (pending.row.isConnected && pending.row !== row) return finishFiling();
+    pending.row = row;
+    if (pending.phase === "archiving") return waitForFiling(pending);
+    const box = row.querySelector(':scope > td > [role="checkbox"]'), checked = checkedBoxes(pending.main);
+    if (pending.phase === "selecting" && !checked.length) return waitForFiling(pending);
+    if (!box || checked.length !== 1 || checked[0] !== box || box.getAttribute("aria-checked") !== "true") return finishFiling("", false);
+    pending.phase = "reading";
+    const badge = [...row.querySelectorAll('.yi .at[title]')].find(node => node.getAttribute("title") === pending.label);
+    const target = badge && app.messageList?.filingTarget(badge);
+    if (!target || target.row !== row || !visible(row)) return finishFiling(pending.readConfirmed ? filingFailure(pending) : "");
+    const overlays = [...document.querySelectorAll('[role="menu"], [role="dialog"], [role="alertdialog"]')]
+      .some(node => visible(node) && !node.querySelector(S.composeForm));
+    if (overlays) return finishFiling();
+    if (row.classList.contains("zE")) {
+      if (pending.readConfirmed) return finishFiling(filingFailure(pending));
+      const action = nativeToolbarAction(pending.main, S.markRead);
+      if (action && performance.now() >= pending.nextRead) {
+        pending.nextRead = performance.now() + readRetryDelay;
+        if (!pending.readAttempted) quietReadNotice();
+        pending.readAttempted = true;
+        filingNative(action, false, () => filingActionValid(pending));
+      }
+      return waitForFiling(pending);
+    }
+    // Absence of Unread alone is not confirmation; Gmail must supply its
+    // explicit read row state. Never mutate classes or click an Unread toggle.
+    if (!row.classList.contains("yO")) return waitForFiling(pending);
+    pending.readConfirmed = true;
+    const archive = nativeToolbarAction(pending.main, S.archive);
+    if (!archive) return waitForFiling(pending);
+    pending.phase = "archiving"; // Set before dispatch so synchronous Gmail changes cannot repeat Archive.
+    stopReadNoticeWatch();
+    filingNative(archive, false, () => filingActionValid(pending));
+    if (pendingFiling === pending) waitForFiling(pending);
+  }
+
+  function startFiling(target) {
+    if (pendingFiling || document.hidden) return;
+    if (checkedBoxes(target.main).length) return filingFeedback("Clear your selection to file one conversation.");
+    const pending = readCandidate(target.row);
+    if (!pending || !["zE", "yO"].some(name => target.row.classList.contains(name))) return;
+    clearFilingNotice(); cancelRead(); stopReadNoticeWatch();
+    Object.assign(pending, { grid: target.grid, page: location.pathname, label: target.label, phase: "selecting", selectionOwned: true,
+      nextRead: 0, readConfirmed: target.row.classList.contains("yO") });
+    pendingFiling = pending;
+    pending.expiry = setTimeout(() => { if (pendingFiling === pending) finishFiling(filingFailure(pending)); }, readTimeout);
+    filingNative(target.box, true);
+    schedule();
+  }
+
+  function filingInput(event) {
+    if (filingGesture || !enabled || !(event.target instanceof Element)) return;
+    const keyEvent = event.type.startsWith("key"), key = event.key;
+    if (keyEvent && heldFilingKey === key) {
+      event.preventDefault(); event.stopImmediatePropagation();
+      if (event.type === "keyup") heldFilingKey = undefined;
+      return;
+    }
+    const activationKey = key === "Enter" || key === " ";
+    const ordinary = !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && (keyEvent ? activationKey : event.button === 0);
+    const target = ordinary && app.messageList?.filingTarget(event.target);
+    if (target) {
+      event.preventDefault(); event.stopImmediatePropagation();
+      cancelRead();
+      if (event.type === "keydown" && !event.repeat) { heldFilingKey = key; startFiling(target); }
+      else if (event.type === "click" && event.detail <= 1) startFiling(target);
+      return;
+    }
+    if (pendingFiling && (event.type === "pointerdown" || event.type === "keydown")) {
+      const selectionIntent = event.target.closest('[role="checkbox"]') ||
+        ((event.shiftKey || event.ctrlKey || event.metaKey) && event.target.closest('tr[role="row"]'));
+      finishFiling("", !selectionIntent);
+    }
+  }
+
+  function cancelFiling() { heldFilingKey = undefined; finishFiling(); }
+  // Existing window-capture shortcuts may have been installed before the mode
+  // was enabled. Let that owner cancel filing before resolving its own action,
+  // preserving the selected target for the user's explicit keyboard command.
+  function cancelFilingForShortcut() { heldFilingKey = undefined; finishFiling("", false); }
+
   function validReadRow(pending) {
     const { row, main, thread, legacy, route } = pending;
     const identity = readIdentity(row);
@@ -109,16 +308,14 @@
       pending.timer = setTimeout(() => markRead(pending), remaining);
       return;
     }
-    const toolbars = [...pending.main.querySelectorAll(S.primaryToolbar)].filter(visible);
-    const actions = toolbars.length === 1
-      ? [...toolbars[0].querySelectorAll(S.markRead)].filter(node => visible(node) && usable(node)) : [];
+    const action = nativeToolbarAction(pending.main, S.markRead);
     // A ready toolbar is not guaranteed at 300ms, and Gmail can ignore a
     // gesture while rendering it. Keep checking the native unread state until
     // confirmed, cancelled, or expired; never click a toggle labeled Unread.
-    if (actions.length === 1) {
+    if (action) {
       if (!pending.attempted) quietReadNotice();
       pending.attempted = true;
-      nativeGesture(actions[0]);
+      nativeGesture(action);
     }
     if (pendingRead !== pending) return;
     if (!pending.row.classList.contains("zE")) return cancelRead();
@@ -381,6 +578,7 @@
     observer.disconnect();
     restore();
     refreshRead();
+    refreshFiling();
     const current = context();
     updateRecipientLabels(current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell));
     if (!current?.actions.size) { group?.remove(); watch(current); return; }
@@ -403,6 +601,11 @@
   }
 
   function stop() {
+    cancelFiling(); clearFilingNotice();
+    for (const type of filingPointerEvents) document.removeEventListener(type, filingInput, true);
+    for (const type of filingKeyEvents) window.removeEventListener(type, filingInput, true);
+    document.removeEventListener("visibilitychange", cancelFiling);
+    for (const type of ["hashchange", "popstate", "blur"]) window.removeEventListener(type, cancelFiling);
     enabled = false;
     cancelRead();
     stopReadNoticeWatch();
@@ -425,6 +628,10 @@
     if (enabled) return;
     enabled = true;
     observer = new MutationObserver(schedule);
+    for (const type of filingPointerEvents) document.addEventListener(type, filingInput, true);
+    for (const type of filingKeyEvents) window.addEventListener(type, filingInput, true);
+    document.addEventListener("visibilitychange", cancelFiling);
+    for (const type of ["hashchange", "popstate", "blur"]) window.addEventListener(type, cancelFiling);
     document.addEventListener("click", openForRead, true);
     document.addEventListener("pointerdown", interruptRead, true);
     document.addEventListener("keydown", cancelRead, true);
@@ -434,5 +641,5 @@
     unsubscribe = app.reverseThreads.subscribeConversation(schedule);
     refresh();
   }
-  app.readingPane = Object.freeze({ start: update, update, stop });
+  app.readingPane = Object.freeze({ start: update, update, stop, cancelFilingForShortcut });
 })();

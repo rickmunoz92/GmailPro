@@ -1,5 +1,5 @@
 /* Message-list selector contract, verified in desktop Gmail September 2026.
-   messageList.js repeats the structural gate for date formatting;
+   messageList.js owns the validated data-gp-message-row marker;
    gmailSelectors.js points here for the layout contract.
 
    Gate on Gmail's main > grid > row structure, native checkbox, subject link
@@ -15,7 +15,7 @@
 
    @scope keeps these hooks local to verified rows. Older browsers without @scope
    keep the native layout. Gmail continues to own participants and counts. */
-@scope (html:is(.gmail-pro-message-list, .gmail-pro-apple-mail-mode) [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
+@scope (html:is(.gmail-pro-message-list, .gmail-pro-apple-mail-mode) [role="main"] table[role="grid"] > tbody > tr[role="row"][data-gp-message-row=""]:not([data-message-id], [data-message-id] *, .ii, .ii *, .a3s, .a3s *, [contenteditable], [contenteditable] *, form, form *, [role="dialog"], [role="dialog"] *, [role="region"], [role="region"] *)) {
   :scope {
     display: grid !important;
     grid-template-columns: 3px auto auto auto minmax(0, 1fr) auto auto auto;

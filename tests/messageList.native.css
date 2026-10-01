@@ -25,6 +25,8 @@ table[role="grid"], tbody { display: block; width: 100%; }
 .xT { align-items: center; }
 .y6 { flex: 0 1 auto; }
 .yi { display: flex; white-space: nowrap; }
+.yi > .ar { margin-right: 6px; }
+.yi > .ar > .at { margin-right: 0; }
 .at { margin-right: 5px; background: #ddd; padding: 0 3px; border-radius: 3px; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
 .y2 { color: #666; white-space: nowrap; overflow: hidden; }
 .zE .sender, .zE .bqe, .zE .bx0 { font-weight: 700; }

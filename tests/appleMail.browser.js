@@ -414,9 +414,19 @@
       feature.stop(); assert(css(holder.querySelector(".vX")).display !== "none", "loading restored OFF");
     } finally { holder.remove(); }
   });
-  await test("SPA replacement receives styles without per-row discovery or listeners", () => {
+  await test("SPA replacement receives styles before paint without per-row listeners", async () => {
     enable(); row().closest("table").remove(); const next = row({unread:true}); next.classList.add("aps");
-    assert(css(next).display === "grid" && css(next).backgroundColor === token("--gp-accent"), "replacement styled immediately");
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    assert(css(next).display === "grid" && css(next).backgroundColor === token("--gp-accent"), "replacement styled before paint");
+  });
+  await test('navigation lookalikes inside protected documents retain native styles', () => {
+    const inners=[];
+    for (const [name,value] of [['class','ii'],['class','a3s'],['contenteditable','true'],['role','region'],['role','dialog'],['role','menu'],['role','listbox']]) {
+      const wrapper=document.createElement('div'); wrapper.setAttribute(name,value);
+      wrapper.innerHTML='<div role="navigation"><div class="TN">Synthetic navigation</div></div>'; workspace.append(wrapper);
+      const node=wrapper.querySelector('.TN'); inners.push([node, css(node).fontSize, css(node).color]);
+    }
+    enable(); assert(inners.every(([node,size,color]) => css(node).fontSize===size && css(node).color===color), 'nested navigation is excluded');
   });
   await test("message HTML and editor formatting stay byte-for-byte and visually unchanged", () => {
     const nodes = [...document.querySelectorAll(".ii > .a3s, .a3s *, [contenteditable], [contenteditable] *")];

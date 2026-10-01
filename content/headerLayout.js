@@ -6,7 +6,7 @@
   const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360;
   let enabled = false, collapsed = false, open = false, saving = false;
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status;
-  let compose, mailboxCaption, captionList, countSnapshot, sidebar;
+  let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
   let ancestorSpine = new Set();
@@ -36,16 +36,22 @@
       list: lists.length === 1 ? lists[0] : null, actions: actions[0], pager: pagers[0] };
   }
 
+  const decodeHash = value => {
+    try { return decodeURIComponent(value.replace(/\+/g, ' ')); }
+    catch { return value; }
+  };
+  const mailboxKey = hash => decodeHash(hash.split('?')[0].replace(/\/p[1-9]\d*$/, ''));
+
+  const mailboxNames = { inbox: 'Inbox', sent: 'Sent', starred: 'Starred', snoozed: 'Snoozed',
+    scheduled: 'Scheduled', drafts: 'Drafts', all: 'All Mail', important: 'Important',
+    spam: 'Spam', trash: 'Trash' };
+
   function mailbox() {
-    const decodeHash = value => {
-      try { return decodeURIComponent(value.replace(/\+/g, ' ')); }
-      catch { return value; }
-    };
     // Gmail appends ?compose=... when a floating draft finishes opening/saving.
     // Strip URL parameters before decoding so encoded '?' in labels/searches
     // stays part of the mailbox identity. Native links use literal slashes
     // while Gmail's SPA route may encode the same nested label path as %2F.
-    const hash = decodeHash(location.hash.split('?')[0].replace(/\/p[1-9]\d*$/, ''));
+    const hash = mailboxKey(location.hash);
     const selected = [...document.querySelectorAll('[role="navigation"] .TO.nZ .n0[href]')];
     for (const link of selected) {
       const key = decodeHash(new URL(link.href, location.href).hash);
@@ -54,13 +60,132 @@
       if (key.startsWith('#label/')) name = key.slice(7).split('/').pop() || name;
       if (name) return { key, name, link };
     }
-    const names = { inbox: 'Inbox', sent: 'Sent', starred: 'Starred', snoozed: 'Snoozed',
-      scheduled: 'Scheduled', drafts: 'Drafts', all: 'All Mail', important: 'Important',
-      spam: 'Spam', trash: 'Trash' };
     const route = hash.slice(1).split('/')[0];
-    if (names[route]) return { key: '#' + route, name: names[route] };
+    if (mailboxNames[route]) return { key: '#' + route, name: mailboxNames[route] };
     if (route === 'search') return { key: hash, name: 'Search results' };
     return null;
+  }
+
+  const loadingMarker = 'data-gp-mailbox-loading';
+  const mailboxExcluded = '.ii, .a3s, [contenteditable], form, [role="region"], [role="dialog"], [role="menu"], [role="listbox"], [data-gmail-pro-label-ui]';
+
+  function loadingTarget(row) {
+    if (!row?.isConnected || !row.closest('[role="navigation"]') || row.closest(mailboxExcluded)) return null;
+    const line = row.querySelector(':scope > .TO > .TN');
+    const links = line?.querySelectorAll('a.n0[href]');
+    const slot = line?.querySelector(':scope > .nL'), menu = line?.querySelector(S.labelMenu);
+    if (links?.length !== 1 || !slot) return null;
+    const link = links[0];
+    let url;
+    try { url = new URL(link.href, location.href); } catch { return null; }
+    const key = mailboxKey(url.hash);
+    if (url.origin !== location.origin || url.pathname !== location.pathname || (link.target && !['_self', '_top'].includes(link.target))) return null;
+    if (key.startsWith('#label/')) {
+      if (menu?.parentElement !== slot || menu.getAttribute('data-label-name') !== key.slice(7)) return null;
+    } else if (!Object.hasOwn(mailboxNames, key.slice(1)) || menu) return null;
+    return { row, line, link, slot, key };
+  }
+
+  function restoreLoadingSlot(state) {
+    state.spinner?.remove();
+    if (state.slot?.getAttribute(loadingMarker) !== '') return;
+    if (state.slotBefore === null) state.slot.removeAttribute(loadingMarker);
+    else state.slot.setAttribute(loadingMarker, state.slotBefore);
+  }
+
+  function clearMailboxLoading() {
+    if (!mailboxLoading) return;
+    clearTimeout(mailboxLoading.timer);
+    restoreLoadingSlot(mailboxLoading);
+    mailboxLoading = undefined;
+  }
+
+  function placeLoadingSlot(state, target) {
+    restoreLoadingSlot(state);
+    Object.assign(state, target);
+    // Native sidebar clones may inherit presentation but not our ownership.
+    state.slotBefore = target.slot.getAttribute(loadingMarker) || null;
+    target.slot.querySelectorAll(':scope > .gmail-pro-mailbox-spinner').forEach(node => node.remove());
+    const spinner = document.createElement('span');
+    spinner.className = 'gmail-pro-mailbox-spinner';
+    spinner.setAttribute('role', 'status');
+    const text = document.createElement('span'); text.textContent = 'Loading mailbox'; spinner.append(text);
+    state.spinner = spinner;
+    target.slot.setAttribute(loadingMarker, '');
+    target.slot.append(spinner);
+  }
+
+  function listSnapshot(ctx) {
+    const list = ctx.list, content = list?.querySelector(':scope > .ae4');
+    const grid = content?.querySelector('table[role="grid"]');
+    const first = grid?.querySelector('tbody > tr[role="row"]');
+    const last = grid?.querySelector('tbody > tr[role="row"]:last-child');
+    const identity = row => row?.querySelector(S.pagingIdentity)?.getAttribute('data-thread-id');
+    return { list, content, grid, first, last, firstID: identity(first), lastID: identity(last),
+      range: ctx.pager.querySelector(S.pagingRange), empty: content?.querySelector('.TC') };
+  }
+
+  function loadingNodes(list) {
+    return [list?.querySelector(':scope > .zchc9b'),
+      document.querySelector('.vY > .vX:has(.vZ.L4XNt > .v1)')].filter(Boolean);
+  }
+
+  function nativeMailboxBusy(list) {
+    // Read Gmail's own inline visibility, because Apple Mail Mode hides the
+    // top loading banner in CSS. Do not infer completion from that hidden paint.
+    return list?.getAttribute('aria-busy') === 'true' || loadingNodes(list).some(node =>
+      !node.hidden && node.getAttribute('aria-hidden') !== 'true' && !node.classList.contains('UC') &&
+      node.style.display !== 'none' && node.style.visibility !== 'hidden');
+  }
+
+  function watchMailboxLoading(ctx) {
+    if (!mailboxLoading || !ctx?.list) return;
+    observer.observe(ctx.list, { childList: true, subtree: true, characterData: true, attributes: true,
+      attributeOldValue: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'aria-busy', 'role', 'data-thread-id', 'data-legacy-thread-id'] });
+    for (const node of loadingNodes(ctx.list)) observer.observe(node, { childList: true, subtree: true, attributes: true,
+      attributeOldValue: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
+    observer.observe(mailboxLoading.row, { childList: true, subtree: true, attributes: true,
+      attributeFilter: ['href', 'data-label-name'] });
+  }
+
+  function mailboxClicked(event) {
+    if (!enabled || !current?.list || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+        !(event.target instanceof Element) || event.target.closest(mailboxExcluded + ', .nL')) return;
+    const clickedLink = event.target.closest('a');
+    if (clickedLink && !clickedLink.matches('a.n0')) return; // Native expand/disclose controls.
+    const target = loadingTarget(event.target.closest('.aim'));
+    if (!target || target.key === mailboxLoading?.key) return;
+    clearMailboxLoading();
+    if (target.key === mailboxKey(location.hash)) return;
+    // Capture native list references before Gmail handles the click. No layout
+    // measurement, route interception, fetching, or cached mailbox data.
+    const state = { key: target.key, pathname: location.pathname, before: listSnapshot(current), sawBusy: nativeMailboxBusy(current.list), committed: false };
+    mailboxLoading = state;
+    placeLoadingSlot(state, target); // Synchronous feedback, before native navigation.
+    state.timer = setTimeout(() => {
+      if (mailboxLoading !== state) return;
+      clearMailboxLoading(); schedule(); // Failed/ignored navigation must not leave a stuck spinner.
+    }, 15000);
+    watchMailboxLoading(current);
+  }
+
+  function reconcileMailboxLoading(ctx) {
+    const state = mailboxLoading;
+    if (!state) return;
+    if (location.pathname !== state.pathname) { clearMailboxLoading(); return; }
+    const target = loadingTarget(state.row);
+    if (!target || target.key !== state.key || target.slot !== state.slot || !state.spinner.isConnected) {
+      const replacement = [...document.querySelectorAll('[role="navigation"] .aim')].map(loadingTarget).find(candidate => candidate?.key === state.key);
+      if (!replacement) { clearMailboxLoading(); return; }
+      placeLoadingSlot(state, replacement);
+    }
+    if (mailboxKey(location.hash) !== state.key || !ctx?.list) return;
+    const busy = nativeMailboxBusy(ctx.list); state.sawBusy ||= busy;
+    if (busy) return;
+    const next = listSnapshot(ctx), before = state.before;
+    const ready = next.firstID || (next.empty && !next.first && visible(next.empty));
+    const changed = ['list', 'content', 'grid', 'first', 'last', 'firstID', 'lastID', 'range', 'empty'].some(key => before[key] !== next[key]);
+    if (ready && (changed || state.committed || state.sawBusy)) clearMailboxLoading();
   }
 
   function removeCaption() {
@@ -94,6 +219,8 @@
         total = '0 messages';
       }
     }
+    // Read layout before caption/list mutations to avoid forcing another layout.
+    const width = `${ctx.list.getBoundingClientRect().width}px`;
     if (!mailboxCaption) {
       mailboxCaption = document.createElement('div');
       mailboxCaption.className = 'gmail-pro-mailbox-caption';
@@ -106,7 +233,6 @@
     if (!ctx.list.hasAttribute('data-gp-mailbox-caption')) ctx.list.setAttribute('data-gp-mailbox-caption', '');
     ctx.toolbar.querySelectorAll(':scope > .gmail-pro-mailbox-caption').forEach(node => { if (node !== mailboxCaption) node.remove(); });
     if (mailboxCaption.parentElement !== ctx.toolbar) ctx.toolbar.append(mailboxCaption);
-    const width = `${ctx.list.getBoundingClientRect().width}px`;
     if (mailboxCaption.style.getPropertyValue('--gp-caption-width') !== width) mailboxCaption.style.setProperty('--gp-caption-width', width);
     const caption = view.name + (total ? ' • ' + total : '');
     if (mailboxCaption.textContent !== caption) mailboxCaption.textContent = caption;
@@ -404,6 +530,7 @@
     for (const node of spine) observer.observe(node, { childList: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
     ancestorSpine = spine;
+    watchMailboxLoading(ctx);
     if (ctx) observer.observe(ctx.toolbar, { childList: true, subtree: true, characterData: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
     if (ctx?.captionEmpty) observer.observe(ctx.captionEmpty, { childList: true, characterData: true, subtree: true });
@@ -502,13 +629,18 @@
       panel.setAttribute('data-gp-search-panel', ''); markedPanels.add(panel);
     }
     updateCaption(current);
+    reconcileMailboxLoading(current);
     watch(current);
   }
 
-  function navigate() { open = false; schedule(); }
+  function navigate() {
+    if (mailboxLoading && mailboxKey(location.hash) !== mailboxLoading.key) clearMailboxLoading();
+    open = false; schedule();
+  }
 
   function stop() {
     enabled = false; generation++; saving = false; open = false;
+    clearMailboxLoading();
     cancelAnimationFrame(frame); frame = 0;
     clearTimeout(bootstrapTimer); bootstrap?.disconnect(); bootstrap = undefined;
     observer?.disconnect(); resizeObserver?.disconnect(); observedSizes.clear();
@@ -519,6 +651,7 @@
     document.removeEventListener('focusin', focusChanged);
     document.removeEventListener('keydown', keydown);
     document.removeEventListener('pointerdown', outside, true);
+    document.removeEventListener('click', mailboxClicked, true);
     restore(); controls?.remove(); controls = undefined;
   }
 
@@ -528,6 +661,17 @@
     if (!enabled && patch.appleMailModeEnabled) {
       enabled = true; generation++;
       observer = new MutationObserver(records => {
+        if (mailboxLoading) {
+          const state = mailboxLoading;
+          state.sawBusy ||= nativeMailboxBusy(current?.list);
+          for (const record of records) {
+            if (['childList', 'characterData'].includes(record.type) &&
+                [state.before.range, state.before.empty, current?.captionRange, current?.captionEmpty].some(node => node?.contains(record.target))) state.committed = true;
+            // Cached views can start and end native loading within one batch.
+            if (record.attributeName === 'style' && record.target.matches('.zchc9b') && record.oldValue !== null &&
+                !/display\s*:\s*none/.test(record.oldValue)) state.sawBusy = true;
+          }
+        }
         if (records.some(record => current?.captionRange?.contains(record.target) || current?.captionEmpty?.contains(record.target))) countSnapshot = undefined;
         schedule();
       });
@@ -538,8 +682,10 @@
       document.addEventListener('focusin', focusChanged);
       document.addEventListener('keydown', keydown);
       document.addEventListener('pointerdown', outside, true);
+      document.addEventListener('click', mailboxClicked, true);
       // Bounded initial shell discovery; ongoing watches only cover chrome and
-      // shallow ancestor/section replacement, never messages or editors.
+      // shallow ancestor/section replacement. During a pending mailbox switch,
+      // temporarily observe native list readiness without inspecting email HTML.
       bootstrap = new MutationObserver(schedule);
       bootstrap.observe(document, { childList: true, subtree: true });
       bootstrapTimer = setTimeout(() => { bootstrap?.disconnect(); bootstrap = undefined; }, 10000);

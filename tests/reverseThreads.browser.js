@@ -22,6 +22,7 @@
   };
   app.debug = Object.freeze({ log: code => events.push(code) });
   const settle = () => new Promise(resolve => setTimeout(resolve, 300));
+  const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const el = (tag, attrs = {}) => {
     const node = document.createElement(tag);
@@ -104,6 +105,36 @@
     for (const n of t.nodes) n.setAttribute("aria-expanded", "true");
     await settle(); assert(matches(visual(t.list), t.nodes.slice().reverse()), "expanded slots in correct order");
     assert(reverseCount() === count, "expansion needs no second reorder");
+  });
+  await test("41-message collapsed thread ignores native importance tooltip headings", async () => {
+    const t = thread(41, Array.from({length:38}, (_, i) => i+1));
+    for (let i=1; i<=38; i++) if (i!==2) t.nodes[i].style.display="none";
+    t.nodes[40].setAttribute("aria-expanded", "true");
+    const tooltip = el("div", {role:"tooltip"}), heading = el("h2");
+    heading.textContent = "Important mainly because it was sent directly to you";
+    tooltip.append(heading); tooltip.style.display="none"; t.shell.append(tooltip);
+    enable(); await settle();
+    assert(matches(visual(t.list), [t.nodes[40],t.nodes[39],t.nodes[2],t.nodes[0]]), "newest expanded message above older summary and collapsed group");
+    assert(matches([...t.list.children], t.nodes), "native chronology and all 41 wrappers untouched");
+    assert(app.reverseThreads.currentConversation()?.heading===t.heading, "subject remains the conversation identity");
+  });
+  await test("late tooltip roles recover ordering without accepting an ambiguous subject", async () => {
+    const t = thread(), tooltip = el("div"), heading = el("h2");
+    heading.textContent="Native importance explanation"; tooltip.append(heading); t.shell.append(tooltip);
+    enable(); await settle(); assert(!isReversed(t.list), "unidentified second heading remains ambiguous");
+    tooltip.setAttribute("role","tooltip"); await frame();
+    assert(matches(visual(t.list),t.nodes.slice().reverse()), "native tooltip role restores newest-first before paint");
+    tooltip.style.display="none"; await frame(); tooltip.style.removeProperty("display"); await frame();
+    assert(matches(visual(t.list),t.nodes.slice().reverse()), "tooltip visibility cannot affect message order");
+  });
+  await test("tooltip metadata cannot replace this pane's missing conversation subject", async () => {
+    const t=thread(); t.heading.remove();
+    const tooltip=el("div",{role:"tooltip"}), fake=el("h2",{"data-thread-perm-id":"tooltip-thread","data-legacy-thread-id":"tooltip-legacy"});
+    fake.textContent="Native tooltip"; const auxiliaryList=el("div",{role:"list"}); auxiliaryList.append(item(8),item(9));
+    tooltip.append(fake,auxiliaryList); t.shell.prepend(tooltip);
+    enable(); await settle(); assert(!isReversed(t.list)&&!isReversed(auxiliaryList)&&!app.reverseThreads.currentConversation(), "tooltip alone never establishes a conversation");
+    t.shell.prepend(t.heading); await frame();
+    assert(matches(visual(t.list),t.nodes.slice().reverse())&&app.reverseThreads.currentConversation()?.heading===t.heading, "real subject arriving later owns ordering");
   });
   await test("already revealed summaries validate without weakening unknown-state checks", async () => {
     const t = thread(); t.nodes[0].removeAttribute('aria-expanded'); enable(); await settle();
@@ -221,7 +252,6 @@
     const composer = composeIn(t.nodes[2]); await settle();
     assert(composer.attempts === 0 && visual(t.list)[0] === t.nodes[2], "independent settings");
   });
-  const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
   await test("initially hidden message list recovers when Gmail reveals it", async () => {
     const t = thread(); t.list.style.display = "none"; enable(); await frame();
     assert(!isReversed(t.list), "hidden native list is left hidden");

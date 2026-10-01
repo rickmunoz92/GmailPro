@@ -158,6 +158,7 @@
     held.add(key);
     if (prevented) return;
     if (!(focus instanceof Element)) return;
+    app.readingPane?.cancelFilingForShortcut?.();
     const action = binding[1];
     const target = action === "archive" || action === "toggleRead" || action === "delete" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
       action === "undo" ? undoButton() : conversationButton(action, focus);

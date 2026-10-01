@@ -1,5 +1,68 @@
 # Apple Mail-style Message List QA
 
+## Mailbox navigation styling — September 30, 2026
+
+The existing message-list controller now owns `data-gp-message-row=""` after
+validating native grid/row structure. Both row stylesheets reuse that marker.
+Date parsing remains independent: a supported row with localized or unsupported
+date text keeps native date text and enhanced layout. Native unread, open, and
+checkbox states remain CSS-only. No mailbox data cache, network calls, settings,
+public API, or dependencies were added.
+
+One existing DOM ownership map tracks the row marker and optional date overlay.
+Mutation batches reconcile staged metadata, row/grid/main replacements, and
+protected message/editor boundaries. Empty markers inherited by Gmail clones
+are adopted and removed on invalidation or stop, rather than restored as prior
+ownership. Owned attributes are excluded from observer filters; ordinary row
+state class changes do not trigger formatting. Cleanup restores prior non-owned
+attribute values and releases rows even when date parsing never succeeded.
+
+Navigation-only styles are scoped to the navigation region, preserving native
+selection, unread counts, drop targets, collapsed navigation, and protected
+content. Portaled tooltips, organizer component classes, global sidebar width
+rules, and scrollbar owner rules keep their established scopes. Caption width
+is read before caption/list DOM writes; width/text/title writes remain guarded.
+
+| Validation | Result |
+| --- | --- |
+| `node scripts/validate.cjs` | Manifest/assets/syntax/permissions and 38/38 checks pass |
+| `tests/messageList.html` | 53/53 checks pass |
+| `tests/appleMail.html` | 62/62 checks pass |
+| `tests/headerLayout.html` | 58/58 checks pass |
+| `tests/labelFiling.html` | 49/49 checks pass |
+| `tests/labelOrder.html?appearance=dark` | 45/45 checks pass |
+| `tests/readingPane.html?appearance=dark` | 31/31 checks pass |
+| `git diff --check` | Pass |
+
+The unpacked extension was reloaded from `/Users/rmunoz/Documents/GmailPro`, then
+Gmail was refreshed. Live mailbox switches showed validated row markers and
+native mailbox counts. No conversation was opened or mail action performed.
+Chrome Performance used no CPU/network throttling and **CSS selector diagnostics
+and advanced paint instrumentation were off**. A complete-load capture waited
+for the destination caption's native count, rather than stopping at route change.
+
+| Capture | Click to next paint (INP) | All-page style recalculation | Attributed Gmail Pro script work |
+| --- | --- | --- | --- |
+| Earlier investigation baseline, first visit | 69 ms | 1,075.9 ms | Not recorded separately |
+| Complete first visit after reload | 62 ms | 938.2 ms | 10.8 ms |
+| Repeat visit | 49 ms | 958.2 ms | 11.3 ms |
+| Switch after about one minute idle | 41 ms | 932.2 ms | 12.4 ms |
+
+An initial short post-change trace showed 236.7 ms styling, but ended before the
+later loading work completed; it is excluded from the comparison above. The
+baseline recording lasted 19.1 seconds, while the complete post-change captures
+lasted 4.0–5.2 seconds. They include profiler overhead (roughly 0.9–1.1 seconds),
+so these are observations, not a controlled percentage improvement or a measure
+of total user-visible mailbox loading time.
+
+The checked click responses meet the 100 ms target. Attributed extension script
+work stayed below 50 ms **in aggregate**, so no attributed script task exceeded
+that target in these captures. Gmail fetches mailbox data asynchronously and the
+remaining style work is reported at page level; these traces do not establish
+that every extension-attributable CSS task is below 50 ms or that the reported
+two-second wait is fully resolved. CSS diagnostics were used in the earlier
+investigation to identify expensive rules, not to time normal navigation.
+
 ## Native sender order and regular counts — September 30, 2026
 
 Sender reordering has been removed at the user's request. The message-list

@@ -17,16 +17,18 @@
   const marker = "data-gmail-pro-thread-order";
 
   function headerFor(list) {
-    if (list.closest(S.threadMessage) || !list.closest(S.main)) return null;
+    if (list.closest(`${S.threadMessage}, [role="tooltip"]`) || !list.closest(S.main)) return null;
     for (let parent = list.parentElement; parent; parent = parent.parentElement) {
+      // Gmail's native importance tooltip also uses h2. Tooltip headings and
+      // lists describe chrome; they cannot identify a conversation pane.
       const headings = [...parent.querySelectorAll("h2")]
-        .filter(heading => !heading.closest(S.threadList));
+        .filter(heading => !heading.closest(`${S.threadList}, [role="tooltip"]`));
       // A nearby heading awaiting its IDs belongs to this pane. Do not borrow
       // the identity of another, cached conversation higher in the main shell.
       if (headings.length) {
         if (headings.length !== 1 || !headings[0].matches(S.threadHeading)) return null;
         const lists = [...parent.querySelectorAll(S.threadList)]
-          .filter(node => !node.parentElement.closest(S.threadList) && !node.closest(S.threadMessage));
+          .filter(node => !node.parentElement.closest(S.threadList) && !node.closest(`${S.threadMessage}, [role="tooltip"]`));
         return lists.length === 1 && lists[0] === list ? headings[0] : null;
       }
       if (parent.matches(S.main)) break;
@@ -254,8 +256,9 @@
     for (const main of foundMains) mains.add(main);
     const enclosing = root.closest(S.threadList);
     if (enclosing && active.has(enclosing)) return;
-    // A heading can arrive after an empty list. Revisit only its local main.
-    if (root.matches(S.threadHeading) || root.querySelector(S.threadHeading)) {
+    // Heading metadata and auxiliary tooltip roles can finish after the list.
+    // Revisit only this main; headerFor remains the conversation identity gate.
+    if (root.matches("h2") || root.querySelector("h2")) {
       const main = root.closest(S.main);
       if (main) for (const list of main.querySelectorAll(S.threadList)) register(list);
     }

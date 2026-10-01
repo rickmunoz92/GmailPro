@@ -1,5 +1,40 @@
 # Toolbar search and collapsible header — 0.9.28
 
+## Mailbox loading feedback — 2026-09-30
+
+Apple Mail Mode shows a 14px accent-colored loading ring in the clicked mailbox's
+native `.nL` slot before Gmail handles an ordinary click. Custom-label dots are
+hidden temporarily; their original nodes and handlers are retained. Inbox and
+other validated native mailbox routes reuse their existing empty indicator slot.
+Modified clicks, expansion controls, menus, the current mailbox and mode OFF do
+not start feedback. Reduced-motion users receive a static loading ring.
+
+`headerLayout.js` owns one temporary navigation state. It leaves Gmail in charge
+of routing and fetching, and keeps the previous list visible while Gmail loads.
+The existing observer temporarily watches native list identity, pagination,
+empty-state and loading signals. A route change alone cannot finish loading.
+Staged rows must acquire native identity metadata, and visible native loading
+must end. Cached rows/count commits, confirmed empty states and cloned sidebar
+slots are supported. Rapid clicks move one spinner to the latest target;
+navigation away, disabling the mode and a 15-second ignored/failure guard remove
+owned presentation. No polling, mailbox cache, settings, API, permissions,
+network requests or dependencies are added.
+
+Validation: 38/38 repository checks, 68/68 header/browser checks (10 new loading
+cases), 62/62 appearance, 53/53 message-list, 49/49 label-filing and
+45/45 label-order checks pass (277 browser checks total). Coverage includes synchronous feedback,
+Gmail's native `_top` mailbox links, native menu/slot restoration, Inbox geometry,
+staged metadata, cached loading in one mutation batch, rapid switches, equal
+counts, empty destinations, sidebar clones, cancellation/timeout and idle writes.
+
+Live Chrome: reloaded the canonical unpacked extension and refreshed Gmail.
+Observed the ring at 20×20px in Cascade's slot while COE's previous caption and
+messages remained, then zero loading markers after Cascade completed. Inbox
+showed the same feedback and restored its empty native slot. Returning to
+Flowserve showed the ring while Inbox remained visible, then restored native
+controls and the Flowserve caption. Gmail's fetch duration remains native. No
+messages were opened, changed or sent during live verification.
+
 ## Mailboxes sidebar — 0.9.44 (2026-09-30)
 
 The expanded Apple Mail Mode sidebar now reads Gmail Pro → Mailboxes → Inbox →
@@ -65,8 +100,9 @@ viewport. Pane widths, scroll positions, and message HTML are untouched.
 
 The controller has a ten-second initial discovery observer, then chrome-only
 observation and shallow ancestor replacement watches. Resize observation is
-retained across updates rather than repeatedly re-registered. No polling,
-message subtree observation, networking, permissions, or dependencies are added.
+retained across updates rather than repeatedly re-registered. Outside pending
+mailbox navigation, message subtree changes are not observed. No polling,
+networking, permissions, or dependencies are added.
 
 ## Automated validation
 

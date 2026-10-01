@@ -15,6 +15,10 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Native floating composer:** automatically open Reply, Reply All, and Forward in Gmail’s own floating composer.
 - **Read after 0.3 seconds:** in Apple Mail Mode, an unread conversation clicked
   in the reading-pane list is marked read after its message stays visible for 300ms.
+- **One-click label filing:** in Apple Mail Mode, click a custom-label badge in
+  an Inbox conversation row to mark the conversation read and archive it. You
+  stay in Inbox, all existing labels remain, and Gmail supplies Archive Undo.
+  Enter or Space works on a focused badge. Clear checked conversations first.
 - **Auto BCC:** automatically add a configured address to new messages, replies,
   reply-all messages, and forwards. Each composition is handled independently.
 - **Newest Email First:** show the newest message at the top of an opened Gmail
@@ -91,6 +95,38 @@ from a different folder. Verify the version in Details and the visible result in
 Gmail before considering an update applied.
 
 ## How it works
+
+### One-click label filing
+
+In Apple Mail Mode, a custom-label badge in an Inbox conversation row becomes
+an accessible **Mark conversation as read and file under…** button. Click it,
+or focus it and press Enter/Space, to file that conversation without opening it.
+The full native tooltip must match the current account's custom-label sidebar
+metadata; abbreviated visible names and badge colors are never used to guess a
+label. Hidden sidebar labels work when Gmail retains their native metadata.
+Unknown structures and labels retain Gmail's own behavior.
+
+Gmail Pro checks only the clicked row using Gmail's native checkbox, waits for
+Gmail to confirm the entire conversation is read, then invokes Archive once.
+This removes the conversation from Inbox while retaining its existing labels.
+It does not open the destination mailbox or remove other labels. Gmail owns the
+reading pane, counts, mail changes, Archive acknowledgement, and Undo. Archive
+Undo returns the conversation to Inbox but does not promise to restore unread.
+
+Existing checked rows block filing with **Clear your selection to file one
+conversation.** Modified clicks remain native. One operation can run at a time;
+read retries are bounded to ten seconds, and Archive is never automatically
+retried. Navigation, account-path changes, selection changes, user keyboard
+commands, tab/window departure, mode disablement, and cleanup cancel pending
+work. Both native thread IDs and selection are rechecked before every mouse
+phase. If reading succeeds but filing fails, a dismissible notice reports
+**Marked read, but couldn’t file. Try again.**
+
+This feature applies to Inbox and its native pagination routes. Custom-label
+mailboxes, searches, system-label badges, conversation-header labels, message
+bodies, and compose editors retain their native behavior. It adds no preference,
+permission, network access, mailbox cache, or persistent mail state. See
+[one-click filing QA](tests/labelFiling-QA.md).
 
 ### Apple Mail Mode
 
@@ -378,6 +414,10 @@ slow or staged reading-pane loads. Once validated, it returns to shallow watches
 outside message bodies. Those watches also cover empty pane containers, so a cached
 conversation cannot stop discovery of a newly opened or replacement pane. Each pane
 must have its own completed heading metadata before ordering is applied.
+Native tooltip headings and lists, including Gmail's hidden importance explanation,
+are excluded from conversation identity. They cannot disable newest-first ordering
+or substitute for the pane's actual subject when its metadata is still loading.
+See [conversation ordering QA](tests/reverseThreads-QA.md) for the regression checks.
 
 Temporary hiding, native layout changes, and cleared ordering markers are revalidated
 when Gmail updates the list. Reopening a cached conversation or rendering a new reply

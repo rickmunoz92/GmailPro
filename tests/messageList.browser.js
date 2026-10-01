@@ -284,8 +284,8 @@
     enable(); const node = row(); await frame(); geometry(node);
     assert(formatted(node) === 'Mon, 9/14/26, 1:31 PM', 'inserted row formatted');
     const subject = node.querySelector("[data-thread-id]"); subject.removeAttribute("data-thread-id");
-    assert(css(node).display === "flex", "incomplete structural gate fails closed");
-    await frame(); assert(formatted(node) === null, 'incomplete row restored');
+    await frame(); assert(css(node).display === "flex", "incomplete structural gate fails closed before paint");
+    assert(formatted(node) === null, 'incomplete row restored');
     subject.setAttribute("data-thread-id", "synthetic"); await frame(); geometry(node);
     assert(formatted(node), 'late thread metadata formats row');
     const pane = document.createElement("div"); pane.id = "workspace"; pane.setAttribute("role", "main"); workspace().replaceWith(pane);
@@ -332,7 +332,7 @@
     assert(css(node).display === "grid", "unrelated preferences leave layout enabled");
     feature.stop(); feature.stop(); assert(css(node).display === "flex", "idempotent cleanup");
     assert(activeObservers.size === 0 && timers.size === 0, 'all observers and timers released');
-    assert(!workspace().querySelector('[data-gmail-pro-date]'), 'all owned date attributes removed');
+    assert(!workspace().querySelector('[data-gmail-pro-date], [data-gp-message-row]'), 'all owned presentation attributes removed');
   });
   for (const [name, current, title, expected] of [
     ['today', [2026,8,21,13,45], 'Mon, Sep 21, 2026, 1:31\u202fPM', 'Today, 1:31 PM'],
@@ -408,6 +408,71 @@
     table.setAttribute('role', 'grid'); await frame(); assert(formatted(node), 'restored grid rediscovered');
     node.querySelector('.yX').classList.remove('yX'); await frame(); assert(formatted(node) === null, 'unknown cell structure restored');
     node.querySelector('td:has(.yW)').classList.add('yX'); await frame(); assert(formatted(node), 'late sender class recovers');
+  });
+  await test('row validation is independent of date parsing and releases every marker', async () => {
+    const node = row({dateTitle:'Localized native date'}); enable();
+    assert(node.hasAttribute('data-gp-message-row') && css(node).display === 'grid' && !formatted(node), 'supported row retains native date and styled layout');
+    const title = node.querySelector('.xW > span'); title.removeAttribute('title'); await frame();
+    assert(!node.hasAttribute('data-gp-message-row') && css(node).display === 'flex', 'required date metadata invalidates layout');
+    title.title = 'Localized native date'; await frame();
+    assert(node.hasAttribute('data-gp-message-row'), 'late metadata recovers');
+    const table = node.closest('table'); table.remove(); await frame();
+    assert(!node.hasAttribute('data-gp-message-row'), 'detached unsupported date releases marker');
+    workspace().append(table); await frame(); assert(node.hasAttribute('data-gp-message-row'), 'cached row is revalidated on reinsertion');
+    feature.stop(); assert(!node.hasAttribute('data-gp-message-row'), 'stop releases rows without date overlays');
+  });
+  await test('reused authored-content boundaries fail closed and recover without navigation', async () => {
+    const node = row(), table = node.closest('table'), wrapper = document.createElement('div');
+    table.before(wrapper); wrapper.append(table); enable();
+    for (const [name, value] of [['class','ii'], ['class','a3s'], ['contenteditable','false'], ['data-message-id','synthetic'], ['role','dialog'], ['role','region']]) {
+      wrapper.setAttribute(name, value);
+      assert(css(node).display === 'flex', 'CSS boundary closes immediately'); await frame();
+      assert(!node.hasAttribute('data-gp-message-row') && !formatted(node), 'owned row state released');
+      wrapper.removeAttribute(name); await frame();
+      assert(node.hasAttribute('data-gp-message-row') && formatted(node), 'reused wrapper recovers');
+    }
+    const form = document.createElement('form'); wrapper.before(form); form.append(table); await frame();
+    assert(!node.hasAttribute('data-gp-message-row') && css(node).display === 'flex', 'form excluded');
+    wrapper.append(table); form.remove(); await frame(); assert(node.hasAttribute('data-gp-message-row'), 'moving back recovers');
+  });
+  await test('incomplete cloned markers and rapidly reused rows are reconciled before paint', async () => {
+    const node = row(); enable(); const clone = node.cloneNode(true);
+    clone.querySelector('[data-thread-id]').removeAttribute('data-thread-id'); node.parentElement.append(clone); await frame();
+    assert(!clone.hasAttribute('data-gp-message-row') && !formatted(clone) && css(clone).display === 'flex', 'invalid cloned presentation removed');
+    clone.querySelector('[data-legacy-thread-id]').setAttribute('data-thread-id','recovered'); await frame();
+    assert(clone.hasAttribute('data-gp-message-row') && formatted(clone), 'initially invalid clone recovers');
+    const table = node.closest('table');
+    for (let i=0; i<10; i++) {
+      table.remove(); workspace().append(table);
+      node.querySelector('[data-thread-id]').setAttribute('data-thread-id', `switched-${i}`);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    }
+    await frame(); assert(node.hasAttribute('data-gp-message-row') && formatted(node), 'final live row wins after rapid switching');
+    feature.stop(); assert(!clone.hasAttribute('data-gp-message-row') && !formatted(clone), 'recovered clone releases all inherited presentation');
+  });
+  await test('valid clones adopt presentation ownership and cannot restore stale gates', async () => {
+    const node=row(); enable(); const clone=node.cloneNode(true); node.parentElement.append(clone); await frame();
+    assert(clone.hasAttribute('data-gp-message-row') && formatted(clone), 'valid clone adopted');
+    const identity=clone.querySelector('[data-thread-id]'); identity.removeAttribute('data-thread-id'); await frame();
+    assert(!clone.hasAttribute('data-gp-message-row') && !formatted(clone) && css(clone).display==='flex', 'clone invalidation releases inherited markers');
+    identity.setAttribute('data-thread-id','recovered-clone'); await frame();
+    assert(clone.hasAttribute('data-gp-message-row') && formatted(clone), 'clone recovers');
+    feature.stop(); assert(!clone.hasAttribute('data-gp-message-row') && !formatted(clone), 'stop releases adopted clone');
+  });
+  await test('native row state changes do not rewrite presentation markers', async () => {
+    const node = row(); enable(); let writes=0;
+    const observer=new NativeObserver(records => { writes+=records.length; });
+    observer.observe(node, {subtree:true, attributes:true, attributeFilter:['data-gp-message-row','data-gmail-pro-date']});
+    node.classList.add('zE','aps'); node.querySelector('[role="checkbox"]').setAttribute('aria-checked','true');
+    await frame(); node.classList.remove('zE','aps'); node.querySelector('[role="checkbox"]').setAttribute('aria-checked','false'); await frame();
+    observer.disconnect(); assert(writes===0 && node.hasAttribute('data-gp-message-row'), 'CSS state updates have no marker churn');
+  });
+  await test('pre-existing and externally replaced presentation attributes survive cleanup', () => {
+    const node=row(), date=node.querySelector('.xW > span');
+    node.setAttribute('data-gp-message-row','prior-owner'); date.setAttribute('data-gmail-pro-date','prior-date'); enable(); feature.stop();
+    assert(node.getAttribute('data-gp-message-row')==='prior-owner' && date.getAttribute('data-gmail-pro-date')==='prior-date', 'prior attributes restored');
+    enable(); node.setAttribute('data-gp-message-row','external-row'); date.setAttribute('data-gmail-pro-date','external-date'); feature.stop();
+    assert(node.getAttribute('data-gp-message-row')==='external-row' && date.getAttribute('data-gmail-pro-date')==='external-date', 'external replacement retained');
   });
   await test('midnight timer and return-to-tab refresh use the current local calendar', () => {
     clock(2026,8,21,23,59,59); const node = row({dateTitle:'Mon, Sep 21, 2026, 1:31 PM'}); enable();

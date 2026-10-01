@@ -10,23 +10,16 @@
 @scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
   body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
   .nH:has(> [role="main"]) { border-radius: 0 !important; background: var(--gp-bg-primary) !important; }
-  [role="banner"], [role="navigation"], [role="main"], :is(.AO, .aeF, .bkK):has([role="main"]), [gh="tm"], [gh="tl"],
+  [role="banner"], [role="main"], :is(.AO, .aeF, .bkK):has([role="main"]), [gh="tm"], [gh="tl"],
   [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY) {
     background: var(--gp-bg-primary) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
   }
-  [role="banner"], [role="navigation"], [gh="tm"] {
+  [role="banner"], [gh="tm"] {
     background: var(--gp-bg-secondary) !important;
     color: var(--gp-text-primary) !important;
     font-family: var(--gp-font) !important;
-  }
-  [role="navigation"] { border-inline-end: 1px solid var(--gp-border); }
-  /* Gmail paints this edge when mailboxes scroll beneath the wordmark.
-     Retain its border width so the native scroll geometry stays stable. */
-  [role="navigation"] > .V3 {
-    border-top-color: transparent !important;
-    box-shadow: none !important;
   }
   [role="banner"] { border-bottom: 1px solid var(--gp-border); box-shadow: none !important; }
   /* Header geometry stays native unless headerLayout validates and marks the
@@ -37,52 +30,6 @@
      security extensions, account controls, or navigation to other products. */
   [role="complementary"][aria-label="Side panel"] { background: var(--gp-bg-secondary) !important; }
 
-  [role="navigation"] :is(.TN, .n0, .bsU, [gh="mll"], h2) {
-    font-family: var(--gp-font) !important;
-    color: var(--gp-text-secondary) !important;
-    font-size: 13px !important;
-  }
-  [role="navigation"] :is(.TN, .n0, .nU, .aio) {
-    font-weight: 400 !important;
-    text-shadow: none !important;
-  }
-  [role="navigation"] .aim:has(a[href*="#"]) > .TO {
-    box-shadow: none !important;
-    margin-inline: 6px !important;
-    border-radius: 5px !important;
-    background: transparent !important;
-  }
-  [role="navigation"] .aim:has(a[href*="#"]) .TN {
-    background: transparent !important;
-    box-shadow: none !important;
-    min-height: 28px;
-    height: 28px !important;
-    padding-inline-end: 10px;
-    /* Native inline start padding is the folder-depth source of truth. */
-  }
-  [role="navigation"] .aim:has(a[href*="#"]) > .TO:hover { background: transparent !important; }
-  [role="navigation"] .aim:has(a[href*="#"]) > .TO.nZ {
-    background: var(--gp-selection-sidebar-bg) !important;
-  }
-  [role="navigation"] .TO.nZ :is(.TN, .n0, .aio) {
-    color: var(--gp-label-accent) !important;
-  }
-  [role="navigation"] .TO.nZ .TN svg { fill: var(--gp-label-accent) !important; color: var(--gp-label-accent) !important; }
-  [role="navigation"] .TN svg { fill: var(--gp-text-secondary); }
-  /* Gmail's native .nY drop target can be on the row or its inner wrapper.
-     Keep Gmail in charge of the drag; only replace its yellow feedback. */
-  [role="navigation"] .aim.nY:has(a[href*="#"]),
-  [role="navigation"] .aim:has(a[href*="#"]) :is(.TO, .TN).nY,
-  [role="navigation"] .aim.nY:has(a[href*="#"]) > .TO {
-    background: var(--gp-accent) !important;
-  }
-  [role="navigation"] .aim:has(a[href*="#"]):is(.nY, :has(.nY)) :is(.TN, .n0, .nU, .aio, .bsU) {
-    color: var(--gp-accent-contrast) !important;
-  }
-  [role="navigation"] .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .TN svg {
-    fill: var(--gp-accent-contrast) !important;
-    color: var(--gp-accent-contrast) !important;
-  }
   /* The legacy Gmail tooltip is portaled outside navigation. Suppress it only
      while a mailbox row is hovered/targeted; toolbar tooltips stay native.
      Keep label text and ARIA names intact, including names truncated on screen. */
@@ -91,36 +38,7 @@
   body:has([role="navigation"] .aim .TN.nY) .T-ays {
     display: none !important;
   }
-  /* Gmail owns count text and removes .bsU when no unread mail remains.
-     Keep its native visibility (including collapsed navigation/hover menus),
-     and keep long label names from shrinking the trailing number. */
-  [role="navigation"] .bsU {
-    flex: 0 0 auto;
-    margin-inline-start: auto !important;
-    padding-inline-start: 8px;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    white-space: nowrap;
-    color: #9C9EA0 !important;
-  }
-  [role="navigation"] .bsU:empty { display: none !important; }
-  [role="navigation"] .aio { min-width: 0; }
-  [role="navigation"] .nU { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  [role="navigation"] [gh="cm"][role="button"] {
-    min-width: 0 !important;
-    height: 32px !important;
-    line-height: 32px !important;
-    padding-inline: 12px !important;
-    border-radius: 6px !important;
-    background: var(--gp-bg-tertiary) !important;
-    color: var(--gp-text-primary) !important;
-    font: 500 13px/32px var(--gp-font) !important;
-    box-shadow: none !important;
-  }
-  [role="navigation"] [gh="cm"][role="button"]:hover { background: var(--gp-hover) !important; }
-  [role="navigation"] .z0 { margin-block: 10px !important; }
+
   .gmail-pro-label-toolbar { background: var(--gp-bg-tertiary); color: var(--gp-text-secondary); border-color: var(--gp-border); border-radius: 5px; }
   .gmail-pro-label-handle { color: var(--gp-text-muted); }
   :is(.gmail-pro-label-before, .gmail-pro-label-after) { color: var(--gp-accent-ui); }
@@ -192,10 +110,126 @@
   [role="main"] .gE :is(h3, .gD, .g2, .g3, .gK, .go) { color: var(--gp-text-secondary) !important; font-family: var(--gp-font) !important; }
   [role="main"] .gE .gD { color: var(--gp-text-primary) !important; }
   [role="main"] [role="list"] > [role="listitem"] { border-color: var(--gp-border) !important; box-shadow: none !important; }
-  :is([role="navigation"], [gh="tm"], [role="search"], [data-gmail-pro-label-ui]) :focus-visible {
+  :is([gh="tm"], [role="search"], [data-gmail-pro-label-ui]) :focus-visible {
     outline: 2px solid var(--gp-accent-ui) !important;
     outline-offset: 2px;
   }
+}
+/* Limit mailbox selectors to navigation rather than every Gmail descendant. */
+@scope (html.gmail-pro-apple-mail-mode [role="navigation"]:not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *)) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
+  :scope {
+    background: var(--gp-bg-secondary) !important;
+    color: var(--gp-text-primary) !important;
+    font-family: var(--gp-font) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  :scope { border-inline-end: 1px solid var(--gp-border); }
+  /* Gmail paints this edge when mailboxes scroll beneath the wordmark.
+     Retain its border width so the native scroll geometry stays stable. */
+  :scope > .V3 {
+    border-top-color: transparent !important;
+    box-shadow: none !important;
+  }
+  :scope :is(.TN, .n0, .bsU, [gh="mll"], h2) {
+    font-family: var(--gp-font) !important;
+    color: var(--gp-text-secondary) !important;
+    font-size: 13px !important;
+  }
+  :scope :is(.TN, .n0, .nU, .aio) {
+    font-weight: 400 !important;
+    text-shadow: none !important;
+  }
+  :scope .aim:has(a[href*="#"]) > .TO {
+    box-shadow: none !important;
+    margin-inline: 6px !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+  }
+  :scope .aim:has(a[href*="#"]) .TN {
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 28px;
+    height: 28px !important;
+    padding-inline-end: 10px;
+    /* Native inline start padding is the folder-depth source of truth. */
+  }
+  :scope .aim:has(a[href*="#"]) > .TO:hover { background: transparent !important; }
+  :scope .aim:has(a[href*="#"]) > .TO.nZ {
+    background: var(--gp-selection-sidebar-bg) !important;
+  }
+  :scope .TO.nZ :is(.TN, .n0, .aio) {
+    color: var(--gp-label-accent) !important;
+  }
+  :scope .TO.nZ .TN svg { fill: var(--gp-label-accent) !important; color: var(--gp-label-accent) !important; }
+  :scope .TN svg { fill: var(--gp-text-secondary); }
+  /* Gmail's native .nY drop target can be on the row or its inner wrapper.
+     Keep Gmail in charge of the drag; only replace its yellow feedback. */
+  :scope .aim.nY:has(a[href*="#"]),
+  :scope .aim:has(a[href*="#"]) :is(.TO, .TN).nY,
+  :scope .aim.nY:has(a[href*="#"]) > .TO {
+    background: var(--gp-accent) !important;
+  }
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) :is(.TN, .n0, .nU, .aio, .bsU) {
+    color: var(--gp-accent-contrast) !important;
+  }
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .TN svg {
+    fill: var(--gp-accent-contrast) !important;
+    color: var(--gp-accent-contrast) !important;
+  }
+  /* Gmail owns count text and removes .bsU when no unread mail remains.
+     Keep its native visibility (including collapsed navigation/hover menus),
+     and keep long label names from shrinking the trailing number. */
+  :scope .bsU {
+    flex: 0 0 auto;
+    margin-inline-start: auto !important;
+    padding-inline-start: 8px;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+    color: #9C9EA0 !important;
+  }
+  :scope .bsU:empty { display: none !important; }
+  :scope .aio { min-width: 0; }
+  :scope .nU { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  :scope [gh="cm"][role="button"] {
+    min-width: 0 !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    padding-inline: 12px !important;
+    border-radius: 6px !important;
+    background: var(--gp-bg-tertiary) !important;
+    color: var(--gp-text-primary) !important;
+    font: 500 13px/32px var(--gp-font) !important;
+    box-shadow: none !important;
+  }
+  :scope [gh="cm"][role="button"]:hover { background: var(--gp-hover) !important; }
+  :scope .z0 { margin-block: 10px !important; }
+  /* Keep the native menu/slot geometry and handlers; replace its dots only
+     while headerLayout tracks an ordinary mailbox navigation. */
+  :scope .nL[data-gp-mailbox-loading=""] {
+    position: relative; display: block !important; width: 20px; height: 20px;
+    flex: 0 0 20px; visibility: visible !important; opacity: 1 !important;
+  }
+  :scope .nL[data-gp-mailbox-loading=""] > :not(.gmail-pro-mailbox-spinner) { visibility: hidden !important; }
+  .gmail-pro-mailbox-spinner {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    pointer-events: none; color: var(--gp-label-accent);
+  }
+  .gmail-pro-mailbox-spinner::before {
+    content: ""; width: 14px; height: 14px; box-sizing: border-box;
+    border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-top-color: currentColor; border-radius: 50%;
+    animation: gmail-pro-mailbox-spin .7s linear infinite;
+  }
+  .gmail-pro-mailbox-spinner > span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+
+  :scope :focus-visible { outline: 2px solid var(--gp-accent-ui) !important; outline-offset: 2px; }
 }
 /* Give transparent email HTML its original light document canvas. This is the
    Gmail wrapper, not the email HTML. When Dark Reader owns document colors,
@@ -225,9 +259,9 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
     width: auto !important;
   }
 }
-/* Same structural gate as messageList.css; unknown rows stay native. Native
-   read/unread/selection changes and SPA replacements need no JS observer. */
-@scope (html.gmail-pro-apple-mail-mode [role="main"] table[role="grid"] > tbody > tr[role="row"]:has(> td > [role="checkbox"]):has(> td[role="gridcell"] [role="link"] [data-thread-id]):has(> td.yX[role="gridcell"]):has(> td.xW[role="gridcell"] > span[title]):not([data-message-id] *)) {
+/* Reuse messageList.js validation, with defensive authored-content boundaries.
+   Native read/unread/selection state stays CSS-only. */
+@scope (html.gmail-pro-apple-mail-mode [role="main"] table[role="grid"] > tbody > tr[role="row"][data-gp-message-row=""]:not([data-message-id], [data-message-id] *, .ii, .ii *, .a3s, .a3s *, [contenteditable], [contenteditable] *, form, form *, [role="dialog"], [role="dialog"] *, [role="region"], [role="region"] *)) {
   :scope {
     position: relative;
     background: var(--gp-bg-primary) !important;
@@ -274,6 +308,10 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope :is(.bog, .bog span, .xW, .xW span) { font-weight: 400 !important; }
   :scope .xW { font-size: 11px !important; color: var(--gp-text-muted) !important; }
   :scope .yi .at { border-radius: 3px !important; font: 10px/16px var(--gp-font) !important; max-height: 16px; }
+  :scope .yi [data-gp-file-label]:not(.ii *, .a3s *, [contenteditable] *, form *) { cursor: pointer; }
+  :scope .yi [data-gp-file-label]:not(.ii *, .a3s *, [contenteditable] *, form *):focus-visible {
+    outline: 2px solid var(--gp-accent); outline-offset: 2px;
+  }
   :scope:hover, :scope.aqw { background: var(--gp-bg-primary) !important; }
   :scope.zE > .yX::before {
     content: "";
@@ -602,4 +640,19 @@ html.gmail-pro-apple-mail-mode .gmail-pro-header-controls {
   position: absolute; right: 0; top: 40px; width: 240px; padding: 12px;
   color: var(--gp-text-primary); background: var(--gp-bg-tertiary);
   border: 1px solid var(--gp-border); border-radius: 6px; font: 13px var(--gp-font);
+}
+
+/* The filing controller inserts its notices directly under the page body. */
+html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice {
+  position: fixed; right: 24px; bottom: 24px; z-index: 10000;
+  display: flex; align-items: center; gap: 12px; max-width: 400px;
+  padding: 12px 16px; border: 1px solid var(--gp-border); border-radius: 8px;
+  background: var(--gp-bg-primary); color: var(--gp-text-primary); font: 13px/18px var(--gp-font);
+  box-shadow: 0 4px 16px #0003;
+}
+html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice button { color: inherit; background: transparent; border: 0; cursor: pointer; }
+
+@keyframes gmail-pro-mailbox-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .gmail-pro-mailbox-spinner::before { animation: none; }
 }

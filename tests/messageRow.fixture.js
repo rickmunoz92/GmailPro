@@ -43,8 +43,11 @@ window.GmailProTestRow = function row({ unread = false, label = "", attachment =
     if (label) {
       const labels = document.createElement("div"); labels.className = "yi";
       const badge = document.createElement("div"); badge.className = "at"; badge.title = label;
-      const text = document.createElement("div"); text.className = "av"; text.textContent = label; badge.append(text);
-      labels.append(badge); node.querySelector(".xT").prepend(labels);
+      const wrapper = document.createElement("div"); wrapper.className = "au";
+      const text = document.createElement("div"); text.className = "av"; text.textContent = label;
+      wrapper.append(text); badge.append(wrapper);
+      const group = document.createElement("div"); group.className = "ar as";
+      group.append(badge); labels.append(group); node.querySelector(".xT").prepend(labels);
     }
     if (attachment) {
       const icon = document.createElement("span"); icon.setAttribute("role", "img"); icon.setAttribute("aria-label", "Has attachment"); icon.textContent = "⊙";

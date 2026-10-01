@@ -97,6 +97,39 @@
     f.list.innerHTML = '<div class="ae4" style="height:96px;flex:none">Synthetic conversations</div><div class="zchc9b" style="display:none;margin-top:auto;height:30px">Loading</div><div role="contentinfo" class="l2" style="height:16px;flex:none;margin:16px 0">Synthetic footer</div>';
     return { ...f, content: f.list.querySelector('.ae4'), loading: f.list.querySelector('.zchc9b'), footer: f.list.querySelector('[role="contentinfo"]') };
   }
+  function loadingFixture() {
+    const f = captionFixture();
+    const nav = workspace.querySelector('nav'); nav.replaceChildren();
+    const inbox = mailboxRow('Inbox', '#inbox'); inbox.firstElementChild.classList.add('nZ');
+    const rows = ['Projects/Alpha', 'Projects/Beta'].map(name => mailboxRow(name));
+    nav.append(inbox, ...rows);
+    for (const row of [inbox, ...rows]) row.querySelector('a.n0').target='_top';
+    const inboxSlot=document.createElement('div'); inboxSlot.className='nL aif'; inboxSlot.style.display='none';
+    inbox.querySelector('.TN').append(inboxSlot);
+    for (const row of rows) {
+      const menu = row.querySelector('[data-label-name]'), slot = document.createElement('div');
+      slot.className = 'nL'; slot.style.cssText='display:none;width:20px;height:20px;flex:0 0 20px';
+      menu.style.cssText='width:20px;height:20px'; menu.innerHTML='<div class="p6">⋮</div>';
+      menu.before(slot); slot.append(menu);
+    }
+    f.list.innerHTML='<div class="ae4"><table role="grid"><tbody><tr role="row"><td><div role="link"><span data-thread-id="inbox-thread" data-legacy-thread-id="inbox-legacy">Synthetic conversation</span></div></td></tr></tbody></table></div><div class="zchc9b" style="display:none;height:24px">Native loading</div>';
+    const identity = () => f.list.querySelector('[data-thread-id]');
+    const nativeSelect = row => {
+      for (const selected of nav.querySelectorAll('.TO.nZ')) selected.classList.remove('nZ');
+      row.firstElementChild.classList.add('nZ');
+      history.replaceState(null, '', row.querySelector('a').getAttribute('href'));
+      window.dispatchEvent(new Event('hashchange'));
+    };
+    for (const row of [inbox, ...rows]) row.addEventListener('click', event => {
+      if (event.target.closest('.nL')) return;
+      event.preventDefault(); if (!row.hasAttribute('data-native-ignore')) nativeSelect(row);
+    });
+    const click = row => row.querySelector('a').click();
+    const commit = (id='loaded-thread') => identity().setAttribute('data-thread-id', id);
+    const busy = value => { f.list.querySelector('.zchc9b').style.display=value ? '' : 'none'; };
+    return {...f, nav, inbox, alpha:rows[0], beta:rows[1], identity, nativeSelect, click, commit, busy};
+  }
+  const spinner = () => document.querySelector('.gmail-pro-mailbox-spinner');
   window.addEventListener('resize', nativeResize);
   const start = async (collapsed = false) => { feature.start({appleMailModeEnabled:true, headerCollapsed:collapsed}); await settle(); };
   const control = name => document.querySelector(`[data-gp-header-action="${name}"]`);
@@ -653,6 +686,94 @@
     for (let i=0; i<100; i++) workspace.querySelector('.ii').append(document.createTextNode('synthetic'));
     window.dispatchEvent(new Event('resize')); await settle(); observer.disconnect();
     assert(writes === 0, 'no caption writes from unchanged counts or message contents');
+  });
+  await test('mailbox spinner appears before native click handling and restores the original dots on load', async () => {
+    const f=loadingFixture(); await start(); const menu=f.alpha.querySelector('[data-label-name]'), dot=menu.firstElementChild;
+    const original=menu.innerHTML, nativeThread=f.identity(); let immediate=false, menus=0;
+    f.alpha.addEventListener('click', () => { immediate=!!spinner(); }); menu.addEventListener('click',()=>menus++);
+    f.click(f.alpha);
+    assert(immediate && spinner()?.getAttribute('role')==='status', 'synchronous accessible feedback');
+    assert(f.identity()===nativeThread && nativeThread.getAttribute('data-thread-id')==='inbox-thread', 'current messages retained while Gmail loads');
+    assert(getComputedStyle(dot).visibility==='hidden' && getComputedStyle(spinner(),'::before').borderTopWidth==='2px', 'ring replaces native dots');
+    assert(rect(menu).width===20 && rect(menu).height===20, 'native menu geometry unchanged');
+    await settle(); assert(spinner(), 'route/selection changes alone never indicate loaded');
+    f.commit(); await settle();
+    assert(!spinner() && menu.innerHTML===original && !menu.hasAttribute('data-gp-mailbox-loading') && !menu.parentElement.hasAttribute('data-gp-mailbox-loading'), 'original nodes/attributes restored');
+    dot.click(); assert(menus===1 && menu.firstElementChild===dot, 'native menu handlers remain intact');
+  });
+  await test('native Inbox uses its existing empty indicator slot and restores it after loading', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); f.commit('alpha-ready'); await settle();
+    const slot=f.inbox.querySelector('.nL'), original=slot.outerHTML;
+    f.click(f.inbox); assert(slot.contains(spinner()), 'Inbox immediately owns feedback');
+    const box=spinner().getBoundingClientRect(); assert(box.width===20 && box.height===20, 'empty native slot provides a stable ring area');
+    await settle(); assert(spinner(), 'Inbox route alone still waits for content');
+    f.commit('inbox-ready'); await settle(); assert(!spinner() && slot.outerHTML===original, 'native empty slot fully restored');
+  });
+  await test('staged mailbox rows wait for native identity metadata before clearing the spinner', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); await settle();
+    const table=f.list.querySelector('table'); table.replaceWith(table.cloneNode(true));
+    const identity=f.identity(); identity.removeAttribute('data-thread-id'); await settle();
+    assert(spinner(), 'incomplete replacement does not signal completion');
+    identity.setAttribute('data-thread-id','alpha-ready'); await settle(); assert(!spinner(), 'late native metadata completes load');
+  });
+  await test('native loading keeps the spinner until completion even when rows and counts update early', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); f.busy(true); await settle();
+    f.commit(); f.range.querySelectorAll('.ts')[2].textContent='12'; await settle();
+    assert(spinner(), 'still busy during progressive loading');
+    f.busy(false); await settle(); assert(!spinner(), 'native loading completion clears');
+    f.click(f.beta); f.busy(true); f.busy(false); await settle();
+    assert(!spinner(), 'cached loading cycle within one mutation batch clears too');
+  });
+  await test('rapid mailbox clicks move one spinner and ignore completion from the earlier destination', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); f.busy(true); await settle();
+    f.click(f.beta); assert(document.querySelectorAll('.gmail-pro-mailbox-spinner').length===1 && f.beta.contains(spinner()) && !f.alpha.querySelector('[data-gp-mailbox-loading]'), 'latest destination owns one spinner');
+    f.commit('late-alpha'); await settle(); assert(f.beta.contains(spinner()), 'earlier rows cannot clear a still-loading destination');
+    f.commit('beta-ready'); f.busy(false); await settle(); assert(!spinner(), 'latest load completes');
+  });
+  await test('same-count and empty mailboxes clear loading using native completion evidence', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); await settle();
+    f.range.querySelectorAll('.ts')[2].firstChild.data='500'; await settle();
+    assert(!spinner(), 'equal native count commit completes an identical cached list');
+    f.click(f.beta); await settle(); f.range.remove();
+    f.list.querySelector('.ae4').innerHTML='<table role="grid"><tbody></tbody></table><table><tbody><tr><td class="TC">No conversations</td></tr></tbody></table>';
+    await settle(); assert(!spinner(), 'confirmed native empty state completes');
+  });
+  await test('mailbox spinner rebinds native sidebar/menu replacements and releases detached owners', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); await settle();
+    const oldSlot=f.alpha.querySelector('.nL'), clone=f.alpha.cloneNode(true); f.alpha.replaceWith(clone);
+    await settle(); assert(clone.contains(spinner()) && document.querySelectorAll('.gmail-pro-mailbox-spinner').length===1, 'cloned sidebar rebinds without duplicates');
+    assert(!oldSlot.hasAttribute('data-gp-mailbox-loading') && !oldSlot.querySelector('.gmail-pro-mailbox-spinner'), 'detached slot released');
+    f.commit(); await settle(); assert(!spinner() && !clone.querySelector('[data-gp-mailbox-loading]'), 'clone completion releases inherited marks');
+  });
+  await test('menu, expansion, modified clicks, current mailbox and mode OFF retain native behavior', async () => {
+    const f=loadingFixture(); await start();
+    for (const modifiers of [{ctrlKey:true},{metaKey:true},{shiftKey:true},{altKey:true}]) {
+      f.alpha.querySelector('a').dispatchEvent(new MouseEvent('click',{bubbles:true,button:0,...modifiers}));
+      assert(!spinner(), 'modified click ignored'); history.replaceState(null,'','#inbox');
+    }
+    f.alpha.querySelector('[data-label-name]').click(); assert(!spinner(), 'menu click ignored');
+    const expand=document.createElement('a'); expand.href='#label/Projects'; expand.setAttribute('aria-label','Expand label: Projects'); f.alpha.querySelector('.TN').prepend(expand);
+    expand.click(); assert(!spinner(), 'expansion link ignored'); history.replaceState(null,'','#inbox');
+    f.click(f.inbox); assert(!spinner(), 'current mailbox ignored');
+    feature.stop(); f.click(f.alpha); assert(!spinner(), 'mode OFF ignored');
+  });
+  await test('navigation away, disabled mode, ignored clicks and expired loads release loading state', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); await settle();
+    history.replaceState(null,'','#sent'); window.dispatchEvent(new PopStateEvent('popstate')); assert(!spinner(), 'Back/other navigation cancels immediately');
+    history.replaceState(null,'','#inbox'); f.click(f.alpha); feature.stop();
+    assert(!spinner() && !f.nav.querySelector('[data-gp-mailbox-loading]'), 'OFF releases all owned presentation');
+    history.replaceState(null,'','#inbox'); await start(); f.alpha.setAttribute('data-native-ignore','');
+    const nativeTimeout=window.setTimeout; let expire;
+    window.setTimeout=(fn,ms,...args)=>ms===15000 ? (expire=fn,-999) : nativeTimeout(fn,ms,...args);
+    try { f.click(f.alpha); assert(spinner() && expire, 'ignored native navigation is bounded'); expire(); assert(!spinner(), 'timeout restores dots'); }
+    finally { window.setTimeout=nativeTimeout; }
+  });
+  await test('pending mailbox spinner stays idle through unrelated row state and owned marker changes', async () => {
+    const f=loadingFixture(); await start(); f.click(f.alpha); await settle();
+    let writes=0; const observer=new MutationObserver(records=>{writes+=records.length;});
+    observer.observe(spinner().parentElement,{childList:true,attributes:true,subtree:true});
+    f.identity().closest('tr').classList.add('zE','aps'); f.identity().setAttribute('data-gp-message-row','');
+    await settle(); observer.disconnect(); assert(writes===0 && spinner(), 'no polling, repeated spinner writes, or false completion');
   });
   window.removeEventListener('resize',nativeResize);
   results.textContent += `\n${passes} passed; ${failures} failed.\n`;
