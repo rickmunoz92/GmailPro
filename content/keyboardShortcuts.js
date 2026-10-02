@@ -126,14 +126,15 @@
     if (event.type === "keyup" && (key === "meta" || key === "shift")) reset();
     const deleteKey = key === "backspace" || key === "delete";
     const plainDelete = deleteKey && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
-    const binding = deleteKey ? (plainDelete && bindings[key]) : event.metaKey && !event.ctrlKey && !event.altKey &&
-      bindings[(event.shiftKey ? "shift+" : "") + key];
+    const undoKey = key === "z" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+    const binding = undoKey ? bindings.z : deleteKey ? (plainDelete && bindings[key]) :
+      key !== "z" && event.metaKey && !event.ctrlKey && !event.altKey && bindings[(event.shiftKey ? "shift+" : "") + key];
     if (event.type === "keydown" && !binding) held.delete(key);
     const reserved = binding && options[binding[0]];
     const companion = event.type !== "keydown" && held.has(key);
     if ((!reserved && !companion) || event.isComposing || !event.cancelable) return;
     const focus = document.activeElement;
-    // Text editing owns Delete and Command-Z throughout a composer, menu, or
+    // Text editing owns Delete and Z throughout a composer, menu, or
     // dialog. Leave every event untouched, even if focus changed after keydown.
     if ((deleteKey || key === "z") && (!(focus instanceof Element) || focus.closest(S.shortcutArchiveExcluded) || overlayOpen())) {
       held.delete(key);
@@ -144,6 +145,18 @@
     if (deleteKey && (!mailboxToolbar(focus) ||
         (event.target instanceof Element && event.target.closest(S.shortcutArchiveExcluded)))) {
       held.delete(key);
+      return;
+    }
+    const undoTarget = undoKey ? undoButton() : null;
+    const continuingUndo = key === "z" && held.has(key) && (event.type !== "keydown" || event.repeat);
+    // Gmail's undo history can outlive its notification. Let the original Z
+    // gesture reach Gmail when no usable link exists; never synthesize another key.
+    // A press already bridged to a link still owns its repeats and companions.
+    if (undoKey && !undoTarget && !continuingUndo) {
+      if (event.type === "keydown") {
+        held.delete(key);
+        if (!event.repeat && !event.defaultPrevented && mailboxToolbar(focus)) app.readingPane?.cancelFilingForShortcut?.(true);
+      }
       return;
     }
     const prevented = event.defaultPrevented;
@@ -161,7 +174,7 @@
     app.readingPane?.cancelFilingForShortcut?.();
     const action = binding[1];
     const target = action === "archive" || action === "toggleRead" || action === "delete" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
-      action === "undo" ? undoButton() : conversationButton(action, focus);
+      action === "undo" ? undoTarget : conversationButton(action, focus);
     activate(target); // One native gesture, synchronously; no queued send or retry.
   }
 

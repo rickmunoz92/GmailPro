@@ -652,7 +652,33 @@ html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice {
 }
 html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice button { color: inherit; background: transparent; border: 0; cursor: pointer; }
 
+html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice[data-gp-filing-success] {
+  right: auto; bottom: auto; transform: translateX(-50%); box-sizing: border-box;
+  gap: 10px; padding: 12px 16px; border-radius: 12px; pointer-events: none;
+  font-weight: 500; box-shadow: 0 8px 28px #0002, 0 2px 6px #0001;
+  animation: gmail-pro-filing-appear 140ms ease-out;
+}
+html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice[data-gp-filing-success] [role="status"] {
+  min-width: 0; overflow-wrap: anywhere; text-wrap: pretty;
+}
+html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice[data-gp-filing-success] svg {
+  flex: 0 0 22px; width: 22px; height: 22px; fill: none;
+  color: var(--gp-accent-ui); stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice[data-gp-filing-success] circle {
+  fill: color-mix(in srgb, var(--gp-accent-ui) 8%, transparent); stroke-opacity: .3;
+}
+html.gmail-pro-apple-mail-mode[data-gp-theme="dark"] > body > .gmail-pro-filing-notice[data-gp-filing-success] {
+  box-shadow: 0 8px 28px #0005, 0 2px 6px #0003;
+}
+@keyframes gmail-pro-filing-appear {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+
 @keyframes gmail-pro-mailbox-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .gmail-pro-mailbox-spinner::before { animation: none; }
+  .gmail-pro-mailbox-spinner::before,
+  html.gmail-pro-apple-mail-mode > body > .gmail-pro-filing-notice[data-gp-filing-success] { animation: none; }
 }

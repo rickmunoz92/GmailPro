@@ -14,10 +14,10 @@
   let observedContext;
   let pendingRead, readVisit, restoringUnread = false;
   let pendingFiling, filingGesture = false, heldFilingKey;
-  let filingNotice, filingNoticeTimer;
+  let filingNotice, filingNoticeTimer, filingNoticeContext, filingNoticeFrame, filingNoticeResize;
   const filingPointerEvents = ["pointerdown", "mousedown", "mouseup", "click"];
   const filingKeyEvents = ["keydown", "keypress", "keyup"];
-  let readNoticeObserver, readNoticeTimer;
+  let nativeNoticeObserver, nativeNoticeTimer;
   const readRetryDelay = 250;
   const readTimeout = 10000;
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
@@ -31,25 +31,26 @@
     const bounds = target.getBoundingClientRect();
     // Gmail controls need pressed state; a bare .click() can be ignored.
     for (const type of ["mousedown", "mouseup", "click"]) {
-      if (!guard() || !visible(target) || !usable(target)) break;
+      if (!guard() || !visible(target) || !usable(target)) return false;
       target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true,
         view: window, button: 0, buttons: type === "mousedown" ? 1 : 0, detail: 1,
         clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 }));
     }
+    return true;
   }
 
-  function stopReadNoticeWatch() {
-    readNoticeObserver?.disconnect(); readNoticeObserver = undefined;
-    clearTimeout(readNoticeTimer); readNoticeTimer = undefined;
+  function stopNativeNoticeWatch() {
+    nativeNoticeObserver?.disconnect(); nativeNoticeObserver = undefined;
+    clearTimeout(nativeNoticeTimer); nativeNoticeTimer = undefined;
   }
 
   function quietReadNotice() {
-    stopReadNoticeWatch();
+    stopNativeNoticeWatch();
     // Observe only Gmail's small native notification region while awaiting
     // this action's confirmation. Never hide the shared alert/Undo container.
     const roots = [...document.querySelectorAll(S.nativeNotice)].filter(ownsChrome);
     if (!roots.length) return;
-    readNoticeObserver = new MutationObserver(() => {
+    nativeNoticeObserver = new MutationObserver(() => {
       for (const root of roots) {
         for (const message of root.querySelectorAll(S.nativeNoticeMessage)) {
           if (message.textContent.trim() !== "Conversation marked as read.") continue;
@@ -57,17 +58,17 @@
           if (!visible(close) || !usable(close)) continue;
           // Disconnect before Gmail dismisses/reuses the node. Archive,
           // delete, errors, and third-party notices retain their native UI.
-          stopReadNoticeWatch();
+          stopNativeNoticeWatch();
           nativeGesture(close);
           return;
         }
       }
     });
-    for (const root of roots) readNoticeObserver.observe(root, {
+    for (const root of roots) nativeNoticeObserver.observe(root, {
       childList: true, subtree: true, characterData: true, attributes: true,
       attributeFilter: ["class", "style", "role", "aria-label", "hidden", "aria-hidden", "aria-disabled"]
     });
-    readNoticeTimer = setTimeout(stopReadNoticeWatch, 5000);
+    nativeNoticeTimer = setTimeout(stopNativeNoticeWatch, 5000);
   }
 
   function cancelRead() {
@@ -84,19 +85,84 @@
 
   function clearFilingNotice() {
     clearTimeout(filingNoticeTimer); filingNoticeTimer = undefined;
-    filingNotice?.remove(); filingNotice = undefined;
+    cancelAnimationFrame(filingNoticeFrame); filingNoticeFrame = undefined;
+    filingNoticeResize?.disconnect(); filingNoticeResize = undefined;
+    window.removeEventListener("resize", scheduleFilingNotice);
+    document.removeEventListener("scroll", scheduleFilingNotice, true);
+    filingNotice?.remove(); filingNotice = undefined; filingNoticeContext = undefined;
   }
 
-  function filingFeedback(message) {
+  function positionFilingNotice() {
+    const current = filingNoticeContext;
+    if (!current) return;
+    if (!enabled || location.hash !== current.route || location.pathname !== current.page ||
+        !visible(current.main) || !visible(current.list) || current.list.closest(S.main) !== current.main) return clearFilingNotice();
+    const bounds = current.list.getBoundingClientRect(), width = Math.min(400, bounds.width - 24);
+    if (width <= 0) return clearFilingNotice();
+    // Fixed to the list's viewport, never its scrolling conversation content.
+    for (const [property, value] of Object.entries({ left: `${bounds.left + bounds.width / 2}px`, top: `${bounds.top + 12}px`, width: `${width}px` })) {
+      if (filingNotice.style[property] !== value) filingNotice.style[property] = value;
+    }
+  }
+
+  function scheduleFilingNotice() {
+    if (!filingNoticeContext || filingNoticeFrame !== undefined) return;
+    filingNoticeFrame = requestAnimationFrame(() => { filingNoticeFrame = undefined; positionFilingNotice(); });
+  }
+
+  function filingFeedback(message, success) {
     clearFilingNotice();
     if (!enabled || !message) return;
-    const node = document.createElement("div"), text = document.createElement("span"), dismiss = document.createElement("button");
+    const list = success?.grid.closest(S.pagingList);
+    if (success && (!list || !filingHealthy(success))) return;
+    const node = document.createElement("div"), text = document.createElement("span");
     node.className = "gmail-pro-filing-notice";
     text.setAttribute("role", "status"); text.setAttribute("aria-live", "polite"); text.setAttribute("aria-atomic", "true");
     text.textContent = message;
-    dismiss.type = "button"; dismiss.textContent = "Dismiss"; dismiss.addEventListener("click", clearFilingNotice);
-    node.append(text, dismiss); document.body.append(node); filingNotice = node;
-    filingNoticeTimer = setTimeout(clearFilingNotice, 6000);
+    if (success) {
+      node.dataset.gpFilingSuccess = "";
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 24 24"); icon.setAttribute("aria-hidden", "true");
+      const circle = document.createElementNS(icon.namespaceURI, "circle"), check = document.createElementNS(icon.namespaceURI, "path");
+      circle.setAttribute("cx", "12"); circle.setAttribute("cy", "12"); circle.setAttribute("r", "9");
+      check.setAttribute("d", "m8 12 3 3 5-6"); icon.append(circle, check); node.append(icon);
+      filingNoticeContext = { list, main: success.main, route: success.route, page: success.page };
+    } else {
+      const dismiss = document.createElement("button");
+      dismiss.type = "button"; dismiss.textContent = "Dismiss"; dismiss.addEventListener("click", clearFilingNotice);
+      node.append(dismiss);
+    }
+    node.insertBefore(text, success ? null : node.firstChild); document.body.append(node); filingNotice = node;
+    if (success) {
+      positionFilingNotice();
+      if (!filingNoticeContext) return;
+      filingNoticeResize = new ResizeObserver(scheduleFilingNotice); filingNoticeResize.observe(list);
+      window.addEventListener("resize", scheduleFilingNotice);
+      document.addEventListener("scroll", scheduleFilingNotice, { capture: true, passive: true });
+    }
+    filingNoticeTimer = setTimeout(clearFilingNotice, success ? 1500 : 6000);
+  }
+
+  function watchArchiveNotice(pending) {
+    stopNativeNoticeWatch();
+    const roots = [...document.querySelectorAll(S.nativeNotice)].filter(ownsChrome);
+    if (!roots.length) return;
+    nativeNoticeObserver = new MutationObserver(records => {
+      if (pendingFiling !== pending || !pending.archiveSubmitted || !filingHealthy(pending)) return;
+      for (const root of roots) for (const message of root.querySelectorAll(S.nativeNoticeMessage)) {
+        if (!visible(message) || message.textContent.trim() !== "Conversation archived.") continue;
+        // An already-visible acknowledgement from a previous action is not
+        // confirmation. Only new content inside this native message qualifies.
+        const fresh = records.some(record =>
+          (record.type === "characterData" && message.contains(record.target)) ||
+          (record.type === "childList" && (message.contains(record.target) ||
+            [...record.addedNodes].some(node => node === message || node.contains?.(message)))));
+        if (!fresh) continue;
+        pending.archiveAcknowledged = true;
+        stopNativeNoticeWatch(); schedule(); return;
+      }
+    });
+    for (const root of roots) nativeNoticeObserver.observe(root, { childList: true, subtree: true, characterData: true });
   }
 
   function filingNative(target, checkbox = false, guard) {
@@ -104,7 +170,8 @@
     try {
       // Apple Mail Mode hides native checkboxes. Gmail's existing selection
       // bridge uses .click() on them; toolbar actions require all mouse phases.
-      if (checkbox) target.click(); else nativeGesture(target, guard);
+      if (checkbox) { target.click(); return true; }
+      return nativeGesture(target, guard);
     } finally { filingGesture = false; }
   }
 
@@ -141,7 +208,7 @@
     if (!pending) return;
     pendingFiling = undefined;
     clearTimeout(pending.timer); clearTimeout(pending.expiry);
-    stopReadNoticeWatch();
+    stopNativeNoticeWatch();
     // Relinquish only the selection introduced by this operation, while its
     // original context and sole target still agree. Never clear a user's bulk selection.
     const row = release && pending.selectionOwned && filingHealthy(pending) ? filingRow(pending) : null;
@@ -152,6 +219,7 @@
   }
 
   function filingFailure(pending) {
+    if (pending.archiveSubmitted && !filingRow(pending)) return "Gmail hasn’t confirmed this move. Check the folder before trying again.";
     return pending.readConfirmed ? "Marked read, but couldn’t file. Try again." :
       "Couldn’t mark this conversation read, so it wasn’t filed. Try again.";
   }
@@ -169,7 +237,7 @@
   }
 
   function watchFiling(pending) {
-    observer.observe(pending.grid, { childList: true, subtree: true, attributes: true,
+    observer.observe(pending.grid, { childList: true, subtree: true, attributes: true, attributeOldValue: true,
       attributeFilter: ["class", "aria-checked", "data-thread-id", "data-legacy-thread-id", "title", "hidden", "style", "aria-disabled"] });
     for (let node = pending.grid.parentElement; node; node = node.parentElement) {
       observer.observe(node, { childList: true, attributes: true, attributeFilter: ["style", "hidden", "aria-hidden"] });
@@ -188,10 +256,15 @@
     const pending = pendingFiling;
     if (!pending) return;
     if (!filingHealthy(pending)) return finishFiling();
-    watchFiling(pending);
     const row = filingRow(pending);
     if (!row) {
-      if (pending.phase === "archiving") return finishFiling("", false);
+      if (pending.phase === "archiving") {
+        // A recycled/ambiguous live row cannot prove that the target was removed.
+        if (pending.row.isConnected) return finishFiling("", false);
+        if (pending.archiveSubmitted && pending.archiveAcknowledged) {
+          finishFiling("", false); filingFeedback(`Moved to ${pending.label}`, pending); return;
+        }
+      }
       // A staged native row replacement can have a short gap. No action is
       // taken until both thread IDs and the selection can be verified again.
       return waitForFiling(pending);
@@ -227,8 +300,8 @@
     const archive = nativeToolbarAction(pending.main, S.archive);
     if (!archive) return waitForFiling(pending);
     pending.phase = "archiving"; // Set before dispatch so synchronous Gmail changes cannot repeat Archive.
-    stopReadNoticeWatch();
-    filingNative(archive, false, () => filingActionValid(pending));
+    watchArchiveNotice(pending);
+    pending.archiveSubmitted = filingNative(archive, false, () => filingActionValid(pending));
     if (pendingFiling === pending) waitForFiling(pending);
   }
 
@@ -237,7 +310,8 @@
     if (checkedBoxes(target.main).length) return filingFeedback("Clear your selection to file one conversation.");
     const pending = readCandidate(target.row);
     if (!pending || !["zE", "yO"].some(name => target.row.classList.contains(name))) return;
-    clearFilingNotice(); cancelRead(); stopReadNoticeWatch();
+    if (!filingNoticeContext) clearFilingNotice();
+    cancelRead(); stopNativeNoticeWatch();
     Object.assign(pending, { grid: target.grid, page: location.pathname, label: target.label, phase: "selecting", selectionOwned: true,
       nextRead: 0, readConfirmed: target.row.classList.contains("yO") });
     pendingFiling = pending;
@@ -248,6 +322,9 @@
 
   function filingInput(event) {
     if (filingGesture || !enabled || !(event.target instanceof Element)) return;
+    // Both the keyboard bridge and a direct native Undo click restore mail.
+    // Remove only our transient success card; Gmail owns the undo operation.
+    if (event.type === "click" && event.target.closest(S.nativeUndo) && ownsChrome(event.target)) clearFilingNotice();
     const keyEvent = event.type.startsWith("key"), key = event.key;
     if (keyEvent && heldFilingKey === key) {
       event.preventDefault(); event.stopImmediatePropagation();
@@ -271,11 +348,14 @@
     }
   }
 
-  function cancelFiling() { heldFilingKey = undefined; finishFiling(); }
+  function cancelFiling() { heldFilingKey = undefined; finishFiling(); clearFilingNotice(); }
   // Existing window-capture shortcuts may have been installed before the mode
   // was enabled. Let that owner cancel filing before resolving its own action,
   // preserving the selected target for the user's explicit keyboard command.
-  function cancelFilingForShortcut() { heldFilingKey = undefined; finishFiling("", false); }
+  function cancelFilingForShortcut(clearNotice = false) {
+    heldFilingKey = undefined; finishFiling("", false);
+    if (clearNotice) clearFilingNotice();
+  }
 
   function validReadRow(pending) {
     const { row, main, thread, legacy, route, page } = pending;
@@ -613,32 +693,46 @@
   function refresh() {
     if (!enabled) return;
     observer.disconnect();
-    restore();
-    refreshRead();
-    refreshFiling();
-    const current = context();
-    updateRecipientLabels(current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell));
-    if (!current?.actions.size) { group?.remove(); watch(current); return; }
-    if (!group) group = createGroup();
-    for (const button of group.children) button.hidden = !current.actions.has(button.dataset.gpMessageAction);
-    // Find the direct action-group sibling containing More. This naturally
-    // follows native Labels / third-party hooks without knowing their classes.
-    let slot = current.more;
-    while (slot.parentElement !== current.toolbar && !slot.parentElement.classList.contains("G-tF")) slot = slot.parentElement;
-    if (group.parentElement !== slot.parentElement || group.nextElementSibling !== slot) slot.before(group);
-    const bounds = group.getBoundingClientRect(), available = current.toolbar.getBoundingClientRect();
-    if (current.replaceable && visible(group) && bounds.width > 0 &&
-        bounds.left >= available.left && bounds.right <= available.right && bounds.bottom <= available.bottom + 2) {
-      current.footer.setAttribute("data-gp-native-actions", "");
-      markedFooters.add(current.footer);
-      current.shell.setAttribute("data-gp-actions-ready", "");
-      markedShell = current.shell;
+    let current;
+    try {
+      restore();
+      refreshRead();
+      refreshFiling();
+      if (!enabled) return;
+      current = context();
+      updateRecipientLabels(current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell));
+      if (!current?.actions.size) { group?.remove(); return; }
+      if (!group) group = createGroup();
+      for (const button of group.children) {
+        const hidden = !current.actions.has(button.dataset.gpMessageAction);
+        if (button.hidden !== hidden) button.hidden = hidden;
+      }
+      // Find the direct action-group sibling containing More. This naturally
+      // follows native Labels / third-party hooks without knowing their classes.
+      let slot = current.more;
+      while (slot.parentElement !== current.toolbar && !slot.parentElement.classList.contains("G-tF")) slot = slot.parentElement;
+      if (group.parentElement !== slot.parentElement || group.nextElementSibling !== slot) slot.before(group);
+      const bounds = group.getBoundingClientRect(), available = current.toolbar.getBoundingClientRect();
+      if (current.replaceable && visible(group) && bounds.width > 0 &&
+          bounds.left >= available.left && bounds.right <= available.right && bounds.bottom <= available.bottom + 2) {
+        current.footer.setAttribute("data-gp-native-actions", "");
+        markedFooters.add(current.footer);
+        current.shell.setAttribute("data-gp-actions-ready", "");
+        markedShell = current.shell;
+      }
+    } finally {
+      // Watch toolbar readiness only after our own control writes. Otherwise a
+      // hidden optional action can perpetually enqueue microtask refreshes.
+      if (enabled) {
+        watch(current);
+        if (pendingFiling) watchFiling(pendingFiling);
+        positionFilingNotice();
+      }
     }
-    watch(current);
   }
 
   function stop() {
-    cancelFiling(); clearFilingNotice();
+    cancelFiling();
     for (const type of filingPointerEvents) document.removeEventListener(type, filingInput, true);
     for (const type of filingKeyEvents) window.removeEventListener(type, filingInput, true);
     document.removeEventListener("visibilitychange", cancelFiling);
@@ -646,7 +740,7 @@
     enabled = false;
     cancelRead();
     readVisit = undefined;
-    stopReadNoticeWatch();
+    stopNativeNoticeWatch();
     document.removeEventListener("click", openForRead, true);
     document.removeEventListener("pointerdown", interruptRead, true);
     document.removeEventListener("keydown", cancelRead, true);

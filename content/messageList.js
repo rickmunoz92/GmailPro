@@ -23,7 +23,9 @@
   let standalone = false, appleMail = false, running = false;
   let bootstrap, discovery, spines, midnight;
 
-  const inboxRoute = () => /^#inbox(?:\/p[1-9]\d*)?$/.test(location.hash);
+  // Floating drafts add ?compose=... without changing the Inbox mailbox.
+  // The filing controller still guards the full hash for in-flight cancellation.
+  const inboxRoute = () => /^#inbox(?:\/p[1-9]\d*)?$/.test(location.hash.split('?')[0]);
   const visible = node => !!node?.isConnected && node.checkVisibility({ visibilityProperty: true }) &&
     !node.closest('[hidden], [aria-hidden="true"], [inert]');
 

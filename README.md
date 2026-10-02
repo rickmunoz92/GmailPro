@@ -113,6 +113,10 @@ This removes the conversation from Inbox while retaining its existing labels.
 It does not open the destination mailbox or remove other labels. Gmail owns the
 reading pane, counts, mail changes, Archive acknowledgement, and Undo. Archive
 Undo returns the conversation to Inbox but does not promise to restore unread.
+Press **Z** while focus is in the mailbox, or click Gmail's native Undo link.
+Both clear the transient move confirmation. When no Undo link is present, Z uses
+Gmail's own keyboard shortcut, which requires Gmail keyboard shortcuts to be on.
+While typing in a draft or another text field, Z types normally and ⌘Z undoes text.
 
 Existing checked rows block filing with **Clear your selection to file one
 conversation.** Modified clicks remain native. One operation can run at a time;
@@ -370,11 +374,13 @@ in the extension popup. Use **Save preferences** to apply changes.
   conversation keeps Gmail’s normal default. Search/editable fields, composers,
   menus/dialogs, and selected conversation checkboxes block the action. Each press
   resolves the native control again; missing or ambiguous controls do nothing.
-- **⌘Z — Undo:** activates Gmail’s currently available native Undo action, including
-  manual moves, archives, and Undo Send. Gmail restores the previous labels and Inbox
-  state. Inside editable fields, composers, menus, and dialogs, normal text undo stays
-  untouched. If Gmail’s Undo has expired or is unavailable, nothing happens; Gmail Pro
-  keeps no separate action history.
+- **Z — Undo:** activates Gmail’s native Undo link for Move to menu actions,
+  drag-to-label moves, label-click filing, archives, and Undo Send. Without a link,
+  the original Z press reaches Gmail’s own Undo shortcut; enable **Keyboard shortcuts**
+  in Gmail settings for this path. Gmail owns restoration of the previous labels
+  and Inbox state and decides which action remains undoable. Inside editable fields,
+  composers, menus, and dialogs, Z stays native. ⌘Z retains normal text undo.
+  Gmail Pro keeps no separate action history.
 - **⇧⌘R — Reply All**, **⇧⌘F — Forward:** use the currently open
   conversation and preserve the existing floating-composer preferences. They do nothing
   while editing, in menus/dialogs, with selected conversation checkboxes, or without
@@ -389,15 +395,17 @@ Gmail keyboard shortcuts are enabled; Gmail Pro does not change that setting.
 Enabling ⌘⇧D replaces Gmail’s **Discard draft** shortcut. Even if Send is unavailable,
 the enabled shortcut does nothing instead of discarding. Turning the switch off restores
 Gmail’s native shortcut. Enabled combinations are reserved in the Gmail page, except
-⌘Z and Delete in the editing contexts above; Delete also stays native outside the
-mailbox. Outside Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native **E**, **Z**, and **⌘Enter**
-remain available. These features are independent of Apple Mail Mode and Gmail’s own
-keyboard-shortcut preference, and apply only on Mac.
+Z and Delete in the editing contexts above; Delete also stays native outside the
+mailbox. Outside Gmail, Chrome and macOS retain their own shortcuts. Gmail’s native
+**E** and **⌘Enter** remain available. These features are independent of Apple Mail Mode
+and apply only on Mac. Only Undo without a native link requires Gmail’s own
+keyboard-shortcut preference to be on.
 
 Gmail retains recipient validation, confirmation prompts it already requires, Undo,
 Undo Send, and all send behavior. There is no deferred send, retry, recipient rewrite,
-or send-time Auto BCC step. Holding a shortcut triggers one action; release and press
-again for another. Native controls are resolved afresh for every action.
+or send-time Auto BCC step. Holding a bridged shortcut triggers one action; release
+and press again for another. Undo without a usable link follows Gmail’s native key
+handling. Native controls are resolved afresh for every action.
 
 See [keyboard shortcut QA](tests/keyboardShortcuts-QA.md) and
 [compose shortcut QA](tests/composeShortcuts-QA.md) for compatibility and tests.

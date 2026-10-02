@@ -8,12 +8,19 @@
 <link rel="stylesheet" href="../content/appleMail.css">
 <style>
 [hidden] { display:none !important; } #workspace { width:760px; } .Nu.tf { width:740px; }
-#results { white-space:pre-wrap; } [gh="mtb"] { display:flex; gap:8px; min-height:30px; }
+#results { white-space:pre-wrap; max-height:240px; overflow:auto; } [gh="mtb"] { display:flex; gap:8px; min-height:30px; }
+.filing-preview { margin:0; padding:36px; background:var(--gp-bg-secondary); color:var(--gp-text-primary); font:14px var(--gp-font); }
+.filing-preview #workspace { width:760px; max-width:100%; margin-top:28px; }
+.filing-preview .Nu.tf { height:320px; max-width:100%; background:var(--gp-bg-primary); border:1px solid var(--gp-border); border-radius:14px; overflow:auto; }
+.filing-preview #results { font:13px var(--gp-font); color:var(--gp-text-secondary); }
+.filing-preview [gh="tm"] { position:absolute; top:8px; left:36px; }
+.filing-preview [role="navigation"], .filing-preview .b8 { position:absolute; top:0; left:850px; }
+.filing-preview #workspace > button { margin-top:16px; padding:8px 12px; background:var(--gp-bg-primary); color:var(--gp-text-primary); border:1px solid var(--gp-border); border-radius:8px; }
 </style>
 <h1>One-click label filing checks</h1>
 <p>Synthetic messages only. No Gmail connection; no email can be sent. Keep this tab in the foreground.</p>
-<pre id="results">Running…</pre>
 <div id="workspace"></div>
+<pre id="results">Running…</pre>
 <script src="../shared/debug.js"></script>
 <script src="../shared/settings.js"></script>
 <script src="../content/gmailSelectors.js"></script>

@@ -1,5 +1,54 @@
 # Mac keyboard shortcuts — 2026-09-21
 
+## Plain Z and missing Undo notifications — 2026-10-01
+
+Mailbox Undo now uses unmodified Z. Command-Z remains native, including normal
+draft text undo. Editable fields, composers, menus, dialogs, extra modifiers,
+and composition events retain their original keys. The existing saved Undo
+preference is unchanged; the popup and README name the new key.
+
+With a usable native Undo link, Z delegates one mouse gesture to Gmail. A press
+already bridged to that link consumes its repeats and companion events even if
+Gmail removes the link during restoration. Without a usable link, the complete
+original Z gesture reaches Gmail's native shortcut unchanged, including after a
+notification expires. Gmail handles held keys and owns its Undo history. This
+path requires Gmail keyboard shortcuts to be enabled. No mail-state history or
+synthetic key forwarding was added. Both paths clear the transient filing card.
+
+Read-only live inspection, authorized by the user, found no native Undo link
+after the reported Inbox-to-Mgr move. Gmail's help showed keyboard shortcuts
+enabled and Z assigned to Undo. The extension preference was confirmed enabled
+by the user; extension settings pages could not be inspected through the browser
+tool. Live mail restoration with the updated extension remains unverified.
+
+Validation passed: 38 configuration/lifecycle checks, 135 keyboard checks,
+89 label-filing checks, 22 popup checks, and 31 reading-pane checks (315 total).
+Regressions cover Inbox-to-Mgr restoration with no native Undo link and a
+background draft, native event phases, disappearing links, repeat latches,
+typing boundaries, and Command-Z remaining native. Actual macOS Z input in
+`labelFiling.html?preview=light&draft&native-undo` restored the synthetic row with
+no Undo link. With the row still filed, Z typed into the draft and Command-Z
+restored draft text without moving mail; a subsequent mailbox Z restored the row.
+
+The Command-Z entries below record previous versions and test runs.
+
+## Move Undo integration — 2026-10-01
+
+The existing Command-Z bridge delegates Gmail's latest available Undo for Move to,
+drag-to-label moves, and Archive-based label-click filing. A native Undo click now
+also clears Gmail Pro's transient move confirmation, including clicks dispatched
+by Command-Z. Gmail remains the mail-state and Undo-window owner; no history is
+stored. Focused editors retain normal text Undo, including an open draft.
+
+The new filing regression failed before the fix because the move confirmation
+survived restoration. Validation passed: 38 configuration/lifecycle checks,
+132 keyboard checks, 88 label-filing checks, and 31 reading-pane checks. One
+existing narrow-layout geometry assertion failed on the first full filing run;
+the complete rerun passed 88/88. Real macOS Command-Z input in the synthetic
+Chrome preview restored the moved row with a background draft open, and separately
+restored edited draft text without moving mail. Live Gmail was not inspected:
+automatic approval review blocked access to private mailbox content.
+
 ## v0.9.46 expand/collapse toggle — 2026-09-30
 
 Command-Shift-O delegates one native mouse gesture to the open conversation’s

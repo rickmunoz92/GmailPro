@@ -56,7 +56,9 @@
     const saved=await GmailPro.settings.load();
     assert(!saved.undoShortcutEnabled && !saved.archiveShortcutEnabled && !saved.sendShortcutEnabled, "undo saves independently");
     store.emit({[key("undoShortcutEnabled")]:true}); assert(undo.checked, "undo sync applied");
-    assert(byId("undo-shortcut-hint").textContent.includes("While editing"), "text undo explained");
+    assert(byId("undo-shortcut-hint").textContent.includes("While editing"), "typing explained");
+    assert(undo.getAttribute("aria-label") === "Z to undo", "plain Z shortcut named");
+    assert(byId("undo-shortcut-hint").textContent.includes("enable Gmail keyboard shortcuts"), "native fallback prerequisite explained");
     store.writes=0;
   });
   await test("Delete shortcut defaults on, saves independently, and follows sync", async () => {

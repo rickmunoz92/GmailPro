@@ -52,7 +52,14 @@
     update();workspace.querySelector('[gh="mtb"]').append(button);
     return {button,actions};
   }
-  const undo=patch=>press('z',{shiftKey:false,...patch});
+  const undoKey=(type='keydown',patch={})=>key('z',type,{
+    key:'z',code:'KeyZ',metaKey:false,shiftKey:false,
+    keyCode:type==='keypress'?122:90,charCode:type==='keypress'?122:0,
+    which:type==='keypress'?122:90,...patch
+  });
+  function undo(patch={}) {
+    const event=undoKey('keydown',patch);undoKey('keypress',patch);undoKey('keyup',patch);return event;
+  }
   const deleteEvent=(value='Backspace',type='keydown',patch={})=>key(value,type,{key:value,code:value,metaKey:false,shiftKey:false,...patch});
   function deletePress(value='Backspace',patch={}) {
     const event=deleteEvent(value,'keydown',patch);deleteEvent(value,'keypress',patch);deleteEvent(value,'keyup',patch);return event;
@@ -326,7 +333,7 @@
   await test('native validation remains in control without retries or queued send',async()=>{
     const host=draft();let validation=0;host.querySelector('.send').onclick=()=>validation++;press();await wait(100);assert(validation===1&&sent===0&&discarded===0,'one native validation');
   });
-  for (const action of ['Archive','Move to']) await test('Undo delegates single and bulk '+action+' restoration to Gmail',()=>{
+  for (const action of ['Archive','Move to','Drag to label']) await test('Undo delegates single and bulk '+action+' restoration to Gmail',()=>{
     for (const count of [1,3]) {
       const before=Array.from({length:count},(_,i)=>['Inbox','Original '+i]);
       let labels=before.map(()=>action==='Archive'?[]:['Destination']);
@@ -336,11 +343,52 @@
     }
     assert(undone===2 && sent===0 && discarded===0,'one native action per press');
   });
+  await test('plain Z reaches native Undo unchanged when Gmail provides no notification link',()=>{
+    const before=['Inbox','Mgr'];let labels=['Mgr'];const phases=[];
+    const native=event=>{
+      if(event.key!=='z'||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+      phases.push({type:event.type,key:event.key,code:event.code,which:event.which,charCode:event.charCode});
+      if(event.type==='keypress'){undone++;labels=before;}
+    };
+    for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,native);
+    try {
+      assert(!undo().defaultPrevented,'original native key remains untouched');
+      assert(undone===1&&labels===before&&!sent&&!discarded,'Gmail restores prior membership once');
+      assert(JSON.stringify(phases)===JSON.stringify([
+        {type:'keydown',key:'z',code:'KeyZ',which:90,charCode:0},
+        {type:'keypress',key:'z',code:'KeyZ',which:122,charCode:122},
+        {type:'keyup',key:'z',code:'KeyZ',which:90,charCode:0}]),'complete unmodified native keyboard gesture');
+    } finally {for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,native);}
+  });
+  await test('native Undo pass-through preserves editing boundaries and prefers visible links',()=>{
+    const native=event=>{if(event.type==='keypress'&&event.key==='z'&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey&&!event.target.closest(app.selectors.shortcutArchiveExcluded))undone++;};
+    document.addEventListener('keypress',native);
+    try {
+      undoKey('keydown');undoKey('keypress');undoKey('keyup');
+      assert(undone===1,'one original native gesture');
+      workspace.querySelector('input').focus();assert(!undo().defaultPrevented&&undone===1,'typing receives Z without undoing mail');
+      workspace.focus();const toast=undoNotice();undo();assert(undone===2,'visible link is preferred to native key');toast.hidden=true;undo();assert(undone===3,'hidden notification leaves the original native shortcut available');
+      toast.remove();undo();assert(undone===4,'fresh missing-link press still works');
+    } finally {document.removeEventListener('keypress',native);}
+  });
+  await test('a bridged Undo consumes companions after its link disappears and permits the next native press',()=>{
+    let nativeKeys=0;
+    const native=event=>{if(event.key==='z'&&!event.metaKey)nativeKeys++;};
+    for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,native);
+    try {
+      const toast=undoNotice();toast.querySelector('#link_undo').onclick=()=>{undone++;toast.remove();};
+      undoKey('keydown');undoKey('keydown',{repeat:true});undoKey('keypress');undoKey('keyup');
+      assert(undone===1&&!nativeKeys,'removed link cannot cause a second native action on the held press');
+      undo();assert(nativeKeys===3&&undone===1,'fresh press passes the complete original native gesture');
+      const next=undoNotice();next.querySelector('#link_undo').onclick=()=>{undone++;next.remove();};
+      undoKey('keydown');undo();assert(nativeKeys===6&&undone===2,'fresh press works even if an earlier release was missing');
+    } finally {for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,native);}
+  });
   await test('Undo Send uses the same available native Undo without another Send',()=>{
     undoNotice('Message sent.');undo();assert(undone===1 && sent===0 && discarded===0,'Undo only');
   });
   await test('Undo ignores expired, hidden, disabled and ambiguous controls',()=>{
-    assert(undo().defaultPrevented && !undone,'missing reserved');
+    assert(!undo().defaultPrevented && !undone,'missing link stays native');
     const toast=undoNotice(),control=toast.querySelector('#link_undo');
     toast.hidden=true;undo();toast.hidden=false;
     control.setAttribute('aria-disabled','true');undo();control.removeAttribute('aria-disabled');
@@ -366,7 +414,7 @@
   for(const field of ['input','textarea','select','[contenteditable]'])await test('Undo leaves every editing event untouched in '+field,()=>{
     undoNotice();const node=document.createElement(field==='[contenteditable]'?'div':field);
     if(field==='[contenteditable]')node.contentEditable='true';workspace.append(node);node.focus();
-    for(const type of ['keydown','keypress','keyup'])assert(!key('z',type,{shiftKey:false}).defaultPrevented,'native editor receives '+type);
+    for(const type of ['keydown','keypress','keyup'])assert(!undoKey(type).defaultPrevented,'native editor receives '+type);
     assert(!undone,'no mailbox action');
   });
   for(const field of ['[contenteditable]','[aria-label="To recipients"]','[name="subjectbox"]','.send'])await test('Undo preserves composer focus in '+field,()=>{
@@ -377,13 +425,13 @@
     assert(!undo().defaultPrevented && !undone,'overlay owns keys');
   });
   await test('Undo repeats, missing macOS releases and focus changes stay safe',()=>{
-    undoNotice();key('z','keydown',{shiftKey:false});key('z','keydown',{shiftKey:false,repeat:true});key('z','keypress',{shiftKey:false});
-    assert(undone===1,'held press once');key('z','keydown',{shiftKey:false});assert(undone===2,'fresh press without release');
-    workspace.querySelector('input').focus();assert(!key('z','keyup',{shiftKey:false,metaKey:false}).defaultPrevented,'editing companion untouched');
+    undoNotice();undoKey('keydown');undoKey('keydown',{repeat:true});undoKey('keypress');
+    assert(undone===1,'held press once');undoKey('keydown');assert(undone===2,'fresh press without release');
+    workspace.querySelector('input').focus();assert(!undoKey('keyup').defaultPrevented,'editing companion untouched');
     workspace.focus();window.dispatchEvent(new Event('blur'));undo();assert(undone===3,'blur resets');
   });
-  await test('Undo rejects extra modifiers, IME, native Z and redo',()=>{
-    undoNotice();for(const patch of [{shiftKey:true},{altKey:true},{ctrlKey:true},{isComposing:true},{metaKey:false}])assert(!undo(patch).defaultPrevented,'native combination untouched');
+  await test('Undo leaves Command Z, extra modifiers, IME and redo untouched',()=>{
+    undoNotice();for(const patch of [{shiftKey:true},{altKey:true},{ctrlKey:true},{isComposing:true},{metaKey:true}])assert(!undo(patch).defaultPrevented,'native combination untouched');
     assert(!undone,'no action');
   });
   await test('Undo resolves successive notifications after navigation without storing history',()=>{
