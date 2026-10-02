@@ -53,6 +53,22 @@
     feature.stop(); assert(css(node).display === "flex" && css(node).backgroundColor === baseline && workspace.innerHTML === html, "exact restoration");
     assert(!root.hasAttribute("data-gp-theme") && !root.hasAttribute("data-gp-accent"), "root cleaned");
   });
+  await test("empty split-pane footer keeps activity 16px from bottom and restores when OFF", () => {
+    const main = document.createElement('main'); main.setAttribute('role', 'main');
+    main.innerHTML = '<div class="apa" style="position:relative;height:300px"><div class="apb">No conversations selected</div><div class="apO" style="position:absolute;bottom:0;margin-bottom:32px;padding-bottom:10px"><div class="uXhw3b"><div><div class="l6"><div>Last account activity: 1 minute ago</div><span class="l8" role="link" tabindex="0">Details</span></div></div></div><div class="bp"><a>Program Policies</a><div>Powered by Google</div></div></div></div>';
+    workspace.append(main);
+    const pane = main.querySelector('.apa'), footer = main.querySelector('.apO');
+    const activity = main.querySelector('.l6 > div'), details = main.querySelector('.l8'), policies = main.querySelector('.bp');
+    const html = main.innerHTML, baseline = rect(footer).bottom;
+    for (const appearanceTheme of ['dark', 'light']) {
+      enable({appearanceTheme});
+      assert(css(details).display === 'none' && css(policies).display === 'none', 'secondary lines hidden');
+      assert(rect(activity).height > 0 && Math.abs(rect(pane).bottom - rect(activity).bottom - 16) < 1, 'activity at bottom with 16px breathing room');
+    }
+    feature.stop();
+    assert(css(details).display !== 'none' && css(policies).display !== 'none', 'native links restored');
+    assert(rect(footer).bottom === baseline && main.innerHTML === html, 'native geometry and markup restored');
+  });
   await test("scroll indicators follow actual movement per pane and axis, then hide", async () => {
     const pane=document.createElement('div'); pane.className='Nu';
     pane.style.cssText='width:160px;height:100px;overflow:scroll';

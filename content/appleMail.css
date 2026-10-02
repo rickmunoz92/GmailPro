@@ -63,6 +63,15 @@
   [role="main"] .Nu.tf[data-gp-mailbox-caption] > .ae4 {
     margin-block-end: auto !important;
   }
+  /* Gmail's empty split-pane footer (inspected 2026-10-01). Keep the
+     native activity timestamp; remove the three secondary footer lines. */
+  [role="main"] .apa > .apO .l6 > .l8,
+  [role="main"] .apa > .apO > .bp { display: none !important; }
+  [role="main"] .apa > .apO {
+    bottom: 0 !important;
+    margin-block-end: 16px !important;
+    padding-block-end: 0 !important;
+  }
   [gh="tm"] [role="button"] {
     border-radius: 4px !important;
     box-shadow: none !important;
