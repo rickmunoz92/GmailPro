@@ -13,8 +13,9 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
   neutral selected mailbox with accent text/icons. Gmail remains the mail engine.
 
 - **Native floating composer:** automatically open Reply, Reply All, and Forward in Gmail’s own floating composer.
-- **Read after 0.3 seconds:** in Apple Mail Mode, an unread conversation clicked
-  in the reading-pane list is marked read after its message stays visible for 300ms.
+- **Read immediately on opening:** in Apple Mail Mode, the displayed reading-pane
+  conversation is marked read when opened by a click, arrow navigation, or Gmail's
+  automatic advance after Archive/Delete.
 - **One-click label filing:** in Apple Mail Mode, click a custom-label badge in
   an Inbox conversation row to mark the conversation read and archive it. You
   stay in Inbox, all existing labels remain, and Gmail supplies Archive Undo.
@@ -159,20 +160,23 @@ pane to Gmail’s measured viewport.
   the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
   An unread dot turns white while selected and disappears only when Gmail marks
   the conversation read.
-  An ordinary click on an unread reading-pane conversation starts a 300ms dwell
-  once its message body is visible. Gmail Pro then clicks Gmail's native **Mark
-  as read** action, so counts and read status update through Gmail. It checks
-  Gmail's unread state and retries every 250ms if the control is late or ignores
-  the gesture, for at most ten seconds. Leaving the
+  Opening an unread reading-pane conversation by click, keyboard navigation, or
+  Gmail's automatic advance after Archive/Delete immediately invokes Gmail's native
+  **Mark as read** action once the selected row and visible body match both thread
+  IDs. Gmail owns counts and read status. If the native control is late or ignores
+  the gesture, retries run every 250ms for at most ten seconds. Leaving the
   conversation, switching tabs/windows, navigation, bulk selection, or disabling
-  Apple Mail Mode cancels the pending action. Loading time does not count.
+  Apple Mail Mode cancels pending work. Loading messages are never marked read
+  against the previous conversation.
   Manual **Mark as unread** restores the same conversation if Gmail clears the
-  pane, keeping it selected and unread until another ordinary opening click.
+  pane and keeps it unread during that visit. Clicking it again or leaving and
+  returning starts another immediate read. Enabling the mode leaves an already-open
+  conversation's status unchanged.
   Automatic reads also dismiss the **Conversation marked as read.** confirmation
   through Gmail's native Close control. Other notifications and their Undo
   controls stay available. The watch ends after one dismissal or five seconds.
   Gmail's own automatic-read preference still applies independently; use **Never**
-  in Gmail's reading-pane settings if Gmail currently marks messages immediately.
+  in Gmail's reading-pane settings to let Gmail Pro control automatic reads.
   Unsupported layouts/actions are left to Gmail. See [automatic-read QA](tests/autoRead-QA.md).
   Multi-selection follows Gmail's `aria-checked` state, with row checkboxes hidden.
   **Ctrl-click** (or **Command-click** on Mac) toggles individual conversations.
@@ -729,6 +733,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/messageZoom.html`
 - `http://127.0.0.1:8765/tests/appleMail.html`
 - `http://127.0.0.1:8765/tests/readingPane.html`
+- `http://127.0.0.1:8765/tests/autoRead.html`
 - `http://127.0.0.1:8765/tests/headerLayout.html`
 - `http://127.0.0.1:8765/tests/floatingCompose.html`
 - `http://127.0.0.1:8765/tests/keyboardShortcuts.html`

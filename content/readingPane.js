@@ -12,13 +12,12 @@
   let enabled = false, unsubscribe, observer, group, markedShell;
   let queued = false;
   let observedContext;
-  let pendingRead, restoringUnread = false;
+  let pendingRead, readVisit, restoringUnread = false;
   let pendingFiling, filingGesture = false, heldFilingKey;
   let filingNotice, filingNoticeTimer;
   const filingPointerEvents = ["pointerdown", "mousedown", "mouseup", "click"];
   const filingKeyEvents = ["keydown", "keypress", "keyup"];
   let readNoticeObserver, readNoticeTimer;
-  const readDelay = 300;
   const readRetryDelay = 250;
   const readTimeout = 10000;
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
@@ -279,9 +278,9 @@
   function cancelFilingForShortcut() { heldFilingKey = undefined; finishFiling("", false); }
 
   function validReadRow(pending) {
-    const { row, main, thread, legacy, route } = pending;
+    const { row, main, thread, legacy, route, page } = pending;
     const identity = readIdentity(row);
-    return enabled && !document.hidden && location.hash === route && visible(row) &&
+    return enabled && !document.hidden && location.hash === route && location.pathname === page && visible(row) &&
       row.matches(S.readingRow) && row.closest(S.main) === main &&
       identity?.getAttribute("data-thread-id") === thread &&
       identity.getAttribute("data-legacy-thread-id") === legacy &&
@@ -303,19 +302,15 @@
   function markRead(pending) {
     if (pendingRead !== pending) return;
     if (!readContext(pending) || !pending.row.classList.contains("zE")) return cancelRead();
-    const remaining = readDelay - (performance.now() - pending.started);
-    if (remaining > 0) {
-      pending.timer = setTimeout(() => markRead(pending), remaining);
-      return;
-    }
     const action = nativeToolbarAction(pending.main, S.markRead);
-    // A ready toolbar is not guaranteed at 300ms, and Gmail can ignore a
-    // gesture while rendering it. Keep checking the native unread state until
-    // confirmed, cancelled, or expired; never click a toggle labeled Unread.
+    // Gmail can ignore a gesture while rendering its toolbar. Keep checking
+    // the native unread state until confirmed, cancelled, or expired.
+    // Never click a toggle labeled Unread.
     if (action) {
       if (!pending.attempted) quietReadNotice();
       pending.attempted = true;
-      nativeGesture(action);
+      nativeGesture(action, () => pendingRead === pending && readContext(pending) &&
+        pending.row.classList.contains("zE") && nativeToolbarAction(pending.main, S.markRead) === action);
     }
     if (pendingRead !== pending) return;
     if (!pending.row.classList.contains("zE")) return cancelRead();
@@ -353,18 +348,49 @@
     }, 100);
   }
 
+  function selectedReadCandidate() {
+    const rows = [...document.querySelectorAll(`${S.readingRow}.aps`)].filter(visible);
+    return rows.length === 1 ? readCandidate(rows[0]) : null;
+  }
+
+  function sameReadVisit(left, right) {
+    return left && right && left.main === right.main && left.thread === right.thread && left.legacy === right.legacy;
+  }
+
   function refreshRead() {
+    // Watch Gmail's small list for selection transitions, including a reused
+    // pane after keyboard navigation or Archive/Delete. Message bodies stay
+    // outside this observer. A visit is attempted once, so manual unread and
+    // cancelled/expired operations cannot restart on unrelated chrome changes.
+    for (const grid of document.querySelectorAll(`${S.main} .Nu.tf table[role="grid"]`)) {
+      if (visible(grid)) observer.observe(grid, { childList: true, subtree: true, attributes: true,
+        attributeOldValue: true, attributeFilter: ["class", "aria-checked", "data-thread-id", "data-legacy-thread-id"] });
+    }
+    if (!pendingRead?.keepUnread) {
+      const candidate = selectedReadCandidate();
+      // Gmail can replace a row while the same conversation stays open. Keep
+      // the visit's intent, but resolve its current native row for any retry.
+      if (sameReadVisit(readVisit, candidate)) {
+        readVisit.row = candidate.row;
+        if (pendingRead && sameReadVisit(pendingRead, candidate)) pendingRead.row = candidate.row;
+      }
+      if (!sameReadVisit(readVisit, candidate) &&
+          !(pendingRead?.opening && !pendingRead.started && !sameReadVisit(pendingRead, candidate))) {
+        cancelRead();
+        readVisit = candidate;
+        if (candidate?.row.classList.contains("zE") && !pendingFiling && validReadRow(candidate)) {
+          pendingRead = candidate;
+          candidate.expiry = setTimeout(cancelRead, readTimeout);
+        }
+      }
+    }
     const pending = pendingRead;
     if (!pending) return;
     if (!validReadRow(pending)) return cancelRead();
-    // These watches exist only during a click's dwell, never across the inbox
-    // while idle. Selection attributes stay owned by Gmail.
+    // Temporary identity/readiness watches protect only the active target.
+    // Selection and read-state attributes stay owned by Gmail.
     if (pending.row.isConnected) {
       observer.observe(pending.row, { attributes: true, attributeFilter: ["class", "hidden", "style"] });
-      observer.observe(pending.row.parentElement, { childList: true });
-      observer.observe(pending.row.closest('table'), { attributes: true, subtree: true, attributeFilter: ["aria-checked"] });
-      const identity = readIdentity(pending.row);
-      if (identity) observer.observe(identity, { attributes: true, attributeFilter: ["data-thread-id", "data-legacy-thread-id"] });
     }
     if (pending.keepUnread) {
       restoreUnread(pending);
@@ -378,18 +404,19 @@
       return;
     }
     if (pending.started === undefined) {
-      pending.started = performance.now();
+      pending.started = true;
       clearTimeout(pending.timer);
       clearTimeout(pending.expiry);
       pending.expiry = setTimeout(cancelRead, readTimeout);
-      pending.timer = setTimeout(() => markRead(pending), readDelay);
+      pending.timer = undefined;
+      markRead(pending);
     }
   }
 
   function readCandidate(row) {
     const identity = readIdentity(row);
     if (!identity) return null;
-    const pending = { row, main: row.closest(S.main), route: location.hash,
+    const pending = { row, main: row.closest(S.main), route: location.hash, page: location.pathname,
       thread: identity.getAttribute("data-thread-id"), legacy: identity.getAttribute("data-legacy-thread-id") };
     return pending.thread && pending.legacy ? pending : null;
   }
@@ -406,7 +433,7 @@
     if (!pending || !readContext(pending) ||
         (control.closest(S.readingRow) && control.closest(S.readingRow) !== pending.row)) return true;
     pending.keepUnread = true;
-    pendingRead = pending;
+    pendingRead = readVisit = pending;
     pending.expiry = setTimeout(cancelRead, 5000);
     schedule();
     return true;
@@ -423,9 +450,10 @@
     if (!row.classList.contains("zE") || document.hidden) return;
     const pending = readCandidate(row);
     if (!pending) return;
-    pendingRead = pending;
-    // Bound a click whose message never opens; normal discovery supplies the
-    // loaded conversation. Loading time never counts as reading time.
+    pending.opening = true;
+    pendingRead = readVisit = pending;
+    // Bound a click whose message never opens. Read immediately once Gmail's
+    // selected row and visible conversation agree on both native identities.
     pending.expiry = setTimeout(cancelRead, readTimeout);
     schedule();
   }
@@ -532,6 +560,15 @@
     return node;
   }
 
+  function observeMutations(records) {
+    // Ignore list hover/focus/presentation classes. Only native selected/read
+    // transitions can start or finish a visit; chrome keeps its existing watch.
+    if (records.some(record => record.type !== "attributes" || record.attributeName !== "class" ||
+        !record.target.closest('.Nu.tf table[role="grid"]') ||
+        (record.target.matches('tr[role="row"]') && ["aps", "zE"].some(state =>
+          record.target.classList.contains(state) !== (record.oldValue || "").split(/\s+/).includes(state))))) schedule();
+  }
+
   function schedule() {
     if (!enabled || queued) return;
     queued = true;
@@ -608,6 +645,7 @@
     for (const type of ["hashchange", "popstate", "blur"]) window.removeEventListener(type, cancelFiling);
     enabled = false;
     cancelRead();
+    readVisit = undefined;
     stopReadNoticeWatch();
     document.removeEventListener("click", openForRead, true);
     document.removeEventListener("pointerdown", interruptRead, true);
@@ -627,7 +665,9 @@
     if (!patch.appleMailModeEnabled) return stop();
     if (enabled) return;
     enabled = true;
-    observer = new MutationObserver(schedule);
+    // Enabling the mode does not change the status of an already-open message.
+    readVisit = selectedReadCandidate();
+    observer = new MutationObserver(observeMutations);
     for (const type of filingPointerEvents) document.addEventListener(type, filingInput, true);
     for (const type of filingKeyEvents) window.addEventListener(type, filingInput, true);
     document.addEventListener("visibilitychange", cancelFiling);

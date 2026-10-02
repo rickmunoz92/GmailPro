@@ -1,4 +1,47 @@
-# Automatic read after 300ms — 0.9.26
+# Automatic read on conversation opening
+
+## Immediate reads on navigation — 0.9.50
+
+The reading-pane controller follows Gmail's native selected conversation, including
+clicks, Up/Down arrows, and automatic advancement after toolbar or shortcut
+Archive/Delete. Once the selected row, both thread IDs, and visible message body
+agree, it invokes the native **Mark as read** gesture without a dwell timer.
+Missing/ignored controls retain bounded 250ms retries and the ten-second deadline.
+Both IDs, account path, route, selection, and action availability are checked
+before every mouse phase. Gmail remains the sole owner of mail state and counts.
+
+The existing observer also watches only native split-pane grids for selection
+changes. Hover/focus/presentation class changes do not trigger reading-chrome
+refreshes. There is no new document-wide observer, permission, network request,
+mail cache, or persistent read state. One transient visit guard prevents manual
+unread, cancellation, or timeout from restarting on unrelated DOM changes.
+
+Manual **Mark as unread** stays in effect while that conversation remains open,
+including Gmail's native deselection/restoration and Command-Shift-U. Leaving
+and reopening it, or clicking it again, reads immediately. Startup with an
+already-open conversation keeps its existing status. Bulk selection and hidden
+tabs remain protected, and disabling the mode releases the watches and timers.
+
+Regression coverage includes immediate click/Up/Down, toolbar and shortcut
+Archive/Delete, reused panes, staged bodies, slow successor loading, rapid
+switches, navigation during mousedown, bounded retries, native confirmation,
+manual unread/restoration, bulk selection, startup, and cleanup. The results
+below describe earlier versions with the superseded 300ms dwell.
+
+Validation on October 1, 2026:
+
+- Automatic-read browser fixtures: **70/70 passed**, including retained DOM after
+  route/account changes, row replacement during retries/manual unread, ambiguous
+  toolbars, and inert hover/focus changes.
+- Related browser fixtures: label filing **49/49**, keyboard shortcuts **131/131**,
+  and reading pane **31/31** passed. Final fixtures ran in the isolated in-app
+  browser; the reading-pane suite also passed in Chrome.
+- `node scripts/validate.cjs`: manifest/assets/syntax/permissions validation and
+  **38/38** settings/lifecycle tests passed. `git diff --check` passed.
+- Only the canonical checkout was edited. No real conversation was archived,
+  deleted, sent, or changed as part of testing. Version **0.9.50** still requires
+  extension Reload and Gmail refresh: the browser tool's URL policy blocks
+  Chrome's extension-management page. Live Gmail behavior remains unverified.
 
 ## Read-status consistency and selection — 0.9.34
 

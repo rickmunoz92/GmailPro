@@ -139,8 +139,9 @@
     app.reverseThreads.update({newestEmailFirstEnabled:true}); await wait(100);
     const firstVisual=()=>[...list.children].sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top)[0];
     assert(firstVisual()===latest&&list.getAttribute('data-gmail-pro-thread-order')==='reverse','latest first before filing');
-    f.click(); await wait(200);
-    assert(f.archives()===1&&f.actions.every(a=>a.id==='#thread-one'),'only clicked conversation filed');
+    assert(f.actions.length===1&&f.actions[0].id==='#thread-two'&&f.actions[0].action==='read','displayed conversation reads immediately');
+    const beforeFiling=f.actions.length; f.click(); await wait(200);
+    assert(f.archives()===1&&f.actions.slice(beforeFiling).every(a=>a.id==='#thread-one'),'only clicked conversation filed');
     assert(firstVisual()===latest&&app.reverseThreads.currentConversation()?.list===list,'open conversation stays newest first and retains its identity');
   });
   await test('already-read conversations archive without toggling unread', async () => {
@@ -295,9 +296,12 @@
     assert(badge.getAttribute('role')==='link'&&badge.getAttribute('tabindex')==='-1'&&badge.getAttribute('aria-label')==='Original label','native attributes restored');
   });
   await test('an outstanding automatic read cannot target another open conversation during filing', async () => {
-    const f=fixture(); f.second.querySelector('[role="link"]').dispatchEvent(new MouseEvent('click',{bubbles:true,button:0}));
-    await wait(70); f.click(); await wait(500);
-    assert(f.actions.every(action=>action.id==='#thread-one')&&f.second.classList.contains('zE'),'dwell cancelled before filing');
+    const f=fixture({ignoreReads:1}); f.second.querySelector('[role="link"]').dispatchEvent(new MouseEvent('click',{bubbles:true,button:0}));
+    await wait(70); const beforeFiling=f.actions.length;
+    assert(beforeFiling===1&&f.actions[0].id==='#thread-two'&&f.second.classList.contains('zE'),'initial automatic read ignored and retry pending');
+    f.click(); await wait(500);
+    assert(f.actions.slice(beforeFiling).every(action=>action.id==='#thread-one')&&f.second.classList.contains('zE'),'automatic-read retry cancelled before filing');
+    assert(f.archives()===1,'only the filed target archived');
   });
   await test('a shortcut registered before Apple Mail Mode safely cancels filing', async () => {
     const f=fixture({ignoreReads:Infinity}); f.click(); await wait(100); const attempts=f.reads();
