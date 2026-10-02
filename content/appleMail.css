@@ -118,7 +118,7 @@
 /* Limit mailbox selectors to navigation rather than every Gmail descendant. */
 @scope (html.gmail-pro-apple-mail-mode [role="navigation"]:not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *)) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
   :scope {
-    background: var(--gp-bg-secondary) !important;
+    background: var(--gp-sidebar-bg) !important;
     color: var(--gp-text-primary) !important;
     font-family: var(--gp-font) !important;
     border-radius: 0 !important;

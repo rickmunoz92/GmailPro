@@ -237,7 +237,7 @@
   await test("dark main and sidebar surfaces use the requested exact background", () => {
     enable();
     assert(css(workspace).backgroundColor === "rgb(35, 41, 43)", "main is #23292B");
-    assert(css(document.getElementById("sidebar")).backgroundColor === "rgb(35, 41, 43)", "sidebar is #23292B");
+    assert(css(document.getElementById("sidebar")).backgroundColor === "rgb(28, 32, 33)", "sidebar is #1c2021");
   });
   await test("native label drop wrappers restore on drag exit and mode OFF", () => {
     const to = document.querySelector("#sidebar .TO"), aim = to.parentElement, tn = to.querySelector(".TN");

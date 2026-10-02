@@ -6,6 +6,7 @@
   --gp-document-bg: #ffffff;
   --gp-document-text: #202124;
   --gp-bg-secondary: #f4f4f6;
+  --gp-sidebar-bg: var(--gp-bg-secondary);
   --gp-bg-tertiary: #eaeaec;
   --gp-text-primary: #202124;
   --gp-text-secondary: #4f535a;
@@ -27,6 +28,7 @@
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"] {
   --gp-bg-primary: #23292B;
   --gp-bg-secondary: var(--gp-bg-primary);
+  --gp-sidebar-bg: #1c2021;
   --gp-bg-tertiary: #303236;
   --gp-text-primary: #DEE0E2;
   --gp-text-secondary: var(--gp-text-primary);
