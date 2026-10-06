@@ -61,3 +61,11 @@ form > button > svg { width: 24px; height: 24px; padding: 8px; margin: 3px; }
 .nM .bsU { margin-left: 4px; }
 .nM .n3 > [gh=cl] { padding-top: 12px; }
 .nM .n6 { height: 28px; padding-left: 32px; }
+
+/* Native search-order owner sits immediately before the pagination group. */
+.native-search-pager-owner { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.native-search-order { width: 116px; height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px; flex: none; cursor: pointer; }
+.native-search-order-chevron { width: 5px; height: 5px; border-right: 1px solid; border-bottom: 1px solid; transform: rotate(45deg); }
+.native-search-order-menu { position: fixed; z-index: 120; min-width: 164px; padding: 6px; background: white; color: #202124; border: 1px solid #ccc; border-radius: 5px; }
+.native-search-order-menu [role=menuitem] { padding: 10px; cursor: pointer; }
+.native-search-order-menu [role=menuitem]:hover { background: #eee; }

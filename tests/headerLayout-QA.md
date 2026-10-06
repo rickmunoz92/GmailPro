@@ -381,6 +381,112 @@ folders are distinct, so production files were copied explicitly.
   Reply, and Forward. Confirm the caption stays visible after autosave and
   still follows mailbox changes. Do not send test messages.
 
+## Seamless search submission — 2026-10-02
+
+- The supplied recording and live DOM sampling show the native header and
+  sidebar flashing back during search submission. Gmail removes the entire
+  mail view, then adds a new toolbar with native actions initially unavailable.
+  The persistent search form briefly moved from 360px at (1026, 6) to Gmail's
+  original 720px field at (256, 8), with a 65px header and no sidebar brand.
+- Keep the validated search position and persistent header/sidebar owners for
+  up to three seconds while the mail view is absent, hidden, or partially
+  rebuilt. Adopt the replacement view without restoring the persistent header.
+  Watch the new view/toolbar immediately so later native action readiness is
+  observed, including after the bounded native fallback.
+- One cancellable timeout bounds recovery; mutations do not extend it. A late
+  timeout cannot reset a recovered or newer search. Mode OFF releases owned
+  presentation. Ambiguous owners, changed header/search owners, account-path
+  changes, insufficient space, and unsupported positive geometry fall back.
+- Reattach the live Compose button to replacement selection controls without
+  rebuilding the sidebar brand or resetting More. Shallow watches tolerate
+  incomplete sidebar sections during search loading. Search queries, native
+  form parents/listeners, and Gmail's data ownership remain unchanged. No
+  polling, network requests, or message caches were added.
+- Seventeen browser regressions cover the original toolbar transition cases,
+  whole-view removal/hiding/replacement, staged native action readiness,
+  persistent compact search/sidebar state, changed account context, and
+  recovery after the deadline. The initial eight regressions failed before
+  the first fix; three whole-view regressions reproduced its missing case.
+  Final header fixture: **85/85 passed**; `node scripts/validate.cjs`:
+  **38/38 passed**. No browser errors/warnings; `git diff --check` passed.
+  The fixture accepts `?case=<test-name-substring>` for targeted checks.
+- The header controls expose the content-free
+  `data-gp-search-transition="mail-view"` marker to confirm the loaded source.
+  It was absent from fresh/refreshed Gmail tabs before extension Reload,
+  confirming Chrome was still serving the prior content script. Browser URL
+  policy blocks automated access to `chrome://extensions`; user Reload is
+  required to activate newly edited content scripts.
+- After the user reloaded the extension, the refreshed live Gmail test tab
+  reported the new source marker. Two successive searches kept the form at
+  (1026, 6) with a 360px width, the native header at zero height, and one
+  persistent sidebar brand across every sampled state. The second search
+  explicitly captured the entire mail view absent, then a partial toolbar
+  with zero native action owners, and finally a ready replacement view.
+  No header/search/sidebar reset occurred. The replacement main regained its
+  height marker, and no headerLayout errors/warnings were captured.
+
+## Compact search order — 2026-10-02
+
+- The search form previously reserved pagination space but could cover the
+  separate native Most relevant / Most recent selector. Geometry now reserves
+  every visible native button to the right of the action group, including
+  unrecognized or ambiguous controls.
+- On a search route, one native button with the verified English label
+  Showing most relevant/recent (or the older Most relevant/recent label)
+  receives a fixed 32px icon presentation. A
+  relevance/sparkle icon or clock reflects the native label, with a small
+  dropdown indicator. Its position and width remain stable when the order
+  changes. The original native button, parent, menu handlers, query, result
+  ordering, and route remain owned by Gmail. No custom sorting store or menu
+  was added.
+- Existing accessible names/tooltips are preserved. Missing labels receive
+  an accessible order name and a Search order tooltip; cleanup removes only
+  labels still owned by the feature. Detached controls, duplicate cloned
+  icons, mode OFF, and ambiguous/unrecognized native controls are handled.
+- Seven synthetic regressions cover current and older labels, fixed spacing
+  in both themes, native menu
+  choice/anchoring, keyboard activation/dismissal, compact search and selection
+  growth, replacement controls, native label changes, mode OFF, and unsupported
+  or ambiguous controls. Full header fixture: **92/92 passed**; validation:
+  **38/38 passed**, including manifest, syntax, resources, and permissions.
+- Verified the live native button and menu markup using a generic in:inbox
+  search in the existing Gmail tab, then returned it to Inbox without opening
+  messages. Current Gmail uses a button containing Showing most relevant and
+  a native menu with Most relevant/recent radio choices and descriptions.
+  Matching the current label was added to production discovery and fixtures.
+  No native sorting handlers or menu contents are changed by the feature.
+- The final compact presentation check in Gmail awaits extension Reload and
+  Gmail refresh. The Mac locked before that activation step; the user has
+  been asked to reload. Local browser fixtures passed without errors/warnings.
+
+## Static search-order slot — 2026-10-02
+
+- The follow-up recording and live transition sampling showed that Gmail
+  removes the entire mail view when changing order. Its replacement native
+  button briefly painted an unmarked `Showing most relevant/recent` label
+  before action/pagination discovery completed. The previous icon also sat
+  to the right of the header arrow.
+- The visible 32px sort icon now belongs to the persistent header controls,
+  directly after the search field and before the header arrow. It survives
+  mail-view/button replacement; selecting an order changes only its SVG path.
+  The original native button remains in its original parent as a transparent,
+  clipped hit target aligned with that slot. Its containing native menu
+  component is anchored there, preserving native events, keyboard focus,
+  menu choices and query ownership.
+- CSS recognizes the inspected native `hsirxb` button/menu-component hook
+  while search sorting is active. Rebuilt native controls cannot paint their
+  text or take up variable toolbar width before the next discovery frame.
+  Mode OFF, unsupported/ambiguous controls and leaving search release these
+  presentation overrides. Native labels modified by Gmail are preserved.
+- The fixture now includes the inspected nested button/menu ownership.
+  Regressions cover exact field → sort → arrow spacing, pointer hit alignment,
+  persistent SVG identity, whole-view removal and staged action readiness,
+  synchronous native-markup replacement, temporary selector removal, and
+  compact-search pointer/Escape behavior alongside the existing sorting checks.
+- Full header fixture: **95/95 passed**; `node scripts/validate.cjs`: **38/38
+  passed**. No fixture browser errors/warnings; `git diff --check` passed.
+  Live activation awaits user extension Reload and Gmail refresh.
+
 ## Compatibility limits
 
 This targets the inspected English desktop Gmail DOM. Native-only fallback is

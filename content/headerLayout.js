@@ -3,10 +3,11 @@
   const app = (globalThis.GmailPro ??= {});
   if (app.headerLayout) return;
   const S = app.selectors;
-  const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360;
+  const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360, TRANSITION_TIMEOUT = 3000;
+  const NATIVE_SORT = 'button[data-idom-class="hsirxb"]', NATIVE_SORT_ANCHOR = '.tB5Jxf-M-X-ql-Jf';
   let enabled = false, collapsed = false, open = false, saving = false;
-  let current, lastContext, controls, searchButton, toggleButton, closeButton, status;
-  let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading;
+  let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition;
+  let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
   let ancestorSpine = new Set();
@@ -33,7 +34,7 @@
     const main = toolbar.closest(S.main), viewport = main.closest(S.headerViewport);
     const lists = [...main.querySelectorAll(S.pagingList)].filter(visible);
     return { banner, shell, form, input, toolbar, actionRow, main, viewport,
-      list: lists.length === 1 ? lists[0] : null, actions: actions[0], pager: pagers[0] };
+      list: lists.length === 1 ? lists[0] : null, actions: actions[0], pager: pagers[0], pathname: location.pathname };
   }
 
   const decodeHash = value => {
@@ -248,14 +249,21 @@
     // not just Gmail's sometimes shorter action-group box.
     const buttons = [...ctx.actions.querySelectorAll('button, [role="button"]')].filter(visible);
     const left = Math.max(bar.left + GAP, action.right, ...buttons.map(node => node.getBoundingClientRect().right)) + GAP + reserve;
-    const right = Math.min(bar.right - GAP, pager.left - GAP);
+    // Gmail's search-order selector is outside both actions and pagination.
+    // Reserve all native controls on the right, including unsupported ones.
+    const rightControls = [...ctx.actionRow.querySelectorAll('button, [role="button"]')]
+      .filter(node => visible(node) && !ctx.actions.contains(node) && !ctx.pager.contains(node) &&
+        node !== searchSort?.node && !(document.documentElement.hasAttribute('data-gp-search-sort-active') && node.matches(NATIVE_SORT)))
+      .map(node => node.getBoundingClientRect()).filter(box => box.left >= action.right);
+    const right = Math.min(bar.right - GAP, pager.left - GAP, ...rightControls.map(box => box.left - GAP));
     if (row.top < 0 || row.height < 20 || row.height > 80 || right - left < BUTTON * 2 + GAP) return null;
     // Keep the field stable as selection actions appear/disappear. If the
     // complete field cannot fit, use the existing compact search control.
-    const narrow = right - left < SEARCH_WIDTH + BUTTON + GAP;
-    const width = narrow ? Math.min(SEARCH_WIDTH, right - bar.left - BUTTON * 2 - GAP * 3) : SEARCH_WIDTH;
+    const sortWidth = document.documentElement.hasAttribute('data-gp-search-sort-active') ? BUTTON + GAP : 0;
+    const narrow = right - left < SEARCH_WIDTH + BUTTON + GAP + sortWidth;
+    const width = narrow ? Math.min(SEARCH_WIDTH, right - bar.left - BUTTON * 2 - GAP * 3 - sortWidth) : SEARCH_WIDTH;
     if (width < 180) return null;
-    return { narrow, width, right, top: row.top + (row.height - 36) / 2 };
+    return { narrow, width, right, sortWidth, top: row.top + (row.height - 36) / 2 };
   }
 
   function schedule() {
@@ -263,19 +271,94 @@
     frame = requestAnimationFrame(() => { frame = 0; if (enabled) refresh(); });
   }
 
-  function button(label, path) {
-    const node = document.createElement('button');
-    node.type = 'button'; node.title = label; node.setAttribute('aria-label', label);
+  function icon(path) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
     const shape = document.createElementNS(svg.namespaceURI, 'path');
-    shape.setAttribute('d', path); svg.append(shape); node.append(svg);
+    shape.setAttribute('d', path); svg.append(shape);
+    return svg;
+  }
+
+  function button(label, path) {
+    const node = document.createElement('button');
+    node.type = 'button'; node.title = label; node.setAttribute('aria-label', label);
+    node.append(icon(path));
     return node;
+  }
+
+  function releaseSearchSort() {
+    if (!searchSort) return;
+    for (const [name, value] of searchSort.labels) {
+      if (searchSort.node.getAttribute(name) === value) searchSort.node.removeAttribute(name);
+    }
+    searchSort.node.removeAttribute('data-gp-search-sort');
+    searchSort.anchor.removeAttribute('data-gp-search-sort-anchor');
+    searchSort = undefined;
+  }
+
+  function restoreSearchSort() {
+    releaseSearchSort();
+    document.documentElement.removeAttribute('data-gp-search-sort-active');
+    for (const name of ['left', 'top']) document.documentElement.style.removeProperty('--gp-search-sort-' + name);
+    if (sortSlot) sortSlot.hidden = true;
+  }
+
+  function searchSortLabel(node) {
+    // Current Gmail says "Showing most ..."; older toolbars omit "Showing".
+    const match = /^(?:Showing )?most (relevant|recent)$/i.exec(node.textContent.trim());
+    return match ? 'Most ' + match[1].toLowerCase() : null;
+  }
+
+  function updateSortSlot() {
+    if (!sortSlot) return;
+    const order = document.documentElement.getAttribute('data-gp-search-sort-active');
+    sortSlot.hidden = !order;
+    const path = order === 'recent' ? 'M17 10a7 7 0 1 1-7-7 7 7 0 0 1 7 7M10 6v4l3 2M19 18l2 2 2-2' :
+      'M9 2l2.2 5.8L17 10l-5.8 2.2L9 18l-2.2-5.8L1 10l5.8-2.2L9 2M18 2v4M16 4h4M19 18l2 2 2-2';
+    const shape = sortSlot.firstElementChild.firstElementChild;
+    if (shape.getAttribute('d') !== path) shape.setAttribute('d', path);
+  }
+
+  function placeSearchSort(ctx) {
+    const searching = mailboxKey(location.hash).startsWith('#search/');
+    const buttons = [...ctx.actionRow.querySelectorAll('button, [role="button"]')]
+      .filter(node => visible(node) && !ctx.actions.contains(node));
+    const candidates = searching ? buttons.filter(searchSortLabel) : [];
+    const node = candidates.length === 1 ? candidates[0] : null;
+    if (!searching || candidates.length > 1 || buttons.some(button => button.matches(NATIVE_SORT) && !searchSortLabel(button))) {
+      restoreSearchSort(); return;
+    }
+    if (searchSort?.node !== node) releaseSearchSort();
+    // The persistent slot survives a briefly absent native button. Rebuilt
+    // buttons are transparent and anchored by CSS before discovery is ready.
+    if (!node) { updateSortSlot(); return; }
+    if (!searchSort) {
+      const owner = node.closest(NATIVE_SORT_ANCHOR);
+      const anchor = owner && ctx.actionRow.contains(owner) && !owner.contains(ctx.pager) && !owner.contains(ctx.actions) ? owner : node;
+      searchSort = { node, anchor, labels: new Map() };
+    }
+    const label = searchSortLabel(node), order = label === 'Most recent' ? 'recent' : 'relevant';
+    for (const name of ['aria-label', 'title']) {
+      if (!node.hasAttribute(name) || node.getAttribute(name) === searchSort.labels.get(name)) {
+        const value = name === 'title' ? 'Search order: ' + label : label;
+        if (node.getAttribute(name) !== value) node.setAttribute(name, value);
+        searchSort.labels.set(name, value);
+      }
+    }
+    if (node.getAttribute('data-gp-search-sort') !== order) node.setAttribute('data-gp-search-sort', order);
+    if (!searchSort.anchor.hasAttribute('data-gp-search-sort-anchor')) searchSort.anchor.setAttribute('data-gp-search-sort-anchor', '');
+    // Discard only old presentation clones. Gmail keeps its native children,
+    // focus, click handlers and menu; the visible SVG belongs to the header.
+    node.querySelectorAll('.gmail-pro-search-sort-icon').forEach(svg => svg.remove());
+    if (document.documentElement.getAttribute('data-gp-search-sort-active') !== order)
+      document.documentElement.setAttribute('data-gp-search-sort-active', order);
+    updateSortSlot();
   }
 
   function createControls() {
     controls = document.createElement('div');
     controls.className = 'gmail-pro-header-controls';
+    controls.dataset.gpSearchTransition = 'mail-view'; // Content-free loaded-source diagnostic.
     controls.setAttribute('role', 'group'); controls.setAttribute('aria-label', 'Gmail header controls');
     searchButton = button('Open search', 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0');
     searchButton.dataset.gpHeaderAction = 'search';
@@ -283,9 +366,13 @@
     closeButton.dataset.gpHeaderAction = 'close';
     toggleButton = button('Collapse Gmail header', 'M6 15l6-6 6 6');
     toggleButton.dataset.gpHeaderAction = 'toggle';
+    sortSlot = document.createElement('span'); sortSlot.className = 'gmail-pro-search-sort-slot';
+    sortSlot.setAttribute('aria-hidden', 'true');
+    const sortIcon = icon(''); sortIcon.classList.add('gmail-pro-search-sort-icon'); sortSlot.append(sortIcon);
+    updateSortSlot();
     status = document.createElement('span'); status.className = 'gmail-pro-header-status';
     status.setAttribute('role', 'status');
-    controls.append(searchButton, closeButton, toggleButton, status);
+    controls.append(searchButton, closeButton, sortSlot, toggleButton, status);
     searchButton.addEventListener('click', () => {
       if (!current) return;
       open = true; refresh(); current?.input.focus();
@@ -435,7 +522,13 @@
     shell?.querySelectorAll('.gmail-pro-sidebar-brand').forEach(node => { if (node !== compose?.brand) node.remove(); });
     // Hide only the dedicated native Compose row, never other sidebar content.
     const safe = shell && [...shell.children].filter(node => node !== compose?.brand).length === 1 && source.parentElement.children.length === 1 && geometry(ctx, compose ? 0 : 32);
-    if (compose && (!safe || !select || compose.source !== source || compose.select !== select || !compose.button.isConnected || !compose.brand.isConnected)) restoreCompose();
+    if (compose && (!safe || !select || compose.source !== source || !compose.brand.isConnected)) restoreCompose();
+    if (compose && (compose.select !== select || !compose.button.isConnected)) {
+      // Toolbar rebuilds replace selection controls, not the sidebar owner.
+      // Move the live button rather than restoring/recreating the whole sidebar.
+      ctx.actions.querySelectorAll('.gmail-pro-toolbar-compose').forEach(node => { if (node !== compose.button) node.remove(); });
+      compose.select = select; select.after(compose.button);
+    }
     if (compose) compose.brand.toggleAttribute('data-compact', shell.parentElement.getBoundingClientRect().width < 140);
     if (!safe || !select || compose) return;
     // Gmail/other extensions may copy toolbar markup without our listeners.
@@ -478,23 +571,69 @@
 
   function keydown(event) {
     if (event.key !== 'Escape' || !open || !current || !controls || controls.dataset.narrow !== 'true') return;
-    // Give Gmail first use of Escape for suggestions and advanced filters.
-    if (nativePopupOpen()) return;
+    // Gmail may hide its menu before Escape bubbles to this handler.
+    // Keep that same Escape from also dismissing the compact search field.
+    if (event.defaultPrevented || event.target.closest('[role="menu"]') || nativePopupOpen()) return;
     event.preventDefault(); closeSearch();
   }
 
   function nativePopupOpen() {
     return current && ([...current.form.querySelectorAll(S.headerSuggestions)].some(visible) ||
-      [...document.querySelectorAll(S.headerAdvancedPanel)].some(panel => visible(panel.querySelector('.ZF-zT'))));
+      [...document.querySelectorAll(S.headerAdvancedPanel)].some(panel => visible(panel.querySelector('.ZF-zT'))) ||
+      [...document.querySelectorAll('[role="menu"]')].some(visible));
   }
 
   function outside(event) {
-    if (!open || !current || current.form.contains(event.target) || controls.contains(event.target) ||
+    if (!open || !current || current.form.contains(event.target) || controls.contains(event.target) || searchSort?.node.contains(event.target) ||
         event.target.closest(S.headerAdvancedPanel) || nativePopupOpen()) return;
     open = false; schedule();
   }
 
+  function clearLayoutTransition() {
+    clearTimeout(layoutTransition?.timer);
+    layoutTransition = undefined;
+  }
+
+  function retainLayout(next) {
+    // Search removes the entire native mail view before installing its new
+    // toolbar/actions. The header/search/sidebar owners persist independently.
+    // Keep their last validated layout while the native mail view is absent.
+    if (!current || layoutTransition?.expired || !current.form.hasAttribute('data-gp-toolbar-search') ||
+        !current.shell.isConnected || !current.form.isConnected ||
+        location.pathname !== current.pathname) return false;
+    const banners = [...document.querySelectorAll(S.headerBanner)];
+    const forms = [...current.banner.querySelectorAll(S.headerSearch)];
+    const bars = [...document.querySelectorAll(S.headerToolbar)].filter(visible);
+    const mains = [...document.querySelectorAll(S.main)].filter(visible);
+    if (banners.length !== 1 || banners[0] !== current.banner || current.banner.closest(S.headerShell) !== current.shell ||
+        forms.length !== 1 || forms[0] !== current.form || current.form.querySelector(S.headerSearchInput) !== current.input ||
+        mains.length > 1 || bars.length > 1 || (bars.length === 1 && bars[0].closest(S.main) !== mains[0])) return false;
+    if (bars.length === 1 && ([...bars[0].querySelectorAll('[gh="mtb"]')].filter(visible).length > 1 ||
+        [...bars[0].querySelectorAll(S.pagingPager)].filter(visible).length > 1)) return false;
+    if (next) {
+      if (next.form !== current.form || next.shell !== current.shell) return false;
+      const row = next.actionRow.getBoundingClientRect();
+      // Positive but unsupported geometry (e.g. too little space) still falls
+      // back immediately. Only a temporarily collapsed row gets a grace period.
+      if (row.width > 0 && row.height > 0) return false;
+    }
+    if (!layoutTransition) {
+      const pending = { expired: false };
+      layoutTransition = pending;
+      pending.timer = setTimeout(() => {
+        if (!enabled || layoutTransition !== pending) return;
+        pending.expired = true; schedule();
+      }, TRANSITION_TIMEOUT);
+    }
+    // Watch a partially rebuilt mail view/toolbar as soon as it appears.
+    // Waiting on the detached old toolbar would miss native action readiness.
+    watch(next || { ...current, main: mains[0] || current.main, toolbar: bars[0] || current.toolbar });
+    return true;
+  }
+
   function restore() {
+    clearLayoutTransition();
+    restoreSearchSort();
     removeCaption();
     restoreCompose();
     if (!current) return;
@@ -538,8 +677,8 @@
     if (sidebar) {
       for (const section of [sidebar.system, sidebar.labels]) {
         const inner = section.querySelector(':scope > .ajl'), box = inner?.querySelector(':scope > .wT');
-        for (const node of [section, inner, box, ...box.children,
-          ...box.querySelectorAll(':scope > .n3 > .byl, :scope > .n3 > .byl > .TK')]) observer.observe(node, { childList: true });
+        for (const node of [section, inner, box, ...(box?.children || []),
+          ...(box?.querySelectorAll(':scope > .n3 > .byl, :scope > .n3 > .byl > .TK') || [])].filter(Boolean)) observer.observe(node, { childList: true });
       }
       for (const toggle of sidebar.toggles) observer.observe(toggle, { attributes: true, attributeFilter: ['aria-label'] });
       observer.observe(sidebar.header, { childList: true });
@@ -556,13 +695,31 @@
   function refresh() {
     observer.disconnect();
     const next = discover();
-    if (!next) { const previous = current; restore(); watch(previous); return; }
-    if (current && (current.form !== next.form || current.toolbar !== next.toolbar || current.shell !== next.shell || current.main !== next.main)) {
+    if (!next) {
+      if (retainLayout()) return;
+      const previous = lastContext || current; restore(); watch(previous); return;
+    }
+    if (current && (current.form !== next.form || current.shell !== next.shell || current.pathname !== next.pathname)) {
       restore(); open = false;
+    }
+    // Validate native geometry before Compose/sidebar changes. A zero-sized
+    // replacement must not tear down otherwise stable presentation owners.
+    placeSearchSort(next);
+    let layout = geometry(next);
+    if (!layout) {
+      if (retainLayout(next)) return;
+      restore(); watch(next); return;
+    }
+    clearLayoutTransition();
+    if (current && current.main !== next.main) {
+      // Release only the replaced mail view's height override. Persistent
+      // header/search/sidebar controls survive and rebind to the new toolbar.
+      current.main.removeAttribute('data-gp-header-main');
+      current.main.style.removeProperty('--gp-header-main-height');
     }
     current = next;
     placeCompose(current);
-    let layout = geometry(current);
+    layout = geometry(current);
     if (!layout) { restore(); watch(next); return; }
     placeSidebar();
     bootstrap?.disconnect(); bootstrap = undefined; clearTimeout(bootstrapTimer);
@@ -594,7 +751,12 @@
     }
     if (!layout.narrow) open = false;
     const showing = !layout.narrow || open;
-    const controlWidth = layout.narrow ? BUTTON * 2 + GAP : BUTTON;
+    const controlWidth = (layout.narrow ? BUTTON * 2 + GAP : BUTTON) + layout.sortWidth;
+    updateSortSlot();
+    if (layout.sortWidth) {
+      document.documentElement.style.setProperty('--gp-search-sort-left', `${layout.right - BUTTON * 2 - GAP}px`);
+      document.documentElement.style.setProperty('--gp-search-sort-top', `${layout.top + 2}px`);
+    }
     controls.dataset.narrow = String(layout.narrow);
     controls.style.left = `${layout.right - controlWidth}px`;
     controls.style.top = `${layout.top + 2}px`;
@@ -652,7 +814,7 @@
     document.removeEventListener('keydown', keydown);
     document.removeEventListener('pointerdown', outside, true);
     document.removeEventListener('click', mailboxClicked, true);
-    restore(); controls?.remove(); controls = undefined;
+    restore(); controls?.remove(); controls = undefined; sortSlot = undefined;
   }
 
   function update(patch = {}) {

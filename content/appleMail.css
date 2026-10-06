@@ -625,14 +625,40 @@ html.gmail-pro-apple-mail-mode form[data-gp-toolbar-search="icon"] {
   left: -10000px !important;
   clip-path: inset(50%); pointer-events: none;
 }
+/* The visible sort icon belongs to the persistent header. Keep Gmail's
+   real focus/click/menu owner in the same slot as a transparent hit target.
+   The verified native hook also catches replacement buttons before the next
+   discovery frame, so "Showing most ..." never flashes during a reload. */
+html.gmail-pro-apple-mail-mode[data-gp-search-sort-active] [gh="tm"] :is(
+  [data-gp-search-sort-anchor], .tB5Jxf-M-X-ql-Jf:has(button[data-idom-class="hsirxb"])
+) {
+  position: fixed !important; z-index: 102;
+  left: var(--gp-search-sort-left, -10000px) !important;
+  top: var(--gp-search-sort-top, 0px) !important;
+  width: 32px !important; min-width: 32px !important; max-width: 32px !important;
+  height: 32px !important; margin: 0 !important;
+}
+html.gmail-pro-apple-mail-mode[data-gp-search-sort-active] [gh="tm"] :is([data-gp-search-sort], button[data-idom-class="hsirxb"]) {
+  opacity: 0 !important; display: inline-grid !important; place-items: center; overflow: hidden !important;
+  width: 32px !important; min-width: 32px !important; max-width: 32px !important;
+  height: 32px !important; min-height: 32px !important; padding: 0 !important;
+  flex: 0 0 32px !important; margin: 0 !important; cursor: pointer;
+}
+.gmail-pro-search-sort-slot {
+  width: 32px; height: 32px; flex: 0 0 32px; border-radius: 5px;
+  display: grid; place-items: center; pointer-events: none;
+}
+.gmail-pro-search-sort-slot[hidden] { display: none; }
+html.gmail-pro-apple-mail-mode[data-gp-search-sort-active]:has([gh="tm"] :is([data-gp-search-sort], button[data-idom-class="hsirxb"]):hover) .gmail-pro-search-sort-slot { background: var(--gp-hover); }
+html.gmail-pro-apple-mail-mode[data-gp-search-sort-active]:has([gh="tm"] :is([data-gp-search-sort], button[data-idom-class="hsirxb"]):focus-visible) .gmail-pro-search-sort-slot { outline: 2px solid var(--gp-accent-ui); outline-offset: 1px; }
 html.gmail-pro-apple-mail-mode .gmail-pro-header-controls {
-  position: fixed; z-index: 101; display: flex; gap: 8px;
+  position: fixed; z-index: 101; display: flex; gap: 8px; pointer-events: none;
   height: 32px; color: var(--gp-text-secondary);
   background: var(--gp-bg-secondary); border-radius: 5px;
 }
 .gmail-pro-header-controls button {
   width: 32px; height: 32px; padding: 6px; border: 0; border-radius: 5px;
-  display: grid; place-items: center; cursor: pointer;
+  display: grid; place-items: center; cursor: pointer; pointer-events: auto;
   color: inherit; background: transparent;
 }
 .gmail-pro-header-controls button[hidden] { display: none; }

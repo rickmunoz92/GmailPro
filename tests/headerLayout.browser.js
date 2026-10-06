@@ -19,6 +19,52 @@
     form.addEventListener('submit', e => { e.preventDefault(); form.dataset.submitted = input.value; });
     return { form, input, parent: form.parentElement, shell: workspace.querySelector('.w-asV'), toolbar: workspace.querySelector('[gh=tm]'), actions: workspace.querySelector('[gh=mtb]'), pager: workspace.querySelector('.Di') };
   }
+  function searchSortFixture(width = 1400, bareLabel = false) {
+    const f = fixture(width);
+    history.replaceState(null, '', '#search/in%3Ainbox');
+    const owner = document.createElement('div'); owner.className = 'native-search-pager-owner';
+    const sort = document.createElement('button'); sort.type = 'button';
+    sort.className = 'native-search-order'; sort.tabIndex = 0;
+    sort.setAttribute('aria-haspopup', 'true');
+    if (!bareLabel) sort.setAttribute('data-idom-class', 'hsirxb');
+    sort.innerHTML = '<span class="native-search-order-label"></span><span class="native-search-order-chevron" aria-hidden="true"></span>';
+    const buttonLabel = name => bareLabel ? name : 'Showing ' + name.toLowerCase();
+    sort.firstElementChild.textContent = buttonLabel('Most relevant');
+    const menu = document.createElement('div'); menu.className = 'native-search-order-menu';
+    menu.setAttribute('role', 'menu'); menu.hidden = true;
+    const choose = name => {
+      sort.firstElementChild.textContent = buttonLabel(name);
+      menu.hidden = true; sort.setAttribute('aria-expanded', 'false'); sort.focus();
+    };
+    for (const name of ['Most relevant', 'Most recent']) {
+      const item = document.createElement('div'); item.setAttribute('role', 'menuitem');
+      item.tabIndex = 0; item.textContent = name;
+      item.addEventListener('click', () => choose(name));
+      item.addEventListener('keydown', event => { if (event.key === 'Enter') choose(name); });
+      menu.append(item);
+    }
+    let opened = 0;
+    const show = () => {
+      opened++; menu.hidden = false; sort.setAttribute('aria-expanded', 'true');
+      menu.style.left = rect(sort).left + 'px'; menu.style.top = rect(sort).bottom + 'px';
+      menu.firstElementChild.focus();
+    };
+    sort.addEventListener('click', show);
+    sort.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') show(); });
+    menu.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { menu.hidden = true; sort.setAttribute('aria-expanded', 'false'); sort.focus(); }
+    });
+    let anchor = sort;
+    if (!bareLabel) {
+      anchor = document.createElement('div'); anchor.className = 'tB5Jxf-M-X-ql-Jf';
+      const buttonOwner = document.createElement('div'), touch = document.createElement('div');
+      touch.className = 'bzc-Uw-LV-Zr'; touch.dataset.isTouchWrapper = 'true';
+      touch.append(sort); buttonOwner.append(touch);
+      const menuOwner = document.createElement('div'); menuOwner.append(menu); anchor.append(buttonOwner, menuOwner);
+    } else workspace.append(menu);
+    f.pager.style.marginLeft = '0'; owner.append(anchor, f.pager); f.toolbar.append(owner);
+    return { ...f, sort, anchor, owner, menu, opened: () => opened };
+  }
   function nativeResize() { const stage=workspace.querySelector('.stage'), shell=workspace.querySelector('.w-asV'); if (stage) stage.style.height=`${innerHeight - rect(shell).height}px`; }
   function composeFixture() {
     const f=fixture();
@@ -133,7 +179,9 @@
   window.addEventListener('resize', nativeResize);
   const start = async (collapsed = false) => { feature.start({appleMailModeEnabled:true, headerCollapsed:collapsed}); await settle(); };
   const control = name => document.querySelector(`[data-gp-header-action="${name}"]`);
+  const testFilter = new URLSearchParams(location.search).get('case');
   async function test(name, run) {
+    if (testFilter && !name.includes(testFilter)) return;
     try { await run(); passes++; results.textContent += `PASS ${name}\n`; }
     catch (error) { failures++; results.textContent += `FAIL ${name}: ${error.message}\n`; }
     finally { feature.stop(); GmailPro.labelOrder.stop(); workspace.querySelectorAll('.ZF-Av').forEach(node=>node.remove()); }
@@ -417,6 +465,299 @@
     const f=fixture(); await start(true); const clone=f.toolbar.cloneNode(true); f.toolbar.after(clone); await settle();
     assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search'),'native fallback');
     clone.remove(); await settle(); assert(rect(f.shell).height===0,'saved collapse resumes when unambiguous');
+  });
+  await test('search submission keeps header, sidebar and native search stable while the toolbar is hidden', async () => {
+    const f=mailboxFixture(); f.input.value='from:synthetic'; await start(true);
+    const brand=f.composeShell.querySelector('.gmail-pro-sidebar-brand'), more=f.root.querySelector('.gmail-pro-mailboxes-more');
+    const position=rect(f.form); f.input.focus();
+    f.toolbar.style.display='none'; history.replaceState(null,'','#search/from%3Asynthetic');
+    window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(rect(f.shell).height===0 && f.form.getAttribute('data-gp-toolbar-search')==='field','no flash of native header/search');
+    assert(rect(f.form).left===position.left && rect(f.form).top===position.top,'search position unchanged during loading');
+    assert(brand.isConnected && more.isConnected && f.root.hasAttribute('data-gp-mailboxes'),'sidebar never resets');
+    assert(document.activeElement===f.input && f.input.value==='from:synthetic' && f.form.parentElement===f.parent,'native query, focus and ownership retained');
+    f.toolbar.style.display=''; await settle();
+    assert(rect(f.shell).height===0 && brand.isConnected && more.isConnected,'toolbar recovery retains existing presentation');
+  });
+  await test('detached toolbar replacement reuses header, sidebar and Compose controls without a layout reset', async () => {
+    const f=mailboxFixture(); await start(true);
+    const brand=f.composeShell.querySelector('.gmail-pro-sidebar-brand'), more=f.root.querySelector('.gmail-pro-mailboxes-more');
+    const compose=document.querySelector('.gmail-pro-toolbar-compose'), controls=document.querySelector('.gmail-pro-header-controls');
+    more.click(); await settle(); const replacement=f.toolbar.cloneNode(true), parent=f.toolbar.parentElement;
+    let resizes=0; const onResize=()=>resizes++; window.addEventListener('resize',onResize);
+    try {
+      f.toolbar.remove(); await settle();
+      assert(rect(f.shell).height===0 && brand.isConnected && more.isConnected,'detached toolbar does not restore native chrome');
+      parent.prepend(replacement); await settle();
+      assert(document.querySelector('.gmail-pro-header-controls')===controls && document.querySelector('.gmail-pro-sidebar-brand')===brand,'existing header and brand retained');
+      assert(f.root.querySelector('.gmail-pro-mailboxes-more')===more && more.getAttribute('aria-expanded')==='true','sidebar disclosure retained');
+      assert(replacement.querySelector('.gmail-pro-toolbar-compose')===compose && document.querySelectorAll('.gmail-pro-toolbar-compose').length===1,'live Compose button replaces listenerless clone');
+      assert(resizes===0,'toolbar replacement never expands and recollapses native geometry');
+      let clicks=0; f.source.addEventListener('click',()=>clicks++); compose.click(); assert(clicks===1,'original native Compose handler still reached');
+    } finally { window.removeEventListener('resize',onResize); }
+  });
+  await test('temporary missing native actions and pager preserve the current search layout', async () => {
+    const f=composeFixture(); await start(true); const position=rect(f.form);
+    for (const node of [f.actions,f.pager]) {
+      node.style.display='none'; await settle();
+      assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'partial native toolbar does not reset search');
+      assert(rect(f.form).left===position.left && rect(f.form).top===position.top,'last validated position retained');
+      node.style.display=''; await settle();
+    }
+  });
+  await test('temporary zero-height action row recovers without exposing native search', async () => {
+    const f=fixture(), {row}=addLabelFilters(f); await start(true); const position=rect(f.form);
+    row.style.height='0px'; await settle();
+    assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'transient geometry retains the field');
+    row.style.height=''; await settle();
+    assert(rect(f.form).left===position.left && rect(f.form).top===position.top && rect(f.shell).height===0,'validated geometry resumes');
+  });
+  await test('expanded header keeps its toolbar search position during a partial native toolbar update', async () => {
+    const f=fixture(); await start(); const position=rect(f.form), height=rect(f.shell).height;
+    f.pager.style.display='none'; await settle();
+    assert(rect(f.shell).height===height && rect(f.form).left===position.left && rect(f.form).top===position.top,'expanded header search never moves to its old position');
+    f.pager.style.display=''; await settle(); assert(f.form.hasAttribute('data-gp-toolbar-search'),'expanded header recovers');
+  });
+  await test('compact search stays open and focused through an unrelated toolbar replacement', async () => {
+    const f=fixture(1000); await start(true); control('search').click(); await settle();
+    const position=rect(f.form), replacement=f.toolbar.cloneNode(true); f.toolbar.replaceWith(replacement); await settle();
+    assert(f.form.getAttribute('data-gp-toolbar-search')==='field' && document.activeElement===f.input,'toolbar rebuild preserves open compact field');
+    assert(rect(f.form).left===position.left && rect(f.form).top===position.top,'compact field remains aligned');
+  });
+  await test('unrecoverable toolbar loss has one bounded fallback and later native replacement recovers', async () => {
+    const f=composeFixture(); await start(true); const nativeTimeout=window.setTimeout; let expire, timers=0;
+    window.setTimeout=(fn,ms,...args)=>ms===3000 ? (expire=fn,timers++,-998) : nativeTimeout(fn,ms,...args);
+    try {
+      f.toolbar.style.display='none'; await settle();
+      assert(rect(f.shell).height===0 && expire && timers===1,'one bounded grace period');
+      f.shell.classList.add('synthetic-change'); await settle(); assert(timers===1,'mutations never extend the deadline');
+      expire(); await settle();
+      assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search') && !document.querySelector('.gmail-pro-sidebar-brand'),'persistent failure restores usable native chrome');
+      f.toolbar.style.display=''; await settle(); assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'shallow watches recover after expiry');
+    } finally { window.setTimeout=nativeTimeout; }
+  });
+  await test('mode OFF during a toolbar transition releases presentation and ignores a late timeout', async () => {
+    const f=composeFixture(); await start(true); const nativeTimeout=window.setTimeout; let expire;
+    window.setTimeout=(fn,ms,...args)=>ms===3000 ? (expire=fn,-998) : nativeTimeout(fn,ms,...args);
+    try {
+      f.toolbar.style.display='none'; await settle(); assert(expire,'transition started');
+      feature.stop(); expire(); f.toolbar.style.display=''; await settle();
+      assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search') && !document.querySelector('.gmail-pro-header-controls'),'late callback cannot restore disabled UI');
+    } finally { window.setTimeout=nativeTimeout; }
+  });
+  await test('rapid consecutive searches reject a timeout from the earlier recovered transition', async () => {
+    const f=fixture(); await start(true); const nativeTimeout=window.setTimeout, expires=[];
+    window.setTimeout=(fn,ms,...args)=>ms===3000 ? (expires.push(fn),-998) : nativeTimeout(fn,ms,...args);
+    try {
+      f.pager.style.display='none'; await settle(); f.pager.style.display=''; await settle();
+      f.pager.style.display='none'; await settle(); assert(expires.length===2,'each distinct transition has its own deadline');
+      expires[0](); await settle(); assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'old deadline cannot reset a newer search');
+      f.pager.style.display=''; await settle(); expires[1](); await settle();
+      assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'recovered search ignores its cancelled deadline');
+    } finally { window.setTimeout=nativeTimeout; }
+  });
+  await test('sidebar sections may rebuild during search loading without interrupting header recovery', async () => {
+    const f=mailboxFixture(); await start(true); const inner=f.labels.querySelector(':scope > .ajl'), replacement=inner.cloneNode(true);
+    f.toolbar.style.display='none'; await settle(); inner.remove(); await settle();
+    assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'partial sidebar preserves current search');
+    f.labels.append(replacement); f.toolbar.style.display=''; await settle();
+    assert(rect(f.shell).height===0 && f.root.hasAttribute('data-gp-mailboxes') && f.root.querySelectorAll('.gmail-pro-mailboxes-more').length===1,'new section is discovered without duplicate controls');
+  });
+  await test('native search owner replacement during loading restores detached owners and positions the new form', async () => {
+    const f=fixture(); await start(true); f.toolbar.style.display='none'; await settle();
+    const replacement=f.form.cloneNode(true); f.form.replaceWith(replacement); await settle();
+    assert(!f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height>0,'changed native owner falls back immediately');
+    f.toolbar.style.display=''; await settle();
+    assert(replacement.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height===0,'replacement form recovers independently');
+  });
+  await test('ambiguous native action and pager owners still restore usable Gmail immediately', async () => {
+    for (const key of ['actions','pager']) {
+      const f=fixture(); await start(true); f[key].after(f[key].cloneNode(true)); await settle();
+      assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search'),'ambiguous '+key+' never retains stale geometry');
+    }
+  });
+  await test('live search removes the entire mail view without resetting the persistent header and sidebar', async () => {
+    const f=mailboxFixture(); f.input.value='in:inbox'; await start(true);
+    // Background-tab animation frames can take longer than the production
+    // deadline. Its expiry is tested separately; freeze it for staged recovery.
+    const nativeTimeout=window.setTimeout;
+    window.setTimeout=(fn,ms,...args)=>ms===3000 ? -998 : nativeTimeout(fn,ms,...args);
+    try {
+      const main=f.toolbar.closest('[role=main]'), parent=main.parentElement, replacement=main.cloneNode(true);
+      const brand=f.composeShell.querySelector('.gmail-pro-sidebar-brand'), more=f.root.querySelector('.gmail-pro-mailboxes-more');
+      const compose=document.querySelector('.gmail-pro-toolbar-compose'), controls=document.querySelector('.gmail-pro-header-controls'), position=rect(f.form);
+      f.input.focus(); main.remove(); history.replaceState(null,'','#search/in%3Ainbox');
+      window.dispatchEvent(new Event('hashchange')); await settle();
+      assert(!workspace.querySelector('[role=main]') && rect(f.shell).height===0,'missing mail view never expands the native header');
+      assert(f.form.getAttribute('data-gp-toolbar-search')==='field' && rect(f.form).left===position.left && rect(f.form).top===position.top,'persistent search stays at its validated position');
+      assert(brand.isConnected && more.isConnected && document.activeElement===f.input,'brand, sidebar and input focus retained');
+      replacement.querySelector('[gh=mtb]').style.display='none'; parent.append(replacement); await settle();
+      assert(rect(f.shell).height===0 && brand.isConnected,'new mail view waits for its native actions without restoring old chrome');
+      replacement.querySelector('[gh=mtb]').style.display=''; await settle();
+      assert(document.querySelector('.gmail-pro-header-controls')===controls && document.querySelector('.gmail-pro-sidebar-brand')===brand,'new mail view adopts existing persistent controls');
+      assert(replacement.querySelector('.gmail-pro-toolbar-compose')===compose,'live Compose retained through mail view replacement');
+      assert(more.isConnected,'sidebar retained through mail view replacement');
+      assert(f.input.value==='in:inbox' && f.form.parentElement===f.parent,'native query and ownership unchanged');
+    } finally { window.setTimeout=nativeTimeout; }
+  });
+  await test('hidden native mail view stays seamless until the same view becomes visible', async () => {
+    const f=mailboxFixture(); await start(true); const main=f.toolbar.closest('[role=main]'), position=rect(f.form);
+    main.style.display='none'; await settle();
+    assert(rect(f.shell).height===0 && f.form.getAttribute('data-gp-toolbar-search')==='field','hidden mail view keeps persistent search layout');
+    assert(rect(f.form).left===position.left && document.querySelector('.gmail-pro-sidebar-brand'),'header/search/sidebar remain in place');
+    main.style.display=''; await settle(); assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'same mail view resumes');
+  });
+  await test('complete mail view replacement preserves compact search focus and sidebar disclosure', async () => {
+    const f=mailboxFixture(); workspace.style.width='1000px'; await start(true);
+    const more=f.root.querySelector('.gmail-pro-mailboxes-more'); more.click(); await settle(); control('search').click(); await settle();
+    const main=f.toolbar.closest('[role=main]'), replacement=main.cloneNode(true), position=rect(f.form), brand=document.querySelector('.gmail-pro-sidebar-brand');
+    main.replaceWith(replacement); await settle();
+    assert(f.form.getAttribute('data-gp-toolbar-search')==='field' && document.activeElement===f.input,'compact search survives native mail view ownership change');
+    assert(rect(f.form).left===position.left && document.querySelector('.gmail-pro-sidebar-brand')===brand,'persistent header and brand never reset');
+    assert(f.root.querySelector('.gmail-pro-mailboxes-more')===more && more.getAttribute('aria-expanded')==='true','open mailbox disclosure retained');
+  });
+  await test('changed account path during absent mail view restores the native header immediately', async () => {
+    const f=fixture(); await start(true); const original=location.href; f.toolbar.closest('[role=main]').remove();
+    try {
+      history.replaceState(null,'','/tests/headerLayout-other-account.html#inbox'); window.dispatchEvent(new Event('popstate')); await settle();
+      assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search'),'search layout never crosses account context');
+    } finally { history.replaceState(null,'',original); }
+  });
+  await test('a partially rebuilt mail view recovers promptly even after the loading deadline expires', async () => {
+    const f=fixture(); await start(true); const main=f.toolbar.closest('[role=main]'), parent=main.parentElement, replacement=main.cloneNode(true);
+    const nativeTimeout=window.setTimeout; let expire;
+    window.setTimeout=(fn,ms,...args)=>ms===3000 ? (expire=fn,-998) : nativeTimeout(fn,ms,...args);
+    try {
+      main.remove(); await settle(); replacement.querySelector('[gh=mtb]').style.display='none'; parent.append(replacement); await settle();
+      assert(expire && rect(f.shell).height===0,'staged mail view retains the current layout');
+      expire(); await settle(); assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search'),'deadline restores usable native layout');
+      replacement.querySelector('[gh=mtb]').style.display=''; await settle();
+      assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'new toolbar readiness is still observed after native fallback');
+    } finally { window.setTimeout=nativeTimeout; }
+  });
+  await test('search sorting stays directly between the search field and header arrow with native accessible labels', async () => {
+    const f = searchSortFixture(); await start(true); const position = rect(f.form), sortParent = f.sort.parentElement;
+    assert(f.sort.getAttribute('data-gp-search-sort') === 'relevant' && rect(f.sort).width === 32, 'fixed-size relevance icon');
+    const slot = document.querySelector('.gmail-pro-search-sort-slot'), glyph = slot.firstElementChild;
+    assert(document.querySelectorAll('.gmail-pro-search-sort-icon').length === 1 && slot.parentElement.className === 'gmail-pro-header-controls', 'one persistent header icon');
+    assert(Math.abs(position.right + 8 - rect(f.sort).left) < .5 && Math.abs(rect(f.sort).right + 8 - rect(control('toggle')).left) < .5, 'sort sits directly between field and header arrow');
+    const target = rect(f.sort);
+    assert(getComputedStyle(f.sort).opacity === '0' && f.sort.contains(document.elementFromPoint(target.x + 16, target.y + 16)), 'transparent native button receives pointer hits above decorative icon');
+    assert(Math.abs(rect(slot).left - target.left) < .5, 'visible icon and native hit target coincide');
+    assert(f.sort.getAttribute('aria-label') === 'Most relevant' && f.sort.title === 'Search order: Most relevant', 'icon has accessible name and current-order tooltip');
+    for (const theme of ['light', 'dark']) {
+      document.documentElement.dataset.gpTheme = theme; await settle();
+      assert(rect(f.sort).width === 32 && f.sort.parentElement === sortParent, 'native fixed slot survives ' + theme + ' theme');
+    }
+    f.sort.click(); assert(!f.menu.hidden && f.opened() === 1, 'original native menu handler opens its readable choices');
+    assert(rect(f.menu).left === rect(f.sort).left, 'native menu remains anchored to its actual trigger');
+    f.menu.lastElementChild.click(); await settle();
+    assert(f.sort.getAttribute('data-gp-search-sort') === 'recent' && f.sort.getAttribute('aria-label') === 'Most recent', 'icon follows native order selection');
+    assert(rect(f.form).left === position.left && rect(f.sort).width === 32, 'changing order never shifts or squishes search');
+    f.sort.click(); f.menu.firstElementChild.click(); await settle();
+    assert(f.sort.getAttribute('data-gp-search-sort') === 'relevant' && slot.firstElementChild === glyph && document.querySelectorAll('.gmail-pro-search-sort-icon').length === 1, 'switching back retains the same persistent icon');
+  });
+  await test('search sorting supports the older bare order label without changing its native menu', async () => {
+    const f = searchSortFixture(1400, true); await start(true);
+    assert(f.sort.getAttribute('data-gp-search-sort') === 'relevant' && rect(f.sort).width === 32, 'older native label receives the same fixed icon');
+    f.sort.click(); f.menu.lastElementChild.click(); await settle();
+    assert(f.sort.getAttribute('data-gp-search-sort') === 'recent' && f.sort.firstElementChild.textContent === 'Most recent', 'older native choice and label remain native');
+  });
+  await test('search sorting preserves native keyboard menu activation, dismissal and query ownership', async () => {
+    const f = searchSortFixture(); f.input.value = 'in:inbox'; await start(true);
+    f.sort.focus(); f.sort.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    assert(!f.menu.hidden && document.activeElement === f.menu.firstElementChild, 'native keyboard activation and focus retained');
+    f.menu.lastElementChild.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); await settle();
+    assert(f.sort.getAttribute('data-gp-search-sort') === 'recent' && document.activeElement === f.sort, 'native keyboard selection returns focus');
+    f.sort.dispatchEvent(new KeyboardEvent('keydown', {key:' ', bubbles:true}));
+    f.menu.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true})); await settle();
+    assert(f.menu.hidden && document.activeElement === f.sort && f.opened() === 2, 'Escape stays native');
+    assert(f.input.value === 'in:inbox' && f.form.parentElement === f.parent && location.hash === '#search/in%3Ainbox', 'extension never changes search query or native route');
+  });
+  await test('search sorting reserves compact space when selection actions grow and search opens', async () => {
+    const f = searchSortFixture(1000); await start(true);
+    assert(document.querySelector('.gmail-pro-header-controls').dataset.narrow === 'true', 'search compacts before native controls overlap');
+    control('search').click(); await settle();
+    assert(rect(f.form).right + 8 <= rect(f.sort).left && rect(f.sort).width === 32, 'expanded compact search clears sort icon');
+    f.actions.style.width = '440px'; await settle();
+    assert(f.form.getAttribute('data-gp-toolbar-search') === 'field' && rect(f.form).right + 8 <= rect(f.sort).left, 'native selection changes preserve sorting space');
+    f.sort.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true})); f.sort.click(); await settle();
+    assert(!control('close').hidden && !f.menu.hidden, 'native sort pointer does not dismiss compact search');
+    f.menu.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true})); await settle();
+    assert(f.menu.hidden && !control('close').hidden && document.activeElement === f.sort, 'native menu Escape preserves compact search and native focus');
+  });
+  await test('search sorting restores replaced native controls and never duplicates icons', async () => {
+    const f = searchSortFixture(); await start(true); const glyph = document.querySelector('.gmail-pro-search-sort-icon'), replacement = f.toolbar.cloneNode(true), old = f.sort;
+    f.toolbar.replaceWith(replacement); await settle();
+    const sort = replacement.querySelector('.native-search-order');
+    assert(!old.hasAttribute('data-gp-search-sort') && !old.querySelector('.gmail-pro-search-sort-icon') && !old.hasAttribute('aria-label'), 'detached native owner restored');
+    assert(sort.getAttribute('data-gp-search-sort') === 'relevant' && document.querySelector('.gmail-pro-search-sort-icon') === glyph && !sort.querySelector('.gmail-pro-search-sort-icon'), 'replacement keeps persistent icon outside native owner');
+    assert(rect(f.form).right + 8 <= rect(sort).left, 'replacement layout reserves sorting');
+    sort.firstElementChild.textContent = 'Showing most recent'; sort.setAttribute('aria-label', 'Native most recent'); await settle();
+    assert(sort.getAttribute('data-gp-search-sort') === 'recent' && sort.getAttribute('aria-label') === 'Native most recent', 'native accessible-name changes remain authoritative');
+  });
+  await test('search sorting mode OFF restores native text, geometry and labels without removing native changes', async () => {
+    const f = searchSortFixture(); const markup = f.sort.innerHTML, width = rect(f.sort).width;
+    f.sort.setAttribute('aria-label', 'Native order'); f.sort.title = 'Native tooltip'; await start(true);
+    f.sort.setAttribute('aria-label', 'Updated native order'); feature.stop(); await settle();
+    assert(f.sort.innerHTML === markup && rect(f.sort).width === width && !f.sort.hasAttribute('data-gp-search-sort'), 'native markup and original dimensions restored');
+    assert(f.sort.getAttribute('aria-label') === 'Updated native order' && f.sort.title === 'Native tooltip', 'native accessibility and tooltip preserved');
+    assert(!document.documentElement.hasAttribute('data-gp-search-sort-active') && !f.anchor.hasAttribute('data-gp-search-sort-anchor') && getComputedStyle(f.sort).opacity === '1' && !document.querySelector('.gmail-pro-search-sort-slot'), 'mode OFF clears fixed slot and makes native control readable');
+    f.sort.click(); assert(!f.menu.hidden && f.opened() === 1, 'native menu still works after mode OFF');
+  });
+  await test('unsupported or ambiguous right-side sorting stays native while search still reserves its space', async () => {
+    const f = searchSortFixture(); f.sort.firstElementChild.textContent = 'Unsupported order'; await start(true);
+    assert(!f.sort.hasAttribute('data-gp-search-sort') && !f.sort.querySelector('.gmail-pro-search-sort-icon'), 'unrecognized control remains native');
+    assert(rect(f.form).right + 8 <= rect(f.sort).left, 'unrecognized native right control cannot be covered');
+    f.sort.firstElementChild.textContent = 'Most relevant'; const clone = f.sort.cloneNode(true); f.sort.after(clone); await settle();
+    assert(!f.sort.hasAttribute('data-gp-search-sort') && !clone.hasAttribute('data-gp-search-sort'), 'ambiguous native owners remain unchanged');
+    assert(rect(f.form).right + 8 <= rect(f.sort).left, 'ambiguous controls keep their native reserved space');
+  });
+  await test('search sorting stays static while a whole mail view is absent and its replacement actions are not ready', async () => {
+    const f = searchSortFixture(); await start(true);
+    const main = f.toolbar.closest('[role=main]'), parent = main.parentElement, replacement = main.cloneNode(true);
+    const native = replacement.querySelector('.native-search-order'), owner = replacement.querySelector('.tB5Jxf-M-X-ql-Jf');
+    native.removeAttribute('data-gp-search-sort'); native.removeAttribute('aria-label'); native.removeAttribute('title'); owner.removeAttribute('data-gp-search-sort-anchor');
+    native.firstElementChild.textContent = 'Showing most recent'; replacement.querySelector('[gh=mtb]').style.display = 'none';
+    const glyph = document.querySelector('.gmail-pro-search-sort-icon'), field = rect(f.form), toggle = rect(control('toggle')), target = rect(f.sort);
+    const nativeTimeout = window.setTimeout;
+    window.setTimeout = (fn, ms, ...args) => ms === 3000 ? -998 : nativeTimeout(fn, ms, ...args);
+    try {
+      main.remove(); await settle();
+      assert(glyph.isConnected && document.querySelector('.gmail-pro-search-sort-icon') === glyph && getComputedStyle(glyph.parentElement).opacity === '1', 'same visible icon survives missing view');
+      assert(rect(f.form).left === field.left && rect(control('toggle')).left === toggle.left, 'missing view keeps field and arrow fixed');
+      parent.append(replacement);
+      assert(getComputedStyle(native).opacity === '0' && rect(native).width === 32 && Math.abs(rect(native).left - target.left) < .5, 'unmarked native replacement cannot paint its text before discovery');
+      await settle();
+      assert(!native.hasAttribute('data-gp-search-sort') && rect(f.form).left === field.left && rect(control('toggle')).left === toggle.left, 'partial toolbar keeps the static header');
+      replacement.querySelector('[gh=mtb]').style.display = ''; await settle();
+      assert(native.dataset.gpSearchSort === 'recent' && document.querySelector('.gmail-pro-search-sort-icon') === glyph, 'ready replacement updates only icon shape');
+      assert(rect(f.form).left === field.left && rect(control('toggle')).left === toggle.left && Math.abs(rect(native).left - target.left) < .5, 'completed replacement does not shift header');
+    } finally { window.setTimeout = nativeTimeout; }
+  });
+  await test('search sorting suppresses native text synchronously when Gmail rebuilds button markup and markers', async () => {
+    const f = searchSortFixture(); await start(true);
+    const glyph = document.querySelector('.gmail-pro-search-sort-icon'), field = rect(f.form), target = rect(f.sort), toggle = rect(control('toggle'));
+    f.sort.removeAttribute('data-gp-search-sort'); f.anchor.removeAttribute('data-gp-search-sort-anchor');
+    f.sort.innerHTML = '<span>Showing most recent</span><span class="native-search-order-chevron"></span>';
+    assert(getComputedStyle(f.sort).opacity === '0' && rect(f.sort).width === 32 && rect(f.sort).left === target.left, 'known native hook suppresses text before observer delivery');
+    await settle();
+    assert(f.sort.dataset.gpSearchSort === 'recent' && document.querySelector('.gmail-pro-search-sort-icon') === glyph && document.querySelectorAll('.gmail-pro-search-sort-icon').length === 1, 'rebuilt markup reuses one persistent icon');
+    assert(rect(f.form).left === field.left && rect(control('toggle')).left === toggle.left, 'native text updates never shift neighboring controls');
+  });
+  await test('search sorting keeps its fixed header slot while only the native selector is temporarily removed', async () => {
+    const f = searchSortFixture(); await start(true);
+    const glyph = document.querySelector('.gmail-pro-search-sort-icon'), field = rect(f.form), toggle = rect(control('toggle')), replacement = f.anchor.cloneNode(true);
+    f.anchor.remove(); await settle();
+    assert(glyph.isConnected && !glyph.parentElement.hidden && rect(f.form).left === field.left && rect(control('toggle')).left === toggle.left, 'temporarily missing selector leaves header unchanged');
+    const native = replacement.querySelector('.native-search-order');
+    native.removeAttribute('data-gp-search-sort'); replacement.removeAttribute('data-gp-search-sort-anchor'); native.firstElementChild.textContent = 'Showing most recent';
+    f.owner.prepend(replacement);
+    assert(getComputedStyle(native).opacity === '0' && rect(native).width === 32, 'replacement selector is compact before discovery');
+    await settle();
+    assert(native.dataset.gpSearchSort === 'recent' && document.querySelector('.gmail-pro-search-sort-icon') === glyph && rect(f.form).left === field.left && rect(control('toggle')).left === toggle.left, 'selector returns without resetting header');
+    history.replaceState(null, '', '#inbox'); window.dispatchEvent(new Event('hashchange')); await settle();
+    assert(!document.documentElement.hasAttribute('data-gp-search-sort-active') && glyph.parentElement.hidden && getComputedStyle(native).opacity === '1', 'leaving search restores native selector and releases its slot');
   });
   await test('insufficient room restores a usable native layout', async () => {
     const f=fixture(700); await start(true); assert(!f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height>0,'safe native fallback');
