@@ -13,6 +13,14 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
   neutral selected mailbox with accent text/icons. Gmail remains the mail engine.
 
 - **Native floating composer:** automatically open Reply, Reply All, and Forward in Gmail’s own floating composer.
+- **Undo Send:** Gmail’s native sent notice stays visible at the bottom left,
+  including with the header collapsed. In Apple Mail Mode it follows your theme
+  and accent, with a clear Undo button and a thin elapsed-time line spanning the
+  full width along the top.
+  The line fills left to right over the currently verified five-second period;
+  its duration must be updated if you change Gmail's Undo Send setting.
+  Gmail owns cancellation and its saved
+  Undo Send window; View message and Close keep their native behavior.
 - **Read immediately on opening:** in Apple Mail Mode, the displayed reading-pane
   conversation is marked read when opened by a click, arrow navigation, or Gmail's
   automatic advance after Archive/Delete.

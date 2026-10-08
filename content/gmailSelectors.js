@@ -92,9 +92,10 @@
     readingChrome: '.gE, .gA, .gB, .ip, .amr, .nr, .amn, .btDi4d',
     readingRecipients: '.gE .hb',
     nativeActionButton: 'button, [role="button"]',
-    // Native Archive / Move to Undo toast, verified in desktop Gmail. Its
-    // structured notification boundary excludes arbitrary links in messages.
-    nativeUndo: '.b8[role="alert"] > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"][role="link"]',
+    // Native Undo toast, verified in desktop Gmail. Send uses role=alert;
+    // Archive/Move use role=link. Resolve the native ID within its structured
+    // notification boundary and let the caller check availability.
+    nativeUndo: '.b8[role="alert"] > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"]',
     nativeNotice: '.b8[role="alert"]',
     nativeNoticeMessage: ':scope > .J-J5-Ji > .vh:not(.inboxsdk__butterbar) > .aT > .bAq',
     shortcutArchiveExcluded: 'input, textarea, select, [contenteditable], [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="region"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',

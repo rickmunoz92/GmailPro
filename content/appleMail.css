@@ -363,6 +363,100 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   display: none !important;
 }
 
+/* Native notifications live inside .w-asV. A collapsed header inherits hidden
+   visibility into Undo Send; restore only Gmail's active structured notice.
+   Gmail owns all handlers, text, live announcements and expiration. Its idle
+   -10000px sentinel, hidden states and InboxSDK butterbars keep native behavior. */
+@scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable], form, [role="region"], [role="dialog"], [role="menu"], [role="listbox"], [hidden], [aria-hidden="true"], [inert], [data-inboxsdk-id], .inboxsdk__butterbar) {
+  @scope (.w-asV .b8.bAp[role="alert"]:not([style*="-10000"]):has(> .J-J5-Ji > .vh:not(.inboxsdk__butterbar) > .aT > .bAq)) {
+    /* No !important: an explicit native visibility:hidden still wins. */
+    :scope { visibility: visible; }
+    :scope > .J-J5-Ji > .vh:not(.inboxsdk__butterbar) {
+      position: fixed !important; z-index: 10000;
+      inset: auto auto max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)) !important;
+      display: flex; align-items: center; box-sizing: border-box; overflow: hidden;
+      width: max-content; max-width: calc(100vw - 40px); min-height: 60px;
+      margin: 0 !important; padding: 12px 48px 12px 16px !important;
+      border: 1px solid var(--gp-border) !important; border-radius: 12px !important;
+      background: var(--gp-bg-tertiary) !important; color: var(--gp-text-primary) !important;
+      font: 400 13px/20px var(--gp-font) !important; letter-spacing: normal;
+      text-align: start; white-space: normal;
+      box-shadow: 0 8px 28px #0002, 0 2px 6px #0001 !important;
+    }
+    :scope > .J-J5-Ji > .vh > .aT {
+      /* Gmail makes .aT relative, which otherwise anchors the timer inside
+         the padded content. The fixed card owns its full-width top edge. */
+      position: static;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-width: 0;
+    }
+    :scope > .J-J5-Ji > .vh > .aT > .bAq {
+      margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 500;
+    }
+    /* Gmail's current cancellation setting was verified as 5 seconds. This
+       visual duration must match that setting; Gmail still owns expiration.
+       Attach to the native message span so a new sent notice starts fresh.
+       Gmail Send uses role=alert for Undo; Archive uses role=link. Its native
+       ID and structured boundary own the action, not that varying role.
+       Require an available Undo and a second native link (View message).
+       Native inline hiding ends the timer without reviving expired Undo. */
+    :scope > .J-J5-Ji > .vh:has(> .aT > .bAo > [id="link_undo"]:not([hidden], [aria-hidden="true"], [inert], [disabled], [aria-disabled="true"], [style*="hidden" i], [style*="display:none" i], [style*="display: none" i])):has(> .aT > .bAo > [role="link"]:not([id="link_undo"])) > .aT > .bAq::before,
+    :scope > .J-J5-Ji > .vh:has(> .aT > .bAo > [id="link_undo"]:not([hidden], [aria-hidden="true"], [inert], [disabled], [aria-disabled="true"], [style*="hidden" i], [style*="display:none" i], [style*="display: none" i])):has(> .aT > .bAo > [role="link"]:not([id="link_undo"])) > .aT > .bAq::after {
+      content: ""; position: absolute; inset: 0 0 auto; height: 3px;
+      border-radius: 12px 12px 0 0; pointer-events: none;
+    }
+    :scope > .J-J5-Ji > .vh:has(> .aT > .bAo > [id="link_undo"]:not([hidden], [aria-hidden="true"], [inert], [disabled], [aria-disabled="true"], [style*="hidden" i], [style*="display:none" i], [style*="display: none" i])):has(> .aT > .bAo > [role="link"]:not([id="link_undo"])) > .aT > .bAq::before {
+      background: color-mix(in srgb, var(--gp-accent-ui) 18%, transparent);
+    }
+    :scope > .J-J5-Ji > .vh:has(> .aT > .bAo > [id="link_undo"]:not([hidden], [aria-hidden="true"], [inert], [disabled], [aria-disabled="true"], [style*="hidden" i], [style*="display:none" i], [style*="display: none" i])):has(> .aT > .bAo > [role="link"]:not([id="link_undo"])) > .aT > .bAq::after {
+      background: var(--gp-accent-ui); transform-origin: left center;
+      animation: gmail-pro-undo-send-progress var(--gp-undo-send-duration, 5s) linear both;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      :scope > .J-J5-Ji > .vh > .aT > .bAq::after {
+        animation-timing-function: steps(5, end);
+      }
+    }
+    :scope > .J-J5-Ji > .vh > .aT > .bAo {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      margin: 0; height: auto; font-size: inherit;
+    }
+    :scope > .J-J5-Ji > .vh > .aT > .bAo > :is([role="link"], [id="link_undo"]) {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 36px; height: auto; margin: 0; padding: 0 10px;
+      border-radius: 7px; color: var(--gp-text-secondary) !important;
+      font: 600 13px/20px var(--gp-font) !important;
+      text-decoration: none; cursor: pointer;
+    }
+    :scope > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"] {
+      color: var(--gp-text-primary) !important;
+      background: color-mix(in srgb, var(--gp-accent-ui) 14%, var(--gp-bg-tertiary));
+      border: 1px solid color-mix(in srgb, var(--gp-accent-ui) 32%, var(--gp-border));
+      padding-inline: 14px;
+    }
+    :scope > .J-J5-Ji > .vh > .aT > .bAo > :is([role="link"], [id="link_undo"])::before,
+    :scope > .J-J5-Ji > .vh > .bBe::before,
+    :scope > .J-J5-Ji > .vh > .bBe::after { content: none; }
+    :scope > .J-J5-Ji > .vh > .aT > .bAo > :is([role="link"], [id="link_undo"]):hover {
+      background: color-mix(in srgb, var(--gp-accent-ui) 22%, var(--gp-bg-tertiary));
+    }
+    :scope > .J-J5-Ji > .vh > .bBe[role="button"] {
+      top: 50%; right: 10px; transform: translateY(-50%);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px;
+    }
+    :scope > .J-J5-Ji > .vh > .bBe[role="button"]:hover { background: var(--gp-hover); }
+    :scope > .J-J5-Ji > .vh > .bBe > .bBf { filter: var(--gp-icon-filter); }
+    :scope > .J-J5-Ji > .vh :is([role="link"], [id="link_undo"], .bBe[role="button"]):focus-visible {
+      outline: 2px solid var(--gp-accent-ui) !important; outline-offset: 2px;
+    }
+  }
+}
+
+@keyframes gmail-pro-undo-send-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 /* Reading-pane chrome only. Gmail retains message DOM/order, security banners,
    details menus, attachment controls and all authored body/editor formatting. */
 @scope (html.gmail-pro-apple-mail-mode [role="main"] .iY:has(h2[data-thread-perm-id][data-legacy-thread-id])) to (.ii, .a3s, [contenteditable], form, [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
