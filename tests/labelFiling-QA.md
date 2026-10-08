@@ -9,13 +9,16 @@ hash path; in-flight cancellation continues to compare the full hash.
 Gmail’s single-row checkbox is the selection owner. The controller verifies both
 thread IDs, the account path, route, label metadata, selection, and native read
 state before invoking Archive once. It keeps existing labels and stays in Inbox.
-Gmail owns the reading pane, counts, acknowledgement, and Archive Undo.
+Gmail owns the reading pane, counts, acknowledgement, and undo history.
 A completed Archive gesture, a fresh native “Conversation archived.” message,
 and removal of the exact target from the same Inbox context are all required
-before Gmail Pro shows “Moved to [full label path]”. The floating card is centered
-12px below the list's top edge, inherits the light/dark theme and accent, and
-expires after 1.5 seconds. It wraps long names, does not move the list or capture
-pointer/focus, and follows list resizing. Successive confirmations replace the
+before Gmail Pro shows “Moved to [full label path]”. The fresh native Archive
+toast is dismissed through its Close control because this action is presented
+as a move to a folder. Ordinary Archive toasts remain native. Plain Z continues
+to reach Gmail's undo history after the filing toast is dismissed. The floating
+card is centered 12px below the list's top edge, inherits the light/dark theme and
+accent, and expires after 1.5 seconds. It wraps long names, does not move the list
+or capture pointer/focus, and follows list resizing. Successive confirmations replace the
 single card and restart its timer. Navigation, account/context changes, mode OFF,
 and cleanup release the card, resize observer, frame and scroll listeners.
 
@@ -37,9 +40,9 @@ are released only when the original context and sole selection still agree.
 Partial failure reports “Marked read, but couldn’t file. Try again.” If the row
 disappears without native acknowledgement, feedback reports an unconfirmed move
 instead of claiming success or a failed Archive. Error feedback remains
-dismissible for six seconds. Native
-errors and Archive Undo are preserved. Undo reverses Archive, without promising
-restoration of unread status. Mail state is neither copied nor persisted by the
+dismissible for six seconds. Native errors and unrelated notifications are
+preserved. Undo reverses Archive, without promising restoration of unread status.
+Mail state is neither copied nor persisted by the
 extension. Badge annotations are restored when disabled; third-party attribute
 changes are preserved.
 
@@ -168,3 +171,23 @@ synthetic preview removed the exact target, showed the full-path success card
 and native Undo, and left the unsent draft open. The screenshot is outside the
 repository. Existing Gmail tabs require extension Reload followed by Gmail
 refresh to pick up this additional route fix.
+
+
+## Filing archive-toast suppression — October 8, 2026
+
+Label filing dismisses only its fresh native Archive acknowledgement using the
+existing Close control. The destination card and native filing operation remain
+unchanged. The observer disconnects before dismissal so later Archive, Send,
+and error notifications retain their native UI. Missing or unavailable Close
+controls do not block confirmation or cause another Archive attempt.
+
+Foreground Chrome verification: `/tests/labelFiling.html` passed 95/95,
+`/tests/readingPane.html` passed 31/31, and `/tests/autoRead.html` passed 70/70.
+All 196 browser checks passed, including native Z Undo after toast dismissal,
+ordinary Archive with clickable Undo, delayed/stale acknowledgements, cancelled
+operations, third-party notices, and unavailable Close controls.
+`node scripts/validate.cjs` passed its checks and all 38 Node tests;
+`git diff --check` passed. Only synthetic mail was changed.
+
+Chrome's browser URL policy blocked opening the extension manager, so extension
+Reload followed by Gmail refresh must be performed manually to activate this fix.

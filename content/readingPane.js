@@ -159,7 +159,12 @@
             [...record.addedNodes].some(node => node === message || node.contains?.(message)))));
         if (!fresh) continue;
         pending.archiveAcknowledged = true;
-        stopNativeNoticeWatch(); schedule(); return;
+        stopNativeNoticeWatch();
+        // Label filing has its own destination confirmation. Dismiss only
+        // this fresh acknowledgement through Gmail's native Close control.
+        const close = message.closest('.vh').querySelector(':scope > .bBe[role="button"][aria-label="Close"]');
+        if (visible(close) && usable(close)) filingNative(close);
+        schedule(); return;
       }
     });
     for (const root of roots) nativeNoticeObserver.observe(root, { childList: true, subtree: true, characterData: true });

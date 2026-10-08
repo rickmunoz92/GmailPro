@@ -162,7 +162,8 @@
     const labels=f.first.querySelector('.yi > .ar').innerHTML, draftContents=f.draft?.innerHTML;
     f.click(); await wait(100);
     assert(!f.first.isConnected&&successToast(),'move confirmed before Undo');
-    assert(undoChord().defaultPrevented,'mailbox shortcut handles Undo'); await wait(80);
+    assert(f.archiveClosed()===1&&!f.toast.textContent.includes('Conversation archived.'),'label filing dismisses the archive toast');
+    assert(!undoChord().defaultPrevented,'Gmail receives native Undo after the toast is dismissed'); await wait(80);
     assert(f.first.isConnected&&f.first.classList.contains('yO'),'native Undo returns the conversation to Inbox');
     assert(f.first.querySelector('.yi > .ar').innerHTML===labels,'existing labels preserved');
     assert(!successToast(),'restored conversation has no stale move confirmation');
@@ -215,7 +216,7 @@
       assert(f.archives()===1&&f.reads()===(unread?1:0)&&!f.fallbackCount()&&!f.openCount(),'files the exact row instead of opening it');
       assert(successToast()?.textContent==='Moved to Projects/Example','confirmed move uses the full label');
       assert(location.hash===route&&draft.isConnected&&draft.innerHTML===contents&&!draftEvents,'draft and route untouched');
-      assert(f.first.querySelector('.at').title==='Projects/Example'&&f.toast.querySelector('[id="link_undo"]'),'labels and native Undo preserved');
+      assert(f.first.querySelector('.at').title==='Projects/Example'&&f.archiveClosed()===1,'label preserved and archive toast dismissed');
     });
   for (const route of ['#inbox','#inbox/p2']) await test('draft URL arriving after startup keeps labels actionable on '+route, async () => {
     const f=fixture({route,unread:false,withDraft:true});
@@ -239,7 +240,7 @@
     assert(!toast.querySelector('button')&&getComputedStyle(toast).pointerEvents==='none','no focusable controls or blocked clicks');
     await wait(1200); assert(successToast()===toast,'visible before 1.5 seconds');
     await wait(350); assert(!successToast(),'removed after 1.5 seconds');
-    assert(f.toast.querySelector('[id="link_undo"]')&&!f.archiveClosed(),'native Archive Undo remains');
+    assert(!f.toast.querySelector('[id="link_undo"]')&&f.archiveClosed()===1,'archive toast stays dismissed after move confirmation expires');
   });
   await test('the next successful move replaces the card and restarts its timer', async () => {
     const destination='Partners/Équipe + East/Shared', f=fixture({labels:['Projects/Example',destination]});
@@ -254,7 +255,7 @@
   await test('removed rows wait for a fresh native Archive acknowledgement', async () => {
     const f=fixture({archiveNoticeDelay:400}); f.click(); await wait(100);
     assert(!f.first.isConnected&&!successToast(),'row disappearance alone is insufficient');
-    await wait(420); assert(successToast()?.textContent==='Moved to Projects/Example','delayed acknowledgement confirms destination');
+    await wait(420); assert(successToast()?.textContent==='Moved to Projects/Example'&&f.archiveClosed()===1,'delayed acknowledgement confirms destination and dismisses archive toast');
   });
   await test('an acknowledgement alone cannot confirm a conversation still in Inbox', async () => {
     const f=fixture({ignoreArchive:true}); f.click(); await wait(70); f.notice('Conversation archived.'); await wait(70);
@@ -264,12 +265,35 @@
   await test('stale acknowledgements and unrelated Undo edits cannot report success', async () => {
     const f=fixture({unread:false,omitArchiveNotice:true,timeout:600}); f.notice('Conversation archived.'); f.click(); await wait(80);
     f.toast.querySelector('.bAo').append(document.createTextNode(' unrelated change')); await wait(80);
-    assert(!successToast(),'old message is not a fresh acknowledgement');
+    assert(!successToast()&&!f.archiveClosed()&&f.toast.textContent.includes('Conversation archived.'),'old message is neither confirmation nor dismissed');
     await wait(550); assert(!successToast()&&noticeText().includes('hasn’t confirmed'),'honest uncertain result after expiry');
   });
   await test('fresh errors never become move confirmations', async () => {
     const f=fixture({omitArchiveNotice:true,timeout:500}); f.click(); await wait(80); f.notice('Something went wrong. Please try again.'); await wait(550);
-    assert(!successToast()&&f.toast.textContent.includes('Something went wrong'),'native failure retained');
+    assert(!successToast()&&!f.archiveClosed()&&f.toast.textContent.includes('Something went wrong'),'native failure retained');
+  });
+  await test('unrelated notifications stay visible after a label move', async () => {
+    const f=fixture({unread:false}); f.click(); await wait(100);
+    assert(f.archiveClosed()===1&&successToast(),'only filing acknowledgement dismissed');
+    for (const message of ['Conversation archived.','Message sent.','Something went wrong. Please try again.']) {
+      f.notice(message); await wait(50);
+      assert(f.toast.textContent.includes(message)&&f.archiveClosed()===1,'later native notification retained: '+message);
+    }
+  });
+  await test('an archive notification during the read phase stays native', async () => {
+    const f=fixture({ignoreReads:Infinity}); f.click(); await wait(70); f.notice('Conversation archived.'); await wait(70);
+    assert(!f.archives()&&!f.archiveClosed()&&f.toast.textContent.includes('Conversation archived.'),'no suppression before this filing submits Archive');
+  });
+  await test('third-party archive lookalikes stay visible and cannot confirm filing', async () => {
+    const f=fixture({unread:false,ignoreArchive:true,timeout:500}); f.click(); await wait(70);
+    f.notice('Conversation archived.'); f.toast.querySelector('.vh').classList.add('inboxsdk__butterbar'); f.first.remove(); await wait(600);
+    assert(!f.archiveClosed()&&!successToast()&&f.toast.textContent.includes('Conversation archived.'),'InboxSDK notification untouched');
+  });
+  for (const unavailable of ['missing','hidden','disabled']) await test(unavailable+' Close control never blocks a confirmed move', async () => {
+    const f=fixture({unread:false,omitArchiveNotice:true}); f.click(); await wait(70); f.notice('Conversation archived.');
+    const close=f.toast.querySelector('.bBe');
+    if (unavailable==='missing') close.remove(); else if (unavailable==='hidden') close.hidden=true; else close.setAttribute('aria-disabled','true');
+    await wait(70); assert(successToast()&&!f.archiveClosed()&&f.archives()===1,'move still confirmed without forcing an unavailable native control');
   });
   await test('temporary row replacement without acknowledgement never reports success', async () => {
     const f=fixture({ignoreArchive:true,timeout:650}); f.click(); await wait(70); const replacement=f.first.cloneNode(true); f.first.remove();
@@ -285,7 +309,7 @@
   await test('an incomplete Archive mouse gesture cannot report success', async () => {
     const f=fixture({unread:false});
     f.archive.addEventListener('mousedown',()=>{f.archive.disabled=true;f.first.remove();f.notice('Conversation archived.');});
-    f.click(); await wait(100); assert(!f.archives()&&!successToast(),'no click submission, no success');
+    f.click(); await wait(100); assert(!f.archives()&&!successToast()&&!f.archiveClosed(),'no click submission, success, or toast dismissal');
   });
   await test('mode OFF during Archive dispatch stops the gesture and leaves no observers or controls', async () => {
     const f=fixture({unread:false,withActions:true}); f.open(f.second); await wait(70);
@@ -298,7 +322,7 @@
     else if(change==='account') history.replaceState(null,'','/tests/other-account#inbox');
     else if(change==='disable') app.readingPane.update({appleMailModeEnabled:false});
     else app.readingPane.stop();
-    await wait(450); assert(!successToast(),'late acknowledgement cannot display in changed context');
+    await wait(450); assert(!successToast()&&!f.archiveClosed()&&f.toast.textContent.includes('Conversation archived.'),'late acknowledgement remains native in changed context');
     history.replaceState(null,'',original+'#inbox');
   });
   for (const change of ['navigation','account','disable','cleanup','hidden list']) await test(change+' removes an existing success card', async () => {
@@ -351,7 +375,7 @@
     assert(f.actions.every(action=>action.id==='#thread-one'),'only clicked thread affected');
     assert(f.actions[1].read && !f.first.isConnected && f.second.classList.contains('zE'),'read confirmed before archive; other thread unread');
     assert(f.first.querySelectorAll('.at').length===2 && f.openCount()===1 && !f.fallbackCount(),'labels preserved; no row opening or native label navigation');
-    assert(location.hash==='#inbox' && f.toast.textContent.includes('Conversation archived.'),'stays in Inbox with native notification');
+    assert(location.hash==='#inbox' && f.archiveClosed()===1 && !f.toast.textContent.includes('Conversation archived.'),'stays in Inbox without inaccurate archive notification');
   });
   await test('native label-group wrapper and direct badges retain exact row ownership', async () => {
     const f=fixture(); assert(f.badge().matches('.yi > .ar > .at[data-gp-file-label]'),'native grouped badge annotated');
@@ -505,8 +529,10 @@
     assert(!f.reads()&&!f.archives(),'authored structure ignored');
     assert([...fake.querySelectorAll('tr')].every(row => getComputedStyle(row).display !== 'grid'), 'copied row markers cannot style authored email');
   });
-  await test('native Archive Undo stays visible and restores only archiving', async () => {
-    const f=fixture(); f.click(); await wait(150); assert(f.toast.textContent.includes('Conversation archived.')&&f.toast.querySelector('[id="link_undo"]'),'native Undo retained');
+  await test('ordinary Archive keeps its toast and clickable Undo', async () => {
+    const f=fixture({unread:false}); f.box(f.first).click();
+    for (const type of ['mousedown','mouseup','click']) f.archive.dispatchEvent(new MouseEvent(type,{bubbles:true,cancelable:true,button:0,buttons:type==='mousedown'?1:0}));
+    await wait(150); assert(f.archives()===1&&!successToast()&&!f.archiveClosed()&&f.toast.textContent.includes('Conversation archived.')&&f.toast.querySelector('[id="link_undo"]'),'ordinary Archive keeps its native notification');
     f.toast.querySelector('[id="link_undo"]').click(); await wait(100);
     assert(f.first.isConnected && f.first.classList.contains('yO') && f.first.querySelector('.at').title==='Projects/Example','Undo returns read conversation with label');
     assert(!successToast(),'native Undo also clears the move confirmation');
