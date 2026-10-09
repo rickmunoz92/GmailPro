@@ -317,9 +317,10 @@ open and save. Draft URL parameters do not change the current mailbox.
 Totals use Gmail's conversation pagination, including approximate counts;
 unavailable or pending counts show just the name. No messages are read or tallied
 separately.
-Use the chevron beside search to collapse or expand the Gmail header.
-The header starts expanded; your choice saves immediately through the existing
-Chrome Sync preferences and applies across Gmail tabs/accounts in this profile.
+Use the chevron at the far right of the toolbar to collapse or expand the Gmail header.
+The header starts collapsed unless you have saved an expanded preference. Your
+choice saves immediately through the existing Chrome Sync preferences and applies
+across Gmail tabs/accounts in this profile.
 Expand it to reach Gmail’s main menu, settings, support, and account controls.
 
 When a full field does not fit, a search icon opens the same native search over

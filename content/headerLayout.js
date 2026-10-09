@@ -255,15 +255,32 @@
       .filter(node => visible(node) && !ctx.actions.contains(node) && !ctx.pager.contains(node) &&
         node !== searchSort?.node && !(document.documentElement.hasAttribute('data-gp-search-sort-active') && node.matches(NATIVE_SORT)))
       .map(node => node.getBoundingClientRect()).filter(box => box.left >= action.right);
-    const right = Math.min(bar.right - GAP, pager.left - GAP, ...rightControls.map(box => box.left - GAP));
+    const toggleLeft = Math.min(bar.right, document.documentElement.clientWidth) - GAP - BUTTON;
+    if (ctx.toolbar.hasAttribute('data-gp-header-toolbar') &&
+        Math.max(pager.right, ...rightControls.map(box => box.right)) > toggleLeft - GAP + .5) return null;
+    const right = Math.min(toggleLeft - GAP, pager.left - GAP, ...rightControls.map(box => box.left - GAP));
     if (row.top < 0 || row.height < 20 || row.height > 80 || right - left < BUTTON * 2 + GAP) return null;
     // Keep the field stable as selection actions appear/disappear. If the
     // complete field cannot fit, use the existing compact search control.
-    const sortWidth = document.documentElement.hasAttribute('data-gp-search-sort-active') ? BUTTON + GAP : 0;
-    const narrow = right - left < SEARCH_WIDTH + BUTTON + GAP + sortWidth;
-    const width = narrow ? Math.min(SEARCH_WIDTH, right - bar.left - BUTTON * 2 - GAP * 3 - sortWidth) : SEARCH_WIDTH;
+    const sortWidth = document.documentElement.hasAttribute('data-gp-search-sort-active') ? BUTTON : 0;
+    const narrow = right - left < SEARCH_WIDTH + GAP + sortWidth;
+    const width = narrow ? Math.min(SEARCH_WIDTH, right - bar.left - BUTTON - GAP * 2 - sortWidth - (sortWidth ? GAP : 0)) : SEARCH_WIDTH;
     if (width < 180) return null;
-    return { narrow, width, right, sortWidth, top: row.top + (row.height - 36) / 2 };
+    return { narrow, width, right, sortWidth, toggleLeft, top: row.top + (row.height - 36) / 2 };
+  }
+
+  function placeToolbar(ctx) {
+    if (ctx.toolbar.hasAttribute('data-gp-header-toolbar')) return;
+    // Keep native paging/split-pane controls in their own row with a reserved
+    // trailing slot for the header arrow. Native padding restores on mode OFF.
+    const padding = getComputedStyle(ctx.toolbar).paddingRight;
+    ctx.toolbar.style.setProperty('--gp-header-toolbar-padding-right', padding);
+    ctx.toolbar.setAttribute('data-gp-header-toolbar', '');
+  }
+
+  function restoreToolbar(toolbar) {
+    toolbar.removeAttribute('data-gp-header-toolbar');
+    toolbar.style.removeProperty('--gp-header-toolbar-padding-right');
   }
 
   function schedule() {
@@ -636,11 +653,14 @@
     restoreSearchSort();
     removeCaption();
     restoreCompose();
+    // Gmail may clone a marked toolbar before discovery can adopt it.
+    document.querySelectorAll('[gh="tm"][data-gp-header-toolbar]').forEach(restoreToolbar);
     if (!current) return;
     const wasCollapsed = current.shell.hasAttribute('data-gp-header-collapsed');
     current.shell.removeAttribute('data-gp-header-collapsed');
     current.banner.removeAttribute('data-gp-header-collapsed');
     current.form.removeAttribute('data-gp-toolbar-search');
+    restoreToolbar(current.toolbar);
     current.main.removeAttribute('data-gp-header-main');
     current.main.style.removeProperty('--gp-header-main-height');
     for (const panel of markedPanels) {
@@ -717,7 +737,9 @@
       current.main.removeAttribute('data-gp-header-main');
       current.main.style.removeProperty('--gp-header-main-height');
     }
+    if (current && current.toolbar !== next.toolbar) restoreToolbar(current.toolbar);
     current = next;
+    placeToolbar(current);
     placeCompose(current);
     layout = geometry(current);
     if (!layout) { restore(); watch(next); return; }
@@ -751,15 +773,17 @@
     }
     if (!layout.narrow) open = false;
     const showing = !layout.narrow || open;
-    const controlWidth = (layout.narrow ? BUTTON * 2 + GAP : BUTTON) + layout.sortWidth;
+    const controlWidth = (layout.narrow ? BUTTON : 0) + layout.sortWidth + (layout.narrow && layout.sortWidth ? GAP : 0);
     updateSortSlot();
     if (layout.sortWidth) {
-      document.documentElement.style.setProperty('--gp-search-sort-left', `${layout.right - BUTTON * 2 - GAP}px`);
+      document.documentElement.style.setProperty('--gp-search-sort-left', `${layout.right - BUTTON}px`);
       document.documentElement.style.setProperty('--gp-search-sort-top', `${layout.top + 2}px`);
     }
     controls.dataset.narrow = String(layout.narrow);
     controls.style.left = `${layout.right - controlWidth}px`;
     controls.style.top = `${layout.top + 2}px`;
+    controls.style.setProperty('--gp-header-toggle-left', `${layout.toggleLeft}px`);
+    controls.style.setProperty('--gp-header-toggle-top', `${layout.top + 2}px`);
     searchButton.hidden = !layout.narrow || open;
     closeButton.hidden = !layout.narrow || !open;
     searchButton.setAttribute('aria-expanded', String(open));

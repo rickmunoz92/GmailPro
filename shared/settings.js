@@ -6,7 +6,7 @@
 
   const defaults = Object.freeze({
     appleMailModeEnabled: false,
-    headerCollapsed: false,
+    headerCollapsed: true,
     appearanceTheme: "dark",
     accentColor: "blue",
     floatingReplyEnabled: true,

@@ -1,6 +1,7 @@
 (async () => {
   'use strict';
   const feature = GmailPro.headerLayout;
+  const defaultSettings = GmailPro.settings.defaults;
   const workspace = document.getElementById('workspace'), results = document.getElementById('results');
   const assert = (value, message) => { if (!value) throw Error(message); };
   const rect = node => node.getBoundingClientRect();
@@ -189,7 +190,7 @@
   if (new URLSearchParams(location.search).has('preview')) {
     if (new URLSearchParams(location.search).has('mailboxes')) mailboxFixture();
     else fixture(Number(new URLSearchParams(location.search).get('width')) || 1400);
-    await start(); results.hidden=true; return;
+    await start(defaultSettings.headerCollapsed); results.hidden=true; return;
   }
   results.textContent = '';
   await test('mailbox scroll edge stays seamless beneath the logo in both themes and restores on mode OFF', async () => {
@@ -409,8 +410,10 @@
   await test('search width stays fixed across selection actions and uses compact fallback', async () => {
     const f=fixture(); await start();
     assert(rect(f.form).width===360,'fixed field width');
-    f.actions.style.width='620px'; await settle();
+    f.actions.style.width='600px'; await settle();
     assert(control('search').hidden && rect(f.form).width===360,'more actions do not shrink field');
+    f.actions.style.width='620px'; await settle();
+    assert(!control('search').hidden,'right-edge arrow reservation compacts search before actions overlap');
     f.actions.style.width='760px'; await settle();
     assert(!control('search').hidden,'crowded toolbar uses icon');
     control('search').click(); await settle();
@@ -439,6 +442,56 @@
     assert(!main.hasAttribute('data-gp-header-main'),'override removed');
   });
   await test('saved collapse is applied at startup', async () => { const f=fixture(); await start(true); assert(rect(f.shell).height===0,'saved choice'); assert(Object.keys(saved).length===0,'no startup write'); });
+  await test('default startup collapses the header and an explicit expanded choice survives restart', async () => {
+    const f = fixture(); feature.start({...defaultSettings, appleMailModeEnabled:true}); await settle();
+    assert(rect(f.shell).height === 0 && control('toggle').getAttribute('aria-expanded') === 'false', 'collapsed default reaches the native shell');
+    assert(control('toggle').getAttribute('aria-label') === 'Expand Gmail header' && Object.keys(saved).length === 0, 'accessible expand action without startup writes');
+    control('toggle').click(); await settle();
+    assert(saved.headerCollapsed === false && rect(f.shell).height > 0, 'manual expansion saves');
+    feature.stop(); feature.start({...defaultSettings, ...saved, appleMailModeEnabled:true}); await settle();
+    assert(rect(f.shell).height > 0 && control('toggle').getAttribute('aria-expanded') === 'true', 'saved expanded choice survives restart');
+  });
+  await test('header arrow stays at the far right without covering paging or split controls', async () => {
+    for (const width of [1400, 1000]) {
+      const f = fixture(width), split = document.createElement('button');
+      split.textContent = 'Split pane'; split.style.cssText = 'width:32px;height:32px;flex:none';
+      f.toolbar.style.paddingRight = '16px'; f.toolbar.append(split);
+      let clicks = 0; split.addEventListener('click', () => clicks++);
+      await start(true);
+      const check = () => {
+        const arrow = rect(control('toggle')), bar = rect(f.toolbar);
+        assert(Math.abs(arrow.right - (bar.right - 8)) < .5, 'arrow aligns to the right edge');
+        assert(rect(f.pager).right + 8 <= arrow.left && rect(split).right + 8 <= arrow.left, 'native paging and split controls clear the arrow');
+        assert(control('toggle').contains(document.elementFromPoint(arrow.left + 16, arrow.top + 16)), 'arrow owns its hit target');
+        assert(Math.abs(arrow.top + 16 - bar.top - bar.height / 2) < 1, 'arrow centered on native action row');
+      };
+      for (const theme of ['light', 'dark']) {
+        document.documentElement.dataset.gpTheme = theme; await settle(); check();
+        control('toggle').click(); await settle(); check();
+      }
+      if (width === 1000) {
+        control('search').click(); await settle(); check();
+        assert(rect(f.form).right + 8 <= rect(f.pager).left, 'compact search clears native pager');
+        control('close').click(); await settle(); check();
+      }
+      split.click(); assert(clicks === 1, 'native split handler remains attached');
+      const replacement = f.toolbar.cloneNode(true); f.toolbar.replaceWith(replacement); await settle();
+      assert(!f.toolbar.hasAttribute('data-gp-header-toolbar') && !f.toolbar.style.getPropertyValue('--gp-header-toolbar-padding-right'), 'detached toolbar reservation released');
+      assert(getComputedStyle(replacement).paddingRight === '48px', 'cloned toolbar keeps exactly one reserved slot');
+      assert(Math.abs(rect(control('toggle')).right - rect(replacement).right + 8) < .5, 'arrow follows rebuilt toolbar');
+      feature.stop();
+      assert(!replacement.hasAttribute('data-gp-header-toolbar') && getComputedStyle(replacement).paddingRight === '16px', 'mode OFF restores native padding');
+    }
+  });
+  await test('a native control pinned to the right edge falls back without covering its action', async () => {
+    const f = fixture(), split = document.createElement('button');
+    split.textContent = 'Split pane'; split.style.cssText = 'position:absolute;right:0;width:32px;height:32px';
+    f.toolbar.append(split); await start(true);
+    assert(!control('toggle') && rect(f.shell).height > 0, 'unsupported right-edge action restores the native header');
+    assert(!f.toolbar.hasAttribute('data-gp-header-toolbar') && getComputedStyle(f.toolbar).paddingRight === '0px', 'fallback releases reserved spacing');
+    split.style.cssText = 'width:32px;height:32px;flex:none'; await settle();
+    assert(control('toggle') && rect(f.shell).height === 0 && rect(split).right + 8 <= rect(control('toggle')).left, 'native row recovers when a trailing slot fits');
+  });
   await test('narrow icon opens and closes without losing query', async () => {
     const f=fixture(1000); await start(true); f.input.value='subject:synthetic';
     assert(!control('search').hidden,'search icon shown'); assert(rect(f.form).right<0,'field concealed');
@@ -489,6 +542,7 @@
   await test('missing or ambiguous toolbar restores native header and search', async () => {
     const f=fixture(); await start(true); const clone=f.toolbar.cloneNode(true); f.toolbar.after(clone); await settle();
     assert(rect(f.shell).height>0 && !f.form.hasAttribute('data-gp-toolbar-search'),'native fallback');
+    assert(!f.toolbar.hasAttribute('data-gp-header-toolbar') && !clone.hasAttribute('data-gp-header-toolbar'), 'fallback releases reservations on native toolbar clones');
     clone.remove(); await settle(); assert(rect(f.shell).height===0,'saved collapse resumes when unambiguous');
   });
   await test('search submission keeps header, sidebar and native search stable while the toolbar is hidden', async () => {
@@ -660,12 +714,13 @@
       assert(rect(f.shell).height===0 && f.form.hasAttribute('data-gp-toolbar-search'),'new toolbar readiness is still observed after native fallback');
     } finally { window.setTimeout=nativeTimeout; }
   });
-  await test('search sorting stays directly between the search field and header arrow with native accessible labels', async () => {
+  await test('search sorting stays beside the search field with the header arrow beyond native paging', async () => {
     const f = searchSortFixture(); await start(true); const position = rect(f.form), sortParent = f.sort.parentElement;
     assert(f.sort.getAttribute('data-gp-search-sort') === 'relevant' && rect(f.sort).width === 32, 'fixed-size relevance icon');
     const slot = document.querySelector('.gmail-pro-search-sort-slot'), glyph = slot.firstElementChild;
     assert(document.querySelectorAll('.gmail-pro-search-sort-icon').length === 1 && slot.parentElement.className === 'gmail-pro-header-controls', 'one persistent header icon');
-    assert(Math.abs(position.right + 8 - rect(f.sort).left) < .5 && Math.abs(rect(f.sort).right + 8 - rect(control('toggle')).left) < .5, 'sort sits directly between field and header arrow');
+    assert(Math.abs(position.right + 8 - rect(f.sort).left) < .5 && rect(f.sort).right + 8 <= rect(f.pager).left, 'sort stays beside search before native paging');
+    assert(rect(f.pager).right + 8 <= rect(control('toggle')).left && Math.abs(rect(control('toggle')).right - rect(f.toolbar).right + 8) < .5, 'header arrow follows paging at the far right');
     const target = rect(f.sort);
     assert(getComputedStyle(f.sort).opacity === '0' && f.sort.contains(document.elementFromPoint(target.x + 16, target.y + 16)), 'transparent native button receives pointer hits above decorative icon');
     assert(Math.abs(rect(slot).left - target.left) < .5, 'visible icon and native hit target coincide');

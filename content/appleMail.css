@@ -751,6 +751,14 @@ html.gmail-pro-apple-mail-mode .gmail-pro-header-controls {
   height: 32px; color: var(--gp-text-secondary);
   background: var(--gp-bg-secondary); border-radius: 5px;
 }
+html.gmail-pro-apple-mail-mode [gh="tm"][data-gp-header-toolbar] {
+  padding-right: max(var(--gp-header-toolbar-padding-right), 48px) !important;
+}
+.gmail-pro-header-controls [data-gp-header-action="toggle"] {
+  position: fixed;
+  left: var(--gp-header-toggle-left); top: var(--gp-header-toggle-top);
+  background: var(--gp-bg-secondary);
+}
 .gmail-pro-header-controls button {
   width: 32px; height: 32px; padding: 6px; border: 0; border-radius: 5px;
   display: grid; place-items: center; cursor: pointer; pointer-events: auto;
@@ -767,7 +775,9 @@ html.gmail-pro-apple-mail-mode .gmail-pro-header-controls {
 .gmail-pro-header-controls [data-collapsed="true"] svg { transform: rotate(180deg); }
 .gmail-pro-header-status:empty { display: none; }
 .gmail-pro-header-status:not(:empty) {
-  position: absolute; right: 0; top: 40px; width: 240px; padding: 12px;
+  position: fixed; left: calc(var(--gp-header-toggle-left) - 208px);
+  top: calc(var(--gp-header-toggle-top) + 40px); width: 240px; padding: 12px;
+  box-sizing: border-box;
   color: var(--gp-text-primary); background: var(--gp-bg-tertiary);
   border: 1px solid var(--gp-border); border-radius: 6px; font: 13px var(--gp-font);
 }

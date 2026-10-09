@@ -85,12 +85,27 @@ checks passed, together with `node scripts/validate.cjs`. Reloaded the extension
 from `~/Documents/GmailPro`, refreshed Gmail and visually confirmed one label
 tab. Sidebar proof is in `screenshots/inbox-icon/inbox-fixed.jpg` (ignored).
 
+## Collapsed default and far-right arrow — 2026-10-09
+
+Missing or malformed header preferences now default to collapsed. Explicit saved
+choices still apply. The arrow has a reserved trailing toolbar slot, with native
+paging/split controls before it and search sorting beside the search field.
+Unsupported right-edge controls restore native layout; toolbar clones and mode
+OFF release all reserved padding.
+
+Validation: 38/38 settings/lifecycle checks, 99/99 header/sidebar browser checks,
+63/63 appearance checks, and `git diff --check` passed. Synthetic preview verified
+default collapse, expansion, and the arrow's 8px right inset. Live Gmail reload
+was not performed because browser policy blocked Chrome's extension manager.
+
 ## Behavior and ownership
 
 Apple Mail Mode places the native search form in the measured gap between the
 mail-action group and pagination. The chevron collapses the whole header and
 saves `gmailPro.v1.headerCollapsed` through the existing settings adapter. The
-missing/malformed default is expanded. The setting follows the existing profile-wide
+missing/malformed default is collapsed; an explicitly saved expanded choice is retained.
+The chevron sits at the far right of the toolbar in its own reserved slot after
+Gmail's paging and split-pane controls. The setting follows the existing profile-wide
 Chrome Sync behavior. No queries or message data are retained.
 
 The native form never changes parent and is never cloned. At narrow widths the

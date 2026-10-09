@@ -50,7 +50,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -66,7 +66,7 @@ test("malformed stored values normalize safely without destructive rewrites", as
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: false, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -489,17 +489,23 @@ test("automatic paging preference saves independently and normalizes deletion", 
   assert.deepEqual(patches, [{ autoPagingEnabled: true }, { autoPagingEnabled: false }]); stop();
 });
 
-test("header preference starts expanded, validates, syncs, and surfaces save failures", async () => {
+test("header preference defaults to collapsed, preserves saved choices, syncs, and surfaces save failures", async () => {
   const f = fixture();
-  assert.equal((await f.settings.load()).headerCollapsed, false);
+  assert.equal((await f.settings.load()).headerCollapsed, true);
+  assert.equal(f.writes, 0);
+  const invalid = fixture({ [prefix + "headerCollapsed"]: "yes" });
+  assert.equal((await invalid.settings.load()).headerCollapsed, true);
+  assert.equal(invalid.writes, 0);
   const patches = [];
   const stop = f.settings.subscribe(patch => patches.push(plain(patch)));
+  await f.settings.save({ headerCollapsed: false });
+  assert.equal((await f.settings.load()).headerCollapsed, false);
+  assert.deepEqual(patches, [{ headerCollapsed: false }]);
   await f.settings.save({ headerCollapsed: true });
   assert.equal((await f.settings.load()).headerCollapsed, true);
-  assert.deepEqual(patches, [{ headerCollapsed: true }]);
   await assert.rejects(f.settings.save({ headerCollapsed: "yes" }));
   [...f.listeners][0]({ [prefix + "headerCollapsed"]: {} }, "sync");
-  assert.deepEqual(patches.at(-1), { headerCollapsed: false });
+  assert.deepEqual(patches.at(-1), { headerCollapsed: true });
   f.fail(new Error("storage unavailable"));
   await assert.rejects(f.settings.save({ headerCollapsed: false }));
   assert.equal(f.data[prefix + "headerCollapsed"], true);
