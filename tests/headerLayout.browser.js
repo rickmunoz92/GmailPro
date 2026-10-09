@@ -226,6 +226,31 @@
     f.inbox.querySelector('.bsU').textContent = '12'; await settle();
     assert(f.inbox.querySelector('.bsU').textContent === '12' && f.inbox.querySelector('.TO').classList.contains('nZ'), 'native count and selection retained');
   });
+  await test('Inbox replaces both native icon wrappers with one aligned label tab and restores native fallback', async () => {
+    for (const iconClass of ['KCRnif', 'qj']) {
+      const f = mailboxFixture(), line = f.inbox.querySelector('.TN'), icon = line.querySelector('.KCRnif');
+      if (iconClass === 'qj') { icon.className = 'qj'; icon.replaceChildren(); }
+      const original = f.inbox.innerHTML, link = line.querySelector('a'), mgr = f.list.firstElementChild.querySelector('a');
+      let clicks = 0; link.addEventListener('click', event => { event.preventDefault(); clicks++; });
+      await start(true);
+      for (const theme of ['dark', 'light']) for (const selected of [false, true]) {
+        document.documentElement.dataset.gpTheme = theme;
+        f.inbox.firstElementChild.classList.toggle('nZ', selected); await settle();
+        const tab = getComputedStyle(line, '::before');
+        assert(getComputedStyle(icon).display === 'none' && rect(icon).width === 0, `${iconClass}: native icon hidden in ${theme}, selected=${selected}`);
+        assert(tab.content === '""' && tab.width === '20px' && tab.height === '20px' && tab.backgroundColor === getComputedStyle(line).color, 'one label tab follows row color');
+        assert(Math.abs(rect(link).left - rect(mgr).left) < 1, 'Inbox text aligns with user labels');
+        assert(rect(link).width > 0 && line.querySelector('.bsU').textContent === '6', 'native link and unread count retained');
+      }
+      link.click(); assert(clicks === 1, 'original Inbox click handler retained');
+      f.nav.style.width = '72px'; window.dispatchEvent(new Event('resize')); await settle();
+      assert(rect(icon).width > 0 && getComputedStyle(line, '::before').content === 'none', 'compact navigation restores native icon');
+      f.nav.style.width = '200px'; window.dispatchEvent(new Event('resize')); await settle();
+      assert(rect(icon).width === 0 && getComputedStyle(line, '::before').content === '""', 'expanded navigation restores one label tab');
+      feature.stop();
+      assert(rect(icon).width > 0 && getComputedStyle(line, '::before').content === 'none' && f.inbox.innerHTML === original, 'mode OFF restores original native row');
+    }
+  });
   await test('one keyboard-accessible More reveals system links, management actions and hidden labels', async () => {
     const f = mailboxFixture(); await start(); const more = f.root.querySelector('.gmail-pro-mailboxes-more');
     more.focus(); more.click(); await settle();

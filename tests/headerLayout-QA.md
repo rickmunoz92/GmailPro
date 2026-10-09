@@ -70,6 +70,21 @@ Sidebar-only screenshots are saved in `output/mailbox-layout/`. No mail was sent
 or edited. Screen-reader reading-order certification and a prolonged soak were
 not performed; native row order remains unchanged by design.
 
+## Inbox duplicate icon — 2026-10-08
+
+Live Gmail renders the native Inbox glyph as `.TN > .qj`; the previous rule
+hid only the older `.KCRnif` wrapper, leaving the tray beside the generated
+label tab. The Inbox-only rule now hides both native wrappers in the expanded
+Mailboxes presentation. Compact navigation and mode OFF restore native icons.
+
+The new regression failed against the previous CSS and passed after the fix.
+It covers both wrappers, light/dark themes, selected/unselected rows, label
+spacing, unread counts, native click handlers, compact recovery and mode OFF.
+Validation: 96/96 header/sidebar browser checks and 38/38 settings/lifecycle
+checks passed, together with `node scripts/validate.cjs`. Reloaded the extension
+from `~/Documents/GmailPro`, refreshed Gmail and visually confirmed one label
+tab. Sidebar proof is in `screenshots/inbox-icon/inbox-fixed.jpg` (ignored).
+
 ## Behavior and ownership
 
 Apple Mail Mode places the native search form in the measured gap between the

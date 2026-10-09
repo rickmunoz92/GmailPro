@@ -54,8 +54,9 @@ form > button > svg { width: 24px; height: 24px; padding: 8px; margin: 3px; }
 .nM .aAv { margin-right: auto; }
 .nM .aAu { width: 20px; height: 20px; }
 .nM .TN { display: flex; align-items: center; padding-left: 26px; }
-.nM .KCRnif { width: 20px; margin-right: 12px; }
+.nM :is(.KCRnif, .qj) { width: 20px; margin-right: 12px; }
 .nM .KCRnif svg { width: 20px; height: 20px; fill: currentColor; }
+.nM .qj { height: 20px; background: currentColor; clip-path: polygon(10% 20%, 90% 20%, 90% 80%, 10% 80%); }
 .nM .aio { display: flex; flex: 1 1 0; min-width: 0; }
 .nM .nU { margin-right: auto; }
 .nM .bsU { margin-left: 4px; }
