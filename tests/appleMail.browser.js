@@ -31,6 +31,11 @@
     return nodes;
   }
   const selectedIndices = nodes => nodes.flatMap((node, index) => node.querySelector('[role="checkbox"]').getAttribute("aria-checked") === "true" ? [index] : []).join(",");
+  const assertSelectionDots = nodes => nodes.forEach(node => {
+    const checked = node.querySelector('[role="checkbox"]').getAttribute("aria-checked") === "true";
+    assert(dot(node).visibility === "visible" && dot(node).backgroundColor === (checked ? "rgb(255, 255, 255)" : token("--gp-accent")), "checked unread dots stay white; unchecked dots use accent");
+    assert(node.classList.contains("zE"), "selection preserves native unread state");
+  });
   const luminance = c => {
     // Resolve modern color-mix through a canvas for stable sRGB channel values.
     const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
@@ -169,6 +174,13 @@
     assert(node.querySelector('.xW > span').hasAttribute('data-gmail-pro-date'), 'Apple Mail mode formats date');
     node.querySelector('[role="checkbox"]').setAttribute('aria-checked', 'true');
     assert(css(node.querySelector('.xW > span')).color === token('--gp-accent-contrast'), 'checked date uses accent contrast');
+    assert(dot(node).visibility === 'visible' && dot(node).backgroundColor === 'rgb(255, 255, 255)', 'checked unread dot stays visible and white');
+    node.classList.remove('zE'); assert(dot(node).content === 'none', 'native read clears checked dot');
+    node.classList.add('zE'); assert(dot(node).backgroundColor === 'rgb(255, 255, 255)', 'native unread restores checked white dot');
+    node.classList.add('aps'); node.querySelector('[role="checkbox"]').setAttribute('aria-checked', 'false');
+    assert(dot(node).visibility === 'visible' && dot(node).backgroundColor === 'rgb(255, 255, 255)', 'unchecking an open row retains white dot');
+    node.classList.remove('aps');
+    assert(dot(node).visibility === 'visible' && dot(node).backgroundColor === token('--gp-accent'), 'deselection restores accent dot');
   });
   await test("mailbox counts align right and remain intact beside long nested names", () => {
     const sidebar = document.getElementById("sidebar"), rows = sidebar.querySelectorAll(".TO");
@@ -341,8 +353,10 @@
     gesture(nodes[1].querySelector(".sender"), {ctrlKey:true});
     gesture(nodes[3].querySelector(".bog"), {metaKey:true});
     assert(selectedIndices(nodes) === "1,3" && opened === 0, "disjoint native selection, no open");
+    assertSelectionDots(nodes);
     gesture(nodes[1], {ctrlKey:true});
     assert(selectedIndices(nodes) === "3" && nodes.every(node => node.classList.contains("zE")), "toggle off and unread preserved");
+    assertSelectionDots(nodes);
     const menu = new MouseEvent("contextmenu", {bubbles:true,cancelable:true,button:2,ctrlKey:true});
     nodes[1].dispatchEvent(menu);
     assert(menu.defaultPrevented && selectedIndices(nodes) === "3", "Mac Control-click menu suppressed without double toggle");
@@ -357,10 +371,13 @@
     const nodes = selectableRows(); enable();
     gesture(nodes[1]); gesture(nodes[4], {shiftKey:true});
     assert(selectedIndices(nodes) === "1,2,3,4", "range includes ordinary-click anchor");
+    assertSelectionDots(nodes);
     gesture(nodes[2], {shiftKey:true}); assert(selectedIndices(nodes) === "1,2", "range contracts from original anchor");
+    assertSelectionDots(nodes);
     gesture(nodes[0], {shiftKey:true}); assert(selectedIndices(nodes) === "0,1", "reverse range");
     gesture(nodes[4], {metaKey:true}); gesture(nodes[3], {metaKey:true,shiftKey:true});
     assert(selectedIndices(nodes) === "0,1,3,4", "additive range preserves disjoint selection");
+    assertSelectionDots(nodes);
   });
   await test("Shift-click recovers safely from missing, recycled and replaced anchors", () => {
     const nodes = selectableRows(); enable();
