@@ -58,6 +58,40 @@
     feature.stop(); assert(css(node).display === "flex" && css(node).backgroundColor === baseline && workspace.innerHTML === html, "exact restoration");
     assert(!root.hasAttribute("data-gp-theme") && !root.hasAttribute("data-gp-accent"), "root cleaned");
   });
+  await test("chrome stays readable when Gmail's native palette differs from the selected theme", () => {
+    workspace.innerHTML = `<div gh="tm"><div role="button" class="amH"><span class="Dj"><span class="ts">1–9 of 9</span></span></div><div role="button"><svg class="T-I-J3"><path d="M0 0h10v10H0z"/></svg><span class="T-Jo" role="checkbox"></span></div></div>
+      <form role="search"><button type="button"><svg><path d="M0 0h10v10H0z"/></svg></button></form>
+      <nav role="navigation"><span class="aAv">Mailboxes</span><div class="aAu" role="button" aria-label="Create new label"></div><div class="TN"><div class="TH aih" role="link"></div><div class="aio"><span class="nU">Native label</span></div><div class="nL"><div class="pM"></div></div></div></nav>
+      <div class="apa"><div class="apb">No conversations selected</div></div>
+      <div class="iY"><h2 data-thread-perm-id="fixture" data-legacy-thread-id="fixture">Subject</h2><div class="gE"><span class="hb">To: Fixture <span class="g2">Metadata</span></span></div></div>`;
+    const text = [...workspace.querySelectorAll('.Dj, .ts, .aAv, .aio, .nU, .apb, .hb')];
+    const glyphs = [...workspace.querySelectorAll('[gh="tm"] svg, [gh="tm"] .T-Jo, [role="search"] svg, .aAu, .TH, .pM')];
+    const probe = document.createElement('span'); probe.style.filter = 'var(--gp-icon-filter)'; workspace.append(probe);
+    for (const nativeColor of ['white', 'black']) {
+      for (const node of [...text, ...glyphs]) node.style.color = nativeColor;
+      for (const glyph of glyphs) glyph.style.fill = nativeColor;
+      for (const theme of ['light', 'dark']) {
+        enable({appearanceTheme:theme});
+        for (const node of text) assert(contrast(css(node).color, token('--gp-bg-secondary')) >= 4.5, `${theme} chrome text overrides native ${nativeColor}`);
+        for (const glyph of glyphs) assert(css(glyph).filter === css(probe).filter, `${theme} native glyph uses the selected theme filter`);
+        assert(contrast(css(workspace.querySelector('.hb .g2')).color, token('--gp-bg-primary')) >= 4.5, `${theme} recipient metadata remains readable`);
+      }
+    }
+    feature.stop();
+    assert(css(workspace.querySelector('.aAv')).color === color('black') && css(workspace.querySelector('.TH')).filter === 'none', 'mode OFF restores native text and icons');
+  });
+  await test("split-pane divider follows the theme while preserving the native drag handle", () => {
+    workspace.innerHTML = '<div gh="tl" class="Nm"><div class="Nt" style="width:8px;height:200px;border:2px solid red;background:yellow"></div></div>';
+    const handle = workspace.querySelector('.Nt'), baseline = {width:rect(handle).width, height:rect(handle).height, background:css(handle).backgroundImage};
+    for (const theme of ['light', 'dark', 'light']) {
+      enable({appearanceTheme:theme});
+      const shade = theme === 'light' ? 'rgb(227, 229, 231)' : 'rgb(17, 21, 23)';
+      assert(css(handle).backgroundImage === `linear-gradient(${shade}, ${shade})`, `${theme} divider shade`);
+      assert(css(handle).backgroundSize === '1px 100%', 'only one hairline is painted');
+      assert(rect(handle).width === baseline.width && rect(handle).height === baseline.height, 'native drag dimensions stay intact');
+    }
+    feature.stop(); assert(css(handle).backgroundImage === baseline.background && css(handle).borderLeftColor === 'rgb(255, 0, 0)', 'OFF restores native divider');
+  });
   await test("empty split-pane footer keeps activity 16px from bottom and restores when OFF", () => {
     const main = document.createElement('main'); main.setAttribute('role', 'main');
     main.innerHTML = '<div class="apa" style="position:relative;height:300px"><div class="apb">No conversations selected</div><div class="apO" style="position:absolute;bottom:0;margin-bottom:32px;padding-bottom:10px"><div class="uXhw3b"><div><div class="l6"><div>Last account activity: 1 minute ago</div><span class="l8" role="link" tabindex="0">Details</span></div></div></div><div class="bp"><a>Program Policies</a><div>Powered by Google</div></div></div></div>';
@@ -161,6 +195,7 @@
     assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");
     assert(css(link).color === token("--gp-label-accent"), "accent mailbox text");
     assert(css(selected.querySelector("svg")).fill === token("--gp-label-accent"), "accent mailbox icon");
+    assert(css(link).color !== token("--gp-accent") && css(link).color !== token("--gp-accent-ui"), "mailbox highlight has its own shade across all accents");
     if (accent === "blue") assert(css(link).color === "rgb(0, 174, 255)", "exact requested blue label color");
     else assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast");
     assert(css(selected.querySelector(".bsU")).color === "rgb(156, 158, 160)", "exact requested mailbox count gray in both themes");

@@ -152,13 +152,22 @@
   function subscribe(listener) {
     if (typeof listener !== "function") throw new TypeError("Listener must be a function.");
     if (subscribers.has(listener)) return subscribers.get(listener);
-    if (subscribers.size === 0) chrome.storage.onChanged.addListener(onChanged);
+    // Keep the registered event: reloading the extension can remove chrome.storage
+    // from an old Gmail tab before its pagehide cleanup runs.
+    const storageChanges = chrome.storage.onChanged;
+    if (subscribers.size === 0) storageChanges.addListener(onChanged);
     const unsubscribe = () => {
       // An old cleanup must not remove a newer subscription of the same callback.
       if (subscribers.get(listener) !== unsubscribe) return;
 
       if (subscribers.delete(listener) && subscribers.size === 0) {
-        chrome.storage.onChanged.removeListener(onChanged);
+        try {
+          storageChanges.removeListener(onChanged);
+        } catch (error) {
+          // Chrome already owns disposal of an invalidated extension context.
+          // Local subscribers are released first so the remaining cleanup can run.
+          if (error?.message !== "Extension context invalidated.") throw error;
+        }
       }
     };
     subscribers.set(listener, unsubscribe);

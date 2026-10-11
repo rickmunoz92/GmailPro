@@ -159,6 +159,43 @@ test("old cleanup cannot remove a newer subscription of the same callback", () =
   assert.equal(f.listeners.size, 0);
 });
 
+test("subscription cleanup survives Chrome APIs disappearing after extension reload", () => {
+  for (const api of ["storage", "chrome"]) {
+    const f = fixture();
+    const stop = f.settings.subscribe(() => {});
+    if (api === "storage") delete f.context.chrome.storage;
+    else delete f.context.chrome;
+    assert.doesNotThrow(stop);
+    assert.doesNotThrow(stop);
+    assert.equal(f.listeners.size, 0);
+  }
+});
+
+test("subscription cleanup releases callbacks when Chrome invalidates the event", () => {
+  const f = fixture();
+  let calls = 0, removals = 0;
+  const stop = f.settings.subscribe(() => calls++);
+  const emit = [...f.listeners][0];
+  f.context.chrome.storage.onChanged.removeListener = () => {
+    removals++;
+    throw new Error("Extension context invalidated.");
+  };
+  assert.doesNotThrow(stop);
+  assert.doesNotThrow(stop);
+  emit({ [prefix + "autoBccEnabled"]: { newValue: true } }, "sync");
+  assert.equal(calls, 0);
+  assert.equal(removals, 1);
+});
+
+test("subscription cleanup still reports unrelated event failures", () => {
+  const f = fixture();
+  const stop = f.settings.subscribe(() => {});
+  f.context.chrome.storage.onChanged.removeListener = () => {
+    throw new Error("Unexpected event failure");
+  };
+  assert.throws(stop, /Unexpected event failure/);
+});
+
 test("reloading shared scripts preserves the single settings owner", () => {
   const f = fixture();
   const stop = f.settings.subscribe(() => {});
@@ -183,7 +220,7 @@ test("Auto BCC normalizes addresses and thread ordering is inert until enabled",
   assert.equal(f.listeners.size, 0);
 });
 
-test("content startup merges concurrent settings, starts once, and cleans up", async () => {
+test("content startup merges concurrent settings, starts once, and cleans up after extension reload", async () => {
   const f = fixture();
   let resolveLoad;
   let started;
@@ -251,6 +288,7 @@ test("content startup merges concurrent settings, starts once, and cleans up", a
   assert.deepEqual(shortcutsPatches, reversePatches);
   assert.deepEqual(pagingPatches, reversePatches);
   assert.deepEqual(headerPatches, reversePatches);
+  delete f.context.chrome.storage;
   pagehide(); assert.equal(headerStops, 1); assert.equal(pagingStops, 1); assert.equal(shortcutsStops, 1); assert.equal(readingStops, 1); assert.equal(appearanceStops, 1); assert.equal(zoomStops, 1); assert.equal(listStops, 1); assert.equal(f.listeners.size, 0); assert.equal(stops, 1); assert.equal(reverseStops, 1);
 });
 

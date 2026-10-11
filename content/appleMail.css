@@ -78,7 +78,10 @@
     color: var(--gp-text-secondary) !important;
   }
   [gh="tm"] [role="button"]:hover { background-color: var(--gp-hover) !important; }
-  [gh="tm"] :is(svg, .T-I-J3) { filter: var(--gp-icon-filter); }
+  [gh="tm"] :is(svg, .T-I-J3, .T-Jo) { filter: var(--gp-icon-filter); }
+  /* Native dark Gmail assigns white to the range's nested spans independently
+     of the button. Normalize only this paging control, not menu contents. */
+  [gh="tm"] .amH :is(.Dj, .ts, span) { color: var(--gp-text-secondary) !important; }
   /* Keep the security extension's action intact; neutralize its branded bitmap. */
   [gh="mtb"] .inboxsdk__button[data-tooltip="Phish Alert"] .inboxsdk__button_iconImg {
     filter: grayscale(1) brightness(0) invert(.65);
@@ -96,12 +99,13 @@
   }
   [role="search"] input::placeholder { color: var(--gp-text-muted) !important; }
   [role="search"] :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }
+  [role="search"] svg { filter: var(--gp-icon-filter); }
   [role="search"]:focus-within { outline: 2px solid var(--gp-accent-ui); outline-offset: -2px; }
   [role="main"] [gh="tl"] > .Nt { background: var(--gp-border) !important; }
-  /* .Nm is Gmail's side-by-side split. Paint one dark hairline inside the
+  /* .Nm is Gmail's side-by-side split. Paint one themed hairline inside the
      native handle; transparent borders retain its full width and drag target. */
   [role="main"] [gh="tl"].Nm > .Nt {
-    background: linear-gradient(#111517, #111517) center / 1px 100% no-repeat var(--gp-bg-primary) !important;
+    background: linear-gradient(var(--gp-pane-divider), var(--gp-pane-divider)) center / 1px 100% no-repeat var(--gp-bg-primary) !important;
     border-color: transparent !important;
     box-shadow: none !important;
   }
@@ -118,6 +122,7 @@
   [role="main"] h2[data-thread-perm-id] { color: var(--gp-text-primary) !important; font: 600 19px/1.4 var(--gp-font) !important; }
   [role="main"] .gE :is(h3, .gD, .g2, .g3, .gK, .go) { color: var(--gp-text-secondary) !important; font-family: var(--gp-font) !important; }
   [role="main"] .gE .gD { color: var(--gp-text-primary) !important; }
+  [role="main"] .apa > .apb { color: var(--gp-text-muted) !important; }
   [role="main"] [role="list"] > [role="listitem"] { border-color: var(--gp-border) !important; box-shadow: none !important; }
   :is([gh="tm"], [role="search"], [data-gmail-pro-label-ui]) :focus-visible {
     outline: 2px solid var(--gp-accent-ui) !important;
@@ -145,6 +150,7 @@
     color: var(--gp-text-secondary) !important;
     font-size: 13px !important;
   }
+  :scope :is(.aAv, .aio, .nU) { color: var(--gp-text-secondary) !important; }
   :scope :is(.TN, .n0, .nU, .aio) {
     font-weight: 400 !important;
     text-shadow: none !important;
@@ -172,6 +178,9 @@
   }
   :scope .TO.nZ .TN svg { fill: var(--gp-label-accent) !important; color: var(--gp-label-accent) !important; }
   :scope .TN svg { fill: var(--gp-text-secondary); }
+  /* Native plus, disclosure arrows and menu dots can remain white bitmaps
+     after Gmail Pro switches to light chrome. Leave label SVG accents intact. */
+  :scope :is(.aAu, .TN > .TH, .nL > .pM) { filter: var(--gp-icon-filter); }
   /* Gmail's native .nY drop target can be on the row or its inner wrapper.
      Keep Gmail in charge of the drag; only replace its yellow feedback. */
   :scope .aim.nY:has(a[href*="#"]),
@@ -356,7 +365,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="
   :scope :focus-visible { outline: 2px solid currentColor !important; outline-offset: 1px; }
 }
 @media (forced-colors: active) {
-  html.gmail-pro-apple-mail-mode { --gp-accent: Highlight; --gp-accent-contrast: HighlightText; --gp-accent-ui: LinkText; --gp-label-accent: LinkText; --gp-selection-sidebar-bg: ButtonFace; }
+  html.gmail-pro-apple-mail-mode { --gp-accent: Highlight; --gp-accent-contrast: HighlightText; --gp-accent-ui: LinkText; --gp-label-accent: LinkText; --gp-selection-sidebar-bg: ButtonFace; --gp-pane-divider: CanvasText; }
 }
 /* Gmail's transient top-center loading banner, separate from alert/Undo toasts. */
 html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
@@ -488,8 +497,8 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   .gE h3 { margin: 0; }
   .gE .gD { font-weight: 600; font-size: 14px; }
   .gE :is(.g3, .g2, .go, .ajw) { font-size: 12px; }
-  .gE .hb { color: #DEE0E2 !important; }
-  .gE .hb .g2 { color: #9C9EA0 !important; }
+  .gE .hb { color: var(--gp-text-primary) !important; }
+  .gE .hb .g2 { color: var(--gp-reading-meta-text) !important; }
   .gE .gH { vertical-align: top; }
   .gE button:has(svg) { width: 30px !important; height: 30px !important; }
   .gE :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }

@@ -11,7 +11,9 @@
   --gp-text-primary: #202124;
   --gp-text-secondary: #4f535a;
   --gp-text-muted: #656a73;
+  --gp-reading-meta-text: var(--gp-text-muted);
   --gp-border: #d9dadd;
+  --gp-pane-divider: #e3e5e7;
   --gp-hover: #e9eaed;
   --gp-selection-sidebar-bg: #dedfe3;
   --gp-sidebar-width: 216px;
@@ -19,10 +21,11 @@
   --gp-accent: #007AFF;
   --gp-accent-contrast: #ffffff;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 80%, black);
-  --gp-label-accent: var(--gp-accent-ui);
+  --gp-label-accent: var(--gp-label-accent-light, var(--gp-accent-ui));
   --gp-accent-hover: color-mix(in srgb, var(--gp-accent) 88%, black);
   --gp-accent-active: color-mix(in srgb, var(--gp-accent) 76%, black);
-  --gp-icon-filter: none;
+  /* Normalize both white and black native Gmail assets to our chrome palette. */
+  --gp-icon-filter: brightness(0) invert(.32);
   --gp-selected-icon-filter: brightness(0) invert(1);
 }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"] {
@@ -33,10 +36,13 @@
   --gp-text-primary: #DEE0E2;
   --gp-text-secondary: var(--gp-text-primary);
   --gp-text-muted: var(--gp-text-primary);
+  --gp-reading-meta-text: #9C9EA0;
   --gp-border: #3b3d42;
+  --gp-pane-divider: #111517;
   --gp-hover: #34363b;
   --gp-selection-sidebar-bg: #3c3e43;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 48%, white);
+  --gp-label-accent: var(--gp-label-accent-dark, var(--gp-accent-ui));
   --gp-icon-filter: brightness(0) invert(.86);
 }
 /* Use the full blue palette rather than mixing the dark sidebar blue with white.
@@ -51,19 +57,39 @@
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="blue"] {
   --gp-label-accent: #00AEFF;
 }
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="purple"] { --gp-accent: #8050bd; }
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="pink"] { --gp-accent: #b53675; }
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="red"] { --gp-accent: #c1363c; }
+/* Mailbox highlights have their own shades, like blue's cyan highlight.
+   Vivid dark-mode shades and saturated light-mode shades keep non-blue mailbox
+   text at >= 4.5:1 on the neutral selection background. */
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="purple"] {
+  --gp-accent: #8050bd;
+  --gp-label-accent-light: #8c00df; --gp-label-accent-dark: #c498ff;
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="pink"] {
+  --gp-accent: #b53675;
+  --gp-label-accent-light: #bd006b; --gp-label-accent-dark: #ff89bc;
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="red"] {
+  --gp-accent: #c1363c;
+  --gp-label-accent-light: #c31c00; --gp-label-accent-dark: #ff8e83;
+}
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="orange"] {
   --gp-accent: #ed942b; --gp-accent-contrast: #202124;
   --gp-selected-icon-filter: brightness(0); --gp-accent-ui: #7c4400;
+  --gp-label-accent-light: #b23800; --gp-label-accent-dark: #ffae52;
 }
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="yellow"] {
   --gp-accent: #edce43; --gp-accent-contrast: #202124;
   --gp-selected-icon-filter: brightness(0); --gp-accent-ui: #685600;
+  --gp-label-accent-light: #7f5d00; --gp-label-accent-dark: #ffdc52;
 }
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="green"] { --gp-accent: #287b46; }
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="graphite"] { --gp-accent: #626a73; }
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="green"] {
+  --gp-accent: #287b46;
+  --gp-label-accent-light: #00723c; --gp-label-accent-dark: #4edb91;
+}
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="graphite"] {
+  --gp-accent: #626a73;
+  --gp-label-accent-light: #356784; --gp-label-accent-dark: #a4b7c3;
+}
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"]:is([data-gp-accent="orange"], [data-gp-accent="yellow"]) {
   --gp-accent-ui: var(--gp-accent);
 }

@@ -155,8 +155,9 @@ No Gmail permissions, API calls, data stores, analytics, or dependencies are add
 For the three-pane layout, use Gmail's own **Settings → Reading pane → Right of
 inbox**. Gmail Pro styles the existing panes; it does not enable a Gmail preference
 behind your back or simulate a reading pane. Gmail owns splitters and saved pane
-widths. The vertical divider paints a single 1px dark line inside Gmail's original
-resize handle, keeping its full drag area. The expanded mailbox sidebar is about
+widths. The vertical divider paints a single 1px line inside Gmail's original
+resize handle, keeping its full drag area. The line is pale gray in Light and
+dark in Dark. The expanded mailbox sidebar is about
 216px on wide desktop windows; narrow
 windows and collapsed navigation retain Gmail's sizing. The collapsible header described below reclaims space while fitting the right reading
 pane to Gmail’s measured viewport.
