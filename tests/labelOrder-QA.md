@@ -1,5 +1,29 @@
 # Label organization QA — 0.9.37
 
+## Nested parent identity fix — October 12, 2026
+
+Gmail's closed parent picker displays a nested parent's short name, while its
+selected option's `data-value` retains the full path. Comparing that display text
+with the sidebar path incorrectly rejected deeper sublabels as the wrong editor.
+Source validation, destination verification, and keyboard Save now share the
+selected full-path lookup, scoped to the editor's controlled listbox. An editor
+for a different parent is still rejected when both parents have the same short
+name. The fixture models Gmail's short display names and selected option values.
+
+- `node scripts/validate.cjs`: manifest/resources/syntax/minimal-permission checks
+  passed; **41/41 settings and lifecycle tests** passed.
+- Label fixture in the Codex in-app browser: **49/49** passed, including deeper
+  source nesting, nested destinations with repeated short names, keyboard moves,
+  hidden-path migration, and wrong-parent rejection.
+- Live English Gmail: reproduced the original rejection, reloaded the unpacked
+  extension from `/Users/rmunoz/Documents/GmailPro`, then opened the same nested
+  label's editor through the organizer. The requested move to a top-level parent
+  saved successfully, reported the confirmed destination, and persisted after a
+  Gmail refresh. The mailbox still showed its original 27 conversations.
+- Live verification used the keyboard/native-editor path. Pointer moves are
+  covered by the browser fixture; a new live pointer gesture was not performed.
+- Changes remain local; Git publication was not requested.
+
 Validated September 29–30, 2026, against English desktop Gmail and the synthetic
 browser fixtures. The previous release's organization results are retained below.
 

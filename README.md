@@ -257,6 +257,8 @@ owned by the existing message-list controller in both appearance modes.
 
 Message fonts, HTML, images and tables are not rewritten or inverted. A light Gmail
 message-wrapper canvas keeps transparent documents readable beside dark chrome.
+It applies immediately to newly sent copies, including BCC-to-self, before Gmail
+finishes assigning message identity metadata; no page refresh is required.
 If Dark Reader advertises ownership of document colors, its canvas is left alone.
 All composer surfaces and compose-owned popups retain Gmail’s native appearance.
 Editable content, addressing, formatting, and outgoing HTML are untouched.

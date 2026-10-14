@@ -496,6 +496,46 @@
     }
     enable(); assert(inners.every(([node,size,color]) => css(node).fontSize===size && css(node).color===color), 'nested navigation is excluded');
   });
+  for (const appearanceTheme of ['dark', 'light']) await test(`${appearanceTheme}: newly sent messages get a light canvas before identity metadata arrives`, () => {
+    enable({appearanceTheme});
+    const envelope = document.createElement('div');
+    envelope.innerHTML = '<div class="gs"><div><div class="ii gt"><div class="a3s"><p>Newly sent BCC copy</p><table style="background:#122333;color:white"><tbody><tr><td>Authored table</td></tr></tbody></table></div></div></div></div>';
+    workspace.append(envelope);
+    const wrapper = envelope.querySelector('.ii'), body = wrapper.firstElementChild, table = body.querySelector('table');
+    const html = body.innerHTML;
+    const assertCanvas = () => {
+      assert(css(wrapper).backgroundColor === 'rgb(255, 255, 255)', 'white canvas without refresh');
+      assert(css(body.querySelector('p')).color === token('--gp-document-text'), 'transparent text stays readable');
+      assert(css(table).backgroundColor === 'rgb(18, 35, 51)' && css(table).color === 'rgb(255, 255, 255)', 'authored colors retained');
+      assert(body.innerHTML === html, 'outgoing message HTML untouched');
+    };
+    assertCanvas(); // No list role, message IDs or expanded-state metadata yet.
+    envelope.setAttribute('data-message-id', 'synthetic-sent'); assertCanvas();
+    envelope.setAttribute('data-legacy-message-id', 'synthetic-legacy'); assertCanvas();
+    const list = document.createElement('div'); list.setAttribute('role', 'list');
+    workspace.append(list); list.append(envelope); assertCanvas();
+    envelope.remove(); list.append(envelope); assertCanvas(); // Native SPA reinsertion.
+    feature.stop(); assert(css(wrapper).backgroundColor === 'rgba(0, 0, 0, 0)', 'mode OFF restores native canvas');
+    enable({appearanceTheme}); assertCanvas();
+    root.setAttribute('data-darkreader-mode', 'dynamic');
+    try { assert(css(wrapper).backgroundColor === 'rgba(0, 0, 0, 0)', 'Dark Reader retains canvas ownership'); }
+    finally { root.removeAttribute('data-darkreader-mode'); }
+    assertCanvas();
+  });
+  await test('document canvas excludes authored lookalikes, composers and native popups', () => {
+    const wrappers = [];
+    for (const boundary of ['class="ii"', 'class="a3s"', 'contenteditable="true"', 'contenteditable="plaintext-only"', 'role="region"', 'role="dialog"', 'role="menu"', 'role="listbox"']) {
+      const holder = document.createElement('div'); holder.innerHTML = `<div ${boundary}><div class="ii"><div class="a3s" style="color:#123456">Protected content</div></div></div>`;
+      workspace.append(holder); wrappers.push(holder.querySelector('.ii:has(> .a3s)'));
+    }
+    const form = document.createElement('form'); form.innerHTML = '<div class="ii"><div class="a3s">Compose form</div></div>';
+    workspace.append(form); wrappers.push(form.firstElementChild);
+    const editor = document.createElement('div'); editor.className = 'ii'; editor.contentEditable = 'true'; editor.innerHTML = '<div class="a3s">Editable wrapper</div>';
+    workspace.append(editor); wrappers.push(editor);
+    const before = wrappers.map(node => [css(node).backgroundColor, css(node).color, node.innerHTML]);
+    enable();
+    assert(wrappers.every((node, index) => JSON.stringify([css(node).backgroundColor, css(node).color, node.innerHTML]) === JSON.stringify(before[index])), 'protected wrappers stay native');
+  });
   await test("message HTML and editor formatting stay byte-for-byte and visually unchanged", () => {
     const nodes = [...document.querySelectorAll(".ii > .a3s, .a3s *, [contenteditable], [contenteditable] *")];
     const snapshot = () => nodes.map(e => ({html:e.innerHTML,font:css(e).font,color:css(e).color,bg:css(e).backgroundColor,filter:css(e).filter}));

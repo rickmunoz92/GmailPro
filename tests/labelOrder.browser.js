@@ -5,7 +5,7 @@
   const results = document.getElementById("results");
   const reports = [];
   let saved = [], writes = 0, fail = false, failRead = false, prefs;
-  let nativeSaves = 0, badEditor = false, refuseSave = false, deferEditor = false, model;
+  let nativeSaves = 0, badEditor = false, wrongParent = null, refuseSave = false, deferEditor = false, model;
   let deferSave = false, pendingCommit, changeAccountOnSelect = false, collapseDestination = false;
   let badgeHidden, reuseMenu = false, nativeMenuNode, unknownMenu = false, deferredRead;
   const settings = GmailPro.settings;
@@ -80,12 +80,13 @@
     dialog.innerHTML = '<h2>Edit label</h2><label for="native-name">Label name:</label><input id="native-name" type="text"><label for="native-nest">Nest label under:</label><input id="native-nest" type="checkbox" checked><div role="combobox" aria-label="Nest label under:" aria-controls="native-parents" aria-expanded="false" tabindex="0"></div><ul id="native-parents" role="listbox" style="display:none"></ul><button>Cancel</button><button>Save</button>';
     dialog.querySelector('input[type="text"]').value = badEditor ? "Different label" : leaf;
     const combo = dialog.querySelector('[role="combobox"]'), list = dialog.querySelector("ul");
-    combo.textContent = parent;
+    combo.textContent = (wrongParent || parent).split("/").at(-1);
     combo.addEventListener("click", () => { list.style.display = "block"; combo.setAttribute("aria-expanded", "true"); });
     for (const key of model.keys()) {
       const option = document.createElement("li"); option.setAttribute("role", "option"); option.dataset.value = key; option.textContent = key;
+      option.setAttribute("aria-selected", String(key === (wrongParent || parent)));
       option.addEventListener("click", () => {
-        combo.textContent = key; combo.setAttribute("aria-expanded", "false"); list.style.display = "none";
+        combo.textContent = key.split("/").at(-1); combo.setAttribute("aria-expanded", "false"); list.style.display = "none";
         for (const item of list.children) item.setAttribute("aria-selected", String(item === option));
         if (changeAccountOnSelect) host.querySelector('header button').setAttribute("aria-label", "Unknown account");
       });
@@ -96,13 +97,14 @@
       if (refuseSave) return;
       const commit = () => {
         nativeSaves++;
-        const newName = combo.textContent + "/" + dialog.querySelector('input[type="text"]').value;
+        const parentName = list.querySelector('[aria-selected="true"]').dataset.value;
+        const newName = parentName + "/" + dialog.querySelector('input[type="text"]').value;
         const next = new Map();
         for (const [path, assignments] of model) next.set(path === name || path.startsWith(name + "/") ? newName + path.slice(name.length) : path, assignments);
         model = next;
         host.querySelector(".TK").replaceChildren(...[...model.keys()].sort().map(path => row(path, path.split("/").length - 1)));
         if (collapseDestination) {
-          const nativeList = host.querySelector('.TK'), parentName = combo.textContent;
+          const nativeList = host.querySelector('.TK');
           for (const node of [...nativeList.children]) if (ids(node)[0].startsWith(parentName + '/')) node.remove();
           const parentRow = [...nativeList.children].find(node => ids(node)[0] === parentName);
           const expand = document.createElement('div'); expand.setAttribute('role', 'link'); expand.title = 'Expand label: ' + parentName;
@@ -134,7 +136,7 @@
     feature.stop();
     document.querySelectorAll('.aka, [role="alertdialog"]').forEach(node => node.remove());
     prefs = { ...settings.defaults, customLabelOrder: [], sidebarHiddenSublabels: [] };
-    fail = false; failRead = false; badEditor = false; refuseSave = false; deferEditor = false; nativeSaves = 0;
+    fail = false; failRead = false; badEditor = false; wrongParent = null; refuseSave = false; deferEditor = false; nativeSaves = 0;
     deferSave = false; pendingCommit = null; changeAccountOnSelect = false; collapseDestination = false;
     badgeHidden = new Set(); reuseMenu = false; nativeMenuNode = null; unknownMenu = false; deferredRead = null;
     host.removeAttribute('style');
@@ -349,6 +351,40 @@
     equal(model.get("Beta/Child"), ["synthetic-message"]); equal(model.get("Beta/Child/Grandchild"), ["synthetic-message"]);
     equal(prefs.sidebarHiddenSublabels, [{ account:"one@example.test", path:"label/Beta/Child/Grandchild" }]);
     assert(host.querySelector('[role="status"]').textContent.includes("Moved under Beta"), "committed move reported");
+  });
+  await test("a deeply nested sublabel moves to a root parent using the selected full path", async () => {
+    const list = fixture(["Partners", "Partners/Whitlock", "Partners/Whitlock/Ferguson", "Partners/Whitlock/Ferguson/Child", "Projects"]);
+    on([]); feature.edit(); eye(list, "Partners/Whitlock/Ferguson/Child").click(); await settle();
+    drag(list, "Partners/Whitlock/Ferguson", "Projects"); await settle();
+    equal(nativeSaves, 1); assert(!model.has("Partners/Whitlock/Ferguson"), "old path retired");
+    equal(model.get("Projects/Ferguson"), ["synthetic-message"]); equal(model.get("Projects/Ferguson/Child"), ["synthetic-message"]);
+    equal(prefs.sidebarHiddenSublabels, [{account:"one@example.test", path:"label/Projects/Ferguson/Child"}]);
+    assert(host.querySelector('[role="status"]').textContent.includes("Moved under Projects"), "native move confirmed");
+  });
+  await test("pointer moves to the full nested destination when parent leaf names repeat", async () => {
+    const list = fixture(["Alpha", "Alpha/Child", "Projects", "Projects/Active", "Archive", "Archive/Active"]);
+    on([]); feature.edit(); drag(list, "Alpha/Child", "Projects/Active"); await settle();
+    equal(nativeSaves, 1); equal(model.get("Projects/Active/Child"), ["synthetic-message"]);
+    assert(!model.has("Archive/Active/Child") && !model.has("Active/Child"), "exact destination used");
+    assert(host.querySelector('[role="status"]').textContent.includes("Moved under Projects/Active"), "full destination confirmed");
+  });
+  await test("keyboard moves resolve nested parent identities and migrate hidden paths", async () => {
+    const list = fixture(["Partners", "Partners/Whitlock", "Partners/Whitlock/Ferguson", "Projects", "Projects/Active"]);
+    on([]); feature.edit(); eye(list, "Partners/Whitlock/Ferguson").click(); await settle();
+    handle(list, "Partners/Whitlock/Ferguson").dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", bubbles:true})); await settle();
+    const dialog = document.querySelector('[role="alertdialog"]'); assert(dialog, "correct nested source editor opened");
+    dialog.querySelector('[role="combobox"]').click();
+    dialog.querySelector('[data-value="Projects/Active"]').click(); dialog.querySelectorAll('button')[1].click(); await settle();
+    equal(nativeSaves, 1); equal(prefs.sidebarHiddenSublabels, [{account:"one@example.test", path:"label/Projects/Active/Ferguson"}]);
+    assert(host.querySelector('[role="status"]').textContent.includes("Moved under Projects/Active"), "keyboard move confirmed");
+  });
+  await test("an editor for a different full parent is rejected even when its leaf name matches", async () => {
+    const list = fixture(["Partners", "Partners/Whitlock", "Partners/Whitlock/Ferguson", "Other", "Other/Whitlock", "Projects"]);
+    on([]); feature.edit(); wrongParent = "Other/Whitlock";
+    drag(list, "Partners/Whitlock/Ferguson", "Projects"); await settle();
+    equal(nativeSaves, 0); assert(model.has("Partners/Whitlock/Ferguson"), "original hierarchy retained");
+    assert(host.querySelector('[role="status"]').textContent.includes("different label"), "wrong parent rejected");
+    assert(!document.querySelector('[role="alertdialog"]'), "owned editor cancelled");
   });
   await test("self, current parent and descendant drops never open the editor or save", async () => {
     const list = fixture(); on(); feature.edit();

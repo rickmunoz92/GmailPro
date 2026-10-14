@@ -249,11 +249,16 @@
 
   :scope :focus-visible { outline: 2px solid var(--gp-accent-ui) !important; outline-offset: 2px; }
 }
-/* Give transparent email HTML its original light document canvas. This is the
-   Gmail wrapper, not the email HTML. When Dark Reader owns document colors,
-   leave its canvas alone. Explicit email fonts/colors/images remain
-   intact. Without a canvas, native black text could land on dark chrome. */
-html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] [role="list"] [data-message-id][data-legacy-message-id] .ii:has(> .a3s):not([contenteditable="true"] *) {
+/* Give transparent email HTML its original light canvas as soon as Gmail's
+   native body wrapper appears. Newly sent copies can precede message IDs/list
+   metadata; those are not needed to style the canvas. Exclude authored
+   lookalikes, composers and popups. When Dark Reader owns document colors,
+   leave its canvas alone. Explicit email fonts/colors/images remain intact. */
+html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] .ii:has(> .a3s):not(
+  .ii *, .a3s *, [contenteditable], [contenteditable] *, form, form *,
+  [role="region"], [role="region"] *, [role="dialog"], [role="dialog"] *,
+  [role="menu"], [role="menu"] *, [role="listbox"], [role="listbox"] *
+) {
   background-color: var(--gp-document-bg) !important;
   color: var(--gp-document-text) !important;
 }

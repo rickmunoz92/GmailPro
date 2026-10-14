@@ -472,6 +472,19 @@
     return name?.matches('input[type="text"]') && nest?.matches('input[type="checkbox"]') && combo && save && cancel ?
       { dialog, name, nest, combo, save, cancel } : null;
   }
+  function parentList(fields) {
+    const list = document.getElementById(fields.combo.getAttribute("aria-controls"));
+    return list && fields.dialog.contains(list) && list.getAttribute("role") === "listbox" ? list : null;
+  }
+  function editorParent(fields) {
+    const list = parentList(fields);
+    if (!list) return null;
+    const selected = [...list.querySelectorAll('[role="option"]')].filter(node => node.getAttribute("aria-selected") === "true");
+    // Gmail displays only the leaf (Whitlock), but data-value retains the full
+    // parent path (Partners/Whitlock), even while the picker is closed.
+    if (selected.length) return selected.length === 1 ? selected[0].getAttribute("data-value") : null;
+    return fields.combo.textContent.trim();
+  }
   function waitFor(check, roots, signal, timeout = 5000) {
     return new Promise((resolve, reject) => {
       let watch, timer;
@@ -516,7 +529,7 @@
     const fields = await waitFor(() => one(document.querySelectorAll(S.labelEditor), node => visible(node) && editorFields(node)), [document.body], op.controller.signal);
     op.fields = editorFields(fields); checkOperation(op);
     const parent = source.parentId.slice(6), name = source.id.slice(source.parentId.length + 1);
-    if (op.fields.name.value !== name || !op.fields.nest.checked || op.fields.combo.textContent.trim() !== parent) {
+    if (op.fields.name.value !== name || !op.fields.nest.checked || editorParent(op.fields) !== parent) {
       throw new Error("Gmail opened a different label. No move was saved.");
     }
     return op.fields;
@@ -535,9 +548,7 @@
       };
       const cancel = () => finish(null);
       const save = () => {
-        const list = document.getElementById(fields.combo.getAttribute("aria-controls"));
-        const selected = list && one(list.querySelectorAll('[role="option"]'), node => node.getAttribute("aria-selected") === "true");
-        const parent = selected?.getAttribute("data-value") || fields.combo.textContent.trim();
+        const parent = editorParent(fields);
         if (!fields.nest.checked || !parent || !fields.name.value) { finish(null); return; }
         op.submitted = true;
         finish({ parentId: "label/" + parent, newId: "label/" + parent + "/" + fields.name.value });
@@ -574,17 +585,17 @@
         if (findRow(newId)) throw new Error("That parent already has a sublabel with this name. No move was saved.");
         gesture(fields.combo);
         const options = await waitFor(() => {
-          const list = document.getElementById(fields.combo.getAttribute("aria-controls"));
-          if (!list || !fields.dialog.contains(list) || list.getAttribute("role") !== "listbox" || !visible(list)) return null;
+          const list = parentList(fields);
+          if (!visible(list)) return null;
           if ([...list.querySelectorAll('[role="option"]')].some(node => node.getAttribute("data-value") === newId.slice(6))) {
             throw new Error("That parent already has a sublabel with this name. No move was saved.");
           }
           return one(list.querySelectorAll('[role="option"]'), node => node.getAttribute("data-value") === target.id.slice(6) && node.getAttribute("aria-disabled") !== "true");
         }, [fields.dialog], op.controller.signal);
         checkOperation(op); gesture(options);
-        await waitFor(() => fields.combo.textContent.trim() === target.id.slice(6) && fields.combo.getAttribute("aria-expanded") !== "true", [fields.dialog], op.controller.signal);
+        await waitFor(() => editorParent(fields) === target.id.slice(6) && fields.combo.getAttribute("aria-expanded") !== "true", [fields.dialog], op.controller.signal);
         checkOperation(op);
-        if (fields.name.value !== name || !fields.nest.checked || !findRow(id) || !findRow(targetId) ||
+        if (fields.name.value !== name || !fields.nest.checked || editorParent(fields) !== target.id.slice(6) || !findRow(id) || !findRow(targetId) ||
             fields.save.disabled || fields.save.getAttribute("aria-disabled") === "true") throw new Error("The label changed before saving. No move was saved.");
         op.submitted = true; announce("Saving new parent in Gmail…"); gesture(fields.save);
       }
