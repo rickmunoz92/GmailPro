@@ -180,6 +180,8 @@
   });
   for (const theme of ["dark", "light"]) for (const accent of GmailPro.settings.choices.accentColor) await test(`${theme} / ${accent}: selected row, dot, neutral sidebar and palette contrast`, () => {
     const node = row({unread:true,label:"Projects/Example",attachment:true}); enable({appearanceTheme:theme,accentColor:accent});
+    const badge = node.querySelector('.at'), labelText = badge.querySelector('.av');
+    const labelBackground = css(badge).backgroundColor, labelForeground = css(labelText).color;
     node.classList.add("aps");
     // Keep the requested exact label blue and the existing contrast checks
     // for other accents; white selection text on vivid blue remains ~4:1.
@@ -187,7 +189,8 @@
     assert(css(node).backgroundColor === token("--gp-accent"), "native open row uses accent");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= selectionContrast, "subject contrast");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".xW")).color) >= selectionContrast, "date contrast");
-    assert(contrast(css(node).backgroundColor, css(node.querySelector(".at .av")).color) >= selectionContrast, "nested Gmail label text contrast");
+    assert(css(badge).backgroundColor === labelBackground && css(labelText).color === labelForeground, "open label keeps native background and text colors");
+    assert(contrast(css(badge).backgroundColor, css(labelText).color) >= 4.5, "label text contrasts with its own badge");
     assert(dot(node).visibility === "visible" && dot(node).backgroundColor === "rgb(255, 255, 255)" && node.classList.contains("zE"), "selected unread dot stays white until Gmail marks read");
     node.classList.remove("zE"); assert(dot(node).content === "none", "confirmed read removes selected dot");
     node.classList.add("zE"); assert(dot(node).backgroundColor === "rgb(255, 255, 255)", "manual unread restores white dot");
@@ -208,6 +211,7 @@
     assert(css(node.querySelector('.xW > span')).color === 'rgb(156, 158, 160)', 'exact date gray in both themes');
     assert(node.querySelector('.xW > span').hasAttribute('data-gmail-pro-date'), 'Apple Mail mode formats date');
     node.querySelector('[role="checkbox"]').setAttribute('aria-checked', 'true');
+    assert(css(badge).backgroundColor === labelBackground && css(labelText).color === labelForeground, "checked label keeps native background and text colors");
     assert(css(node.querySelector('.xW > span')).color === token('--gp-accent-contrast'), 'checked date uses accent contrast');
     assert(dot(node).visibility === 'visible' && dot(node).backgroundColor === 'rgb(255, 255, 255)', 'checked unread dot stays visible and white');
     node.classList.remove('zE'); assert(dot(node).content === 'none', 'native read clears checked dot');
@@ -216,6 +220,25 @@
     assert(dot(node).visibility === 'visible' && dot(node).backgroundColor === 'rgb(255, 255, 255)', 'unchecking an open row retains white dot');
     node.classList.remove('aps');
     assert(dot(node).visibility === 'visible' && dot(node).backgroundColor === token('--gp-accent'), 'deselection restores accent dot');
+  });
+  await test("custom label colors survive open, checked, combined and deselected states", () => {
+    const node = row({label:'Projects/Example'}), badge = node.querySelector('.at');
+    // Filing badges are buttons; Gmail can supply colors on the badge and nested text.
+    badge.setAttribute('role', 'button');
+    badge.style.cssText = 'background:#fce8e6;color:#a50e0e';
+    badge.querySelector('.av').style.color = 'inherit';
+    const span = document.createElement('span'); span.textContent = 'Nested'; span.style.color = '#123456'; badge.querySelector('.av').append(span);
+    const colors = () => [css(badge).backgroundColor, css(badge).color, css(badge.querySelector('.av')).color, css(span).color].join('|');
+    const nativeColors = colors();
+    for (const appearanceTheme of ['light', 'dark']) for (const accentColor of GmailPro.settings.choices.accentColor) {
+      enable({appearanceTheme, accentColor});
+      for (const [open, checked] of [[false,false], [true,false], [true,true], [false,true], [false,false]]) {
+        node.classList.toggle('aps', open);
+        node.querySelector('[role="checkbox"]').setAttribute('aria-checked', String(checked));
+        assert(colors() === nativeColors, `${appearanceTheme}/${accentColor}: badge and nested foregrounds stay native`);
+      }
+    }
+    feature.stop(); assert(colors() === nativeColors, 'OFF retains native badge colors');
   });
   await test("mailbox counts align right and remain intact beside long nested names", () => {
     const sidebar = document.getElementById("sidebar"), rows = sidebar.querySelectorAll(".TO");

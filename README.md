@@ -170,7 +170,8 @@ pane to Gmail’s measured viewport.
   subjects/dates in compact, approximately 46px rows. The dot
   alone indicates unread status; both states share the same background.
 - **Current conversation:** Gmail's `.aps` reading-pane state fills the row with
-  the chosen accent. Text, timestamps, labels, and icons receive contrasting colors.
+  the chosen accent. Text, timestamps, and icons receive contrasting colors.
+  Label badges retain their Gmail background and text colors when opened or selected.
   An unread dot turns white while selected and disappears only when Gmail marks
   the conversation read.
   Opening an unread reading-pane conversation by click, keyboard navigation, or

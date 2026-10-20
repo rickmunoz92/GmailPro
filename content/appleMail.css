@@ -350,8 +350,9 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] .ii:has
     color: var(--gp-accent-contrast) !important;
   }
   :scope.aps::after, :scope:has(> td > [role="checkbox"][aria-checked="true"])::after { visibility: hidden; }
-  :scope.aps :is(.yW, .bog, .xW, .yi, .at, .at span, .at .av),
-  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi, .at, .at span, .at .av) {
+  /* Keep Gmail's label badge background and text colors through selection. */
+  :scope.aps :is(.yW, .bog, .xW, .yi),
+  :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(.yW, .bog, .xW, .yi) {
     color: var(--gp-accent-contrast) !important;
     background: transparent !important;
   }
@@ -360,7 +361,7 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] .ii:has
   :scope :is(.T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-icon-filter); }
   :scope.aps :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE),
   :scope:has(> td > [role="checkbox"][aria-checked="true"]) :is(svg, .T-Jo, .T-KT, .T-I-J3, .yE) { filter: var(--gp-selected-icon-filter); }
-  :scope :is([role="button"], [role="switch"], [role="checkbox"]) { color: inherit !important; }
+  :scope :is([role="button"], [role="switch"], [role="checkbox"]):not(.at) { color: inherit !important; }
   /* Gmail retains row focus after deselection and can move it after selection.
      Keep focus behavior, but never draw a separate, lagging row outline. */
   :scope, :scope.btb, :scope:focus-visible { outline: none !important; }
