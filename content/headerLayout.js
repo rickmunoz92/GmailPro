@@ -6,7 +6,7 @@
   const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360, TRANSITION_TIMEOUT = 3000;
   const NATIVE_SORT = 'button[data-idom-class="hsirxb"]', NATIVE_SORT_ANCHOR = '.tB5Jxf-M-X-ql-Jf';
   let enabled = false, collapsed = false, open = false, saving = false;
-  let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition;
+  let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition, toolbarProbe;
   let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
@@ -241,7 +241,7 @@
     ctx.captionRange = range; ctx.captionEmpty = empty;
   }
 
-  function geometry(ctx, reserve = 0) {
+  function geometry(ctx, reserve = 0, showToggle = true) {
     const bar = ctx.toolbar.getBoundingClientRect();
     const row = ctx.actionRow.getBoundingClientRect();
     const action = ctx.actions.getBoundingClientRect(), pager = ctx.pager.getBoundingClientRect();
@@ -256,31 +256,82 @@
         node !== searchSort?.node && !(document.documentElement.hasAttribute('data-gp-search-sort-active') && node.matches(NATIVE_SORT)))
       .map(node => node.getBoundingClientRect()).filter(box => box.left >= action.right);
     const toggleLeft = Math.min(bar.right, document.documentElement.clientWidth) - GAP - BUTTON;
-    if (ctx.toolbar.hasAttribute('data-gp-header-toolbar') &&
+    if (showToggle &&
         Math.max(pager.right, ...rightControls.map(box => box.right)) > toggleLeft - GAP + .5) return null;
-    const right = Math.min(toggleLeft - GAP, pager.left - GAP, ...rightControls.map(box => box.left - GAP));
-    if (row.top < 0 || row.height < 20 || row.height > 80 || right - left < BUTTON * 2 + GAP) return null;
+    const right = Math.min(showToggle ? toggleLeft - GAP : Math.min(bar.right, document.documentElement.clientWidth) - GAP,
+      pager.left - GAP, ...rightControls.map(box => box.left - GAP));
+    // Search and Close share one slot; only one is visible at a time. The
+    // arrow has its own trailing reservation, not a second compact-search slot.
+    const sortWidth = document.documentElement.hasAttribute('data-gp-search-sort-active') ? BUTTON : 0;
+    const compactWidth = BUTTON + sortWidth + (sortWidth ? GAP : 0);
+    if (row.top < 0 || row.height < 20 || row.height > 80 || right - left < compactWidth) return null;
     // Keep the field stable as selection actions appear/disappear. If the
     // complete field cannot fit, use the existing compact search control.
-    const sortWidth = document.documentElement.hasAttribute('data-gp-search-sort-active') ? BUTTON : 0;
     const narrow = right - left < SEARCH_WIDTH + GAP + sortWidth;
     const width = narrow ? Math.min(SEARCH_WIDTH, right - bar.left - BUTTON - GAP * 2 - sortWidth - (sortWidth ? GAP : 0)) : SEARCH_WIDTH;
     if (width < 180) return null;
-    return { narrow, width, right, sortWidth, toggleLeft, top: row.top + (row.height - 36) / 2 };
+    return { narrow, width, right, sortWidth, toggleLeft, showToggle, top: row.top + (row.height - 36) / 2 };
   }
 
-  function placeToolbar(ctx) {
-    if (ctx.toolbar.hasAttribute('data-gp-header-toolbar')) return;
-    // Keep native paging/split-pane controls in their own row with a reserved
-    // trailing slot for the header arrow. Native padding restores on mode OFF.
-    const padding = getComputedStyle(ctx.toolbar).paddingRight;
-    ctx.toolbar.style.setProperty('--gp-header-toolbar-padding-right', padding);
-    ctx.toolbar.setAttribute('data-gp-header-toolbar', '');
+  function placeToolbar(ctx, showToggle) {
+    const toolbar = ctx.toolbar;
+    if (!toolbar.hasAttribute('data-gp-header-toolbar')) {
+      const padding = getComputedStyle(toolbar).paddingRight;
+      toolbar.style.setProperty('--gp-header-toolbar-padding-right', padding);
+      toolbar.setAttribute('data-gp-header-toolbar', '');
+    }
+    const reserve = showToggle ? '48px' : '0px';
+    if (toolbar.style.getPropertyValue('--gp-header-toolbar-reserve') !== reserve)
+      toolbar.style.setProperty('--gp-header-toolbar-reserve', reserve);
+  }
+
+  function toolbarGeometry(ctx) {
+    if (sameToolbar(ctx)) {
+      return toolbarProbe.showToggle === null ? null : geometry(ctx, 0, toolbarProbe.showToggle);
+    }
+    // Measure each candidate with its final padding already applied. Both
+    // probes happen before paint with our observer disconnected; neither tears
+    // down the header/sidebar nor dispatches a synthetic resize. In particular,
+    // cleanup cannot turn a failed reserved candidate into the next admission.
+    for (const showToggle of [true, false]) {
+      placeToolbar(ctx, showToggle);
+      const layout = geometry(ctx, 0, showToggle);
+      if (layout) return layout;
+    }
+    return null;
+  }
+
+  function toolbarSnapshot(ctx) {
+    const nodes = [ctx.toolbar, ctx.actionRow, ctx.actions, ctx.pager,
+      ...ctx.actionRow.querySelectorAll('button, [role="button"]')];
+    // Keep one chrome-only geometry snapshot, including native hit targets.
+    // Unrelated native style notifications cannot restart padding probes. A
+    // width, control, visibility, position, or sort-slot change permits a retry.
+    const values = [location.pathname, mailboxKey(location.hash).startsWith('#search/'), document.documentElement.clientWidth,
+      document.documentElement.hasAttribute('data-gp-search-sort-active'),
+      getComputedStyle(ctx.toolbar).paddingRight,
+      ...nodes.flatMap(node => {
+        const box = node.getBoundingClientRect();
+        return [box.left, box.right, box.top, box.height, getComputedStyle(node).visibility, searchSortLabel(node)];
+      })].join('|');
+    return { nodes, values };
+  }
+
+  function rememberToolbar(ctx, layout) {
+    toolbarProbe = { ...toolbarSnapshot(ctx), showToggle: layout ? layout.showToggle : null };
+  }
+
+  function sameToolbar(ctx) {
+    if (!toolbarProbe) return false;
+    const snapshot = toolbarSnapshot(ctx);
+    return snapshot.nodes.length === toolbarProbe.nodes.length &&
+      snapshot.nodes.every((node, i) => node === toolbarProbe.nodes[i]) && snapshot.values === toolbarProbe.values;
   }
 
   function restoreToolbar(toolbar) {
     toolbar.removeAttribute('data-gp-header-toolbar');
     toolbar.style.removeProperty('--gp-header-toolbar-padding-right');
+    toolbar.style.removeProperty('--gp-header-toolbar-reserve');
   }
 
   function schedule() {
@@ -530,7 +581,7 @@
     window.dispatchEvent(new Event('resize'));
   }
 
-  function placeCompose(ctx) {
+  function placeCompose(ctx, layout) {
     const sources = [...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"][role="button"]')];
     const selects = [...ctx.actions.querySelectorAll('.G-as3[role="button"]:has([role="checkbox"])')].filter(visible);
     const source = sources.length === 1 ? sources[0] : null;
@@ -538,7 +589,12 @@
     const shell = source?.closest('.aic');
     shell?.querySelectorAll('.gmail-pro-sidebar-brand').forEach(node => { if (node !== compose?.brand) node.remove(); });
     // Hide only the dedicated native Compose row, never other sidebar content.
-    const safe = shell && [...shell.children].filter(node => node !== compose?.brand).length === 1 && source.parentElement.children.length === 1 && geometry(ctx, compose ? 0 : 32);
+    // An absent Compose also grows its native flex owner by that owner's gap.
+    // Include positive outer spacing; never reserve it twice once it exists.
+    const gap = select ? Math.max(0, parseFloat(getComputedStyle(select.parentElement).columnGap) || 0) : 0;
+    const reserve = compose ? 0 : BUTTON + gap + GAP;
+    const safe = shell && [...shell.children].filter(node => node !== compose?.brand).length === 1 && source.parentElement.children.length === 1 &&
+      geometry(ctx, reserve, layout.showToggle);
     if (compose && (!safe || !select || compose.source !== source || !compose.brand.isConnected)) restoreCompose();
     if (compose && (compose.select !== select || !compose.button.isConnected)) {
       // Toolbar rebuilds replace selection controls, not the sidebar owner.
@@ -649,6 +705,7 @@
   }
 
   function restore() {
+    toolbarProbe = undefined;
     clearLayoutTransition();
     restoreSearchSort();
     removeCaption();
@@ -722,13 +779,23 @@
     if (current && (current.form !== next.form || current.shell !== next.shell || current.pathname !== next.pathname)) {
       restore(); open = false;
     }
-    // Validate native geometry before Compose/sidebar changes. A zero-sized
+    // A failed layout is remembered after native restoration. In particular,
+    // don't reapply search-sort/padding overrides just because Gmail reacted
+    // to that cleanup; wait for a meaningful native geometry/control change.
+    if (toolbarProbe?.showToggle === null && sameToolbar(next)) { watch(next); return; }
+    // Validate the final padding before Compose/sidebar changes. A zero-sized
     // replacement must not tear down otherwise stable presentation owners.
     placeSearchSort(next);
-    let layout = geometry(next);
+    let layout = toolbarGeometry(next);
+    if (!layout && retainLayout(next)) return;
+    if (!layout && compose) {
+      // Compose is optional; native search and the saved header state take
+      // priority when selection/native actions grow into its former space.
+      restoreCompose();
+      layout = toolbarGeometry(next);
+    }
     if (!layout) {
-      if (retainLayout(next)) return;
-      restore(); watch(next); return;
+      restore(); rememberToolbar(next, null); watch(next); return;
     }
     clearLayoutTransition();
     if (current && current.main !== next.main) {
@@ -739,10 +806,10 @@
     }
     if (current && current.toolbar !== next.toolbar) restoreToolbar(current.toolbar);
     current = next;
-    placeToolbar(current);
-    placeCompose(current);
-    layout = geometry(current);
-    if (!layout) { restore(); watch(next); return; }
+    placeCompose(current, layout);
+    layout = geometry(current, 0, layout.showToggle);
+    if (!layout && compose) { restoreCompose(); layout = toolbarGeometry(current); }
+    if (!layout) { restore(); rememberToolbar(next, null); watch(next); return; }
     placeSidebar();
     bootstrap?.disconnect(); bootstrap = undefined; clearTimeout(bootstrapTimer);
     if (!controls) createControls();
@@ -754,7 +821,7 @@
       // Gmail owns pane heights. Recalculate once per actual header transition,
       // never on every observer delivery or animation frame.
       window.dispatchEvent(new Event('resize'));
-      layout = geometry(current) || layout;
+      layout = geometry(current, 0, layout.showToggle) || layout;
       schedule();
     }
     // Gmail updates the viewport and native pane heights on resize, but its
@@ -786,6 +853,8 @@
     controls.style.setProperty('--gp-header-toggle-top', `${layout.top + 2}px`);
     searchButton.hidden = !layout.narrow || open;
     closeButton.hidden = !layout.narrow || !open;
+    const moveToggleFocus = !layout.showToggle && document.activeElement === toggleButton;
+    toggleButton.hidden = !layout.showToggle;
     searchButton.setAttribute('aria-expanded', String(open));
     toggleButton.setAttribute('aria-expanded', String(!collapsed));
     if (current.banner.id) toggleButton.setAttribute('aria-controls', current.banner.id);
@@ -816,7 +885,9 @@
     }
     updateCaption(current);
     reconcileMailboxLoading(current);
+    rememberToolbar(current, layout);
     watch(current);
+    if (moveToggleFocus) (layout.narrow && !open ? searchButton : current.input).focus({ preventScroll: true });
   }
 
   function navigate() {

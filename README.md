@@ -322,6 +322,9 @@ Totals use Gmail's conversation pagination, including approximate counts;
 unavailable or pending counts show just the name. No messages are read or tallied
 separately.
 Use the chevron at the far right of the toolbar to collapse or expand the Gmail header.
+When the toolbar gets crowded, the chevron hides and releases its reserved space;
+it returns when the window is widened or fewer native actions are shown. Hiding
+the chevron retains your current header state and does not change your preference.
 The header starts collapsed unless you have saved an expanded preference. Your
 choice saves immediately through the existing Chrome Sync preferences and applies
 across Gmail tabs/accounts in this profile.
@@ -340,8 +343,8 @@ header changes. The right-split main wrapper fills Gmail’s measured viewport t
 remove its otherwise retained header-height allowance. Pane widths and scroll
 positions remain Gmail-owned.
 
-If the native header/search/toolbar cannot be identified, or even the two compact
-buttons cannot fit, Gmail’s original layout returns. Turning Apple Mail Mode off
+If the native header/search/toolbar cannot be identified, or compact search cannot
+fit even with the chevron hidden, Gmail’s original layout returns. Turning Apple Mail Mode off
 restores all native placement and removes the controller. No extra permissions,
 networking, saved queries, or message data are added. See [header layout QA](tests/headerLayout-QA.md).
 

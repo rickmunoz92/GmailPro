@@ -180,6 +180,17 @@
   window.addEventListener('resize', nativeResize);
   const start = async (collapsed = false) => { feature.start({appleMailModeEnabled:true, headerCollapsed:collapsed}); await settle(); };
   const control = name => document.querySelector(`[data-gp-header-action="${name}"]`);
+  async function idleHeader(frames = 120) {
+    let writes = 0, resizes = 0;
+    const resized = () => resizes++;
+    const observer = new MutationObserver(records => { writes += records.length; });
+    observer.observe(workspace, { subtree: true, childList: true, attributes: true,
+      attributeFilter: ['data-gp-header-collapsed', 'data-gp-header-toolbar', 'data-gp-compose-relocated', 'style'] });
+    window.addEventListener('resize', resized);
+    try { for (let i = 0; i < frames; i++) await new Promise(requestAnimationFrame); }
+    finally { observer.disconnect(); window.removeEventListener('resize', resized); }
+    assert(writes === 0 && resizes === 0, `idle layout stays settled (${writes} mutations, ${resizes} resizes)`);
+  }
   const testFilter = new URLSearchParams(location.search).get('case');
   async function test(name, run) {
     if (testFilter && !name.includes(testFilter)) return;
@@ -407,6 +418,70 @@
     feature.stop(); assert(getComputedStyle(icon).paddingTop==='8px','native icon padding restored');
     assert(getComputedStyle(input.parentElement).height==='0px','native input wrapper restored');
   });
+  await test('cramped toolbar fits one compact search button without resetting the header', async () => {
+    const f = fixture(830); await start(true);
+    assert(rect(f.shell).height === 0 && f.form.hasAttribute('data-gp-toolbar-search'), 'header stays collapsed at the former fit/reject boundary');
+    assert(!control('search').hidden, 'one compact search button fits');
+    assert(rect(control('search')).left >= rect(f.actions).right + 8, 'search clears native actions');
+    assert(rect(control('search')).right + 8 <= rect(f.pager).left, 'search clears native pagination');
+    await idleHeader();
+  });
+  await test('cramped toolbar hides only the arrow and restores it when widened', async () => {
+    const f = fixture(); await start(true); const controls = control('toggle').parentElement;
+    control('toggle').focus(); workspace.style.width = '800px'; await settle();
+    assert(rect(f.shell).height === 0 && control('toggle').hidden, 'crowding hides the arrow without expanding Gmail');
+    assert(control('toggle').parentElement === controls && controls.isConnected, 'persistent header controls survive');
+    assert(getComputedStyle(f.toolbar).paddingRight === '0px', 'hidden arrow releases its space');
+    assert(document.activeElement === control('search'), 'hidden arrow hands focus to visible search');
+    assert(Object.keys(saved).length === 0, 'resize does not save a preference');
+    await idleHeader();
+    workspace.style.width = '1400px'; await settle();
+    assert(!control('toggle').hidden && rect(f.shell).height === 0, 'widening restores the arrow and saved collapsed state');
+    await idleHeader();
+  });
+  await test('cramped pinned native control hides the arrow without restoring the layout', async () => {
+    const f = fixture(), split = document.createElement('button');
+    split.style.cssText = 'position:absolute;right:0;width:32px;height:32px'; split.textContent = 'Split pane';
+    f.toolbar.append(split); await start(true);
+    assert(rect(f.shell).height === 0 && control('toggle').hidden, 'native right-edge action only hides the arrow');
+    assert(getComputedStyle(f.toolbar).paddingRight === '0px', 'native padding is retained');
+    assert(document.elementFromPoint(rect(split).left + 16, rect(split).top + 16) === split, 'native action retains its hit target');
+    await idleHeader();
+  });
+  await test('native layout reactions do not restart cramped padding probes or fallback', async () => {
+    for (const width of [800, 700]) {
+      const f = fixture(width); let revision = 0;
+      // Native chrome can react to toolbar style changes by updating its own
+      // layout styles. Those notifications must not perpetuate our fit probes.
+      const native = new MutationObserver(() => {
+        f.actions.style.setProperty('--native-layout-revision', String(++revision));
+      });
+      native.observe(f.toolbar, {attributes:true, attributeFilter:['style']});
+      try { await start(true); await idleHeader(); }
+      finally { native.disconnect(); }
+    }
+  });
+  await test('search sorting stays native and idle during an unfit fallback, then recovers', async () => {
+    const f = searchSortFixture(700); let revision = 0;
+    const native = new MutationObserver(() => f.actions.style.setProperty('--native-layout-revision', String(++revision)));
+    native.observe(f.toolbar, {attributes:true, attributeFilter:['style']});
+    try {
+      await start(true);
+      assert(!f.form.hasAttribute('data-gp-toolbar-search') && !document.documentElement.hasAttribute('data-gp-search-sort-active'), 'unfit search restores the native form and sort');
+      await idleHeader();
+      workspace.style.width = '1400px'; await settle();
+      assert(f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height === 0 && f.sort.hasAttribute('data-gp-search-sort'), 'widening restores search, sorting and saved collapse');
+      await idleHeader();
+    } finally { native.disconnect(); }
+  });
+  await test('failed layout recovers when native sort becomes recognizable without a resize', async () => {
+    const f = searchSortFixture(840);
+    f.sort.firstElementChild.textContent = 'Unsupported order'; await start(true);
+    assert(!f.form.hasAttribute('data-gp-toolbar-search'), 'unknown wide native sort falls back');
+    f.sort.firstElementChild.textContent = 'Showing most relevant'; await settle();
+    assert(f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height === 0 && f.sort.hasAttribute('data-gp-search-sort'), 'recognized native sort invalidates a failed layout');
+    await idleHeader();
+  });
   await test('search width stays fixed across selection actions and uses compact fallback', async () => {
     const f=fixture(); await start();
     assert(rect(f.form).width===360,'fixed field width');
@@ -483,14 +558,92 @@
       assert(!replacement.hasAttribute('data-gp-header-toolbar') && getComputedStyle(replacement).paddingRight === '16px', 'mode OFF restores native padding');
     }
   });
-  await test('a native control pinned to the right edge falls back without covering its action', async () => {
+  await test('a pinned right-edge native action hides the arrow and later releases it', async () => {
     const f = fixture(), split = document.createElement('button');
     split.textContent = 'Split pane'; split.style.cssText = 'position:absolute;right:0;width:32px;height:32px';
     f.toolbar.append(split); await start(true);
-    assert(!control('toggle') && rect(f.shell).height > 0, 'unsupported right-edge action restores the native header');
-    assert(!f.toolbar.hasAttribute('data-gp-header-toolbar') && getComputedStyle(f.toolbar).paddingRight === '0px', 'fallback releases reserved spacing');
+    assert(control('toggle').hidden && rect(f.shell).height === 0, 'right-edge action only hides the arrow');
+    assert(getComputedStyle(f.toolbar).paddingRight === '0px', 'hidden arrow releases reserved spacing');
     split.style.cssText = 'width:32px;height:32px;flex:none'; await settle();
     assert(control('toggle') && rect(f.shell).height === 0 && rect(split).right + 8 <= rect(control('toggle')).left, 'native row recovers when a trailing slot fits');
+  });
+  await test('responsive sweep preserves preferences and settles at every layout boundary', async () => {
+    for (const collapsed of [true, false]) {
+      const f = fixture(1920); await start(collapsed);
+      const check = async width => {
+        workspace.style.width = `${width}px`; await settle();
+        const active = f.form.hasAttribute('data-gp-toolbar-search');
+        assert(Object.keys(saved).length === 0, `${width}px: resizing never changes saved preferences`);
+        if (!active) {
+          assert(rect(f.shell).height > 0 && !f.toolbar.hasAttribute('data-gp-header-toolbar'), `${width}px: native fallback releases owned layout`);
+          return 'native';
+        }
+        assert((rect(f.shell).height === 0) === collapsed, `${width}px: saved header state retained`);
+        const search = control('search').hidden ? (control('close').hidden ? f.form : control('close')) : control('search');
+        assert(rect(search).left >= 0 && rect(search).right <= document.documentElement.clientWidth, `${width}px: search stays reachable`);
+        assert(rect(search).right + 8 <= rect(f.pager).left, `${width}px: search clears pagination`);
+        if (!control('toggle').hidden) assert(rect(f.pager).right + 8 <= rect(control('toggle')).left, `${width}px: arrow clears pagination`);
+        else assert(getComputedStyle(f.toolbar).paddingRight === '0px', `${width}px: no hidden-arrow reservation`);
+        return (control('search').hidden ? 'field' : 'compact') + (control('toggle').hidden ? '-hidden' : '-arrow');
+      };
+      const widths = Array.from({length: 41}, (_, i) => 320 + i * 40);
+      widths.push(1300);
+      widths.sort((a, b) => a - b);
+      const edges = new Set();
+      let before;
+      for (const width of [...widths, ...widths.slice().reverse()]) {
+        const state = await check(width);
+        if (before && state !== before.state) {
+          for (let w = Math.min(before.width, width); w <= Math.max(before.width, width); w++) edges.add(w);
+        }
+        before = {width, state};
+      }
+      const boundaryWidths = [];
+      before = undefined;
+      for (const width of [...edges].sort((a, b) => a - b)) {
+        const state = await check(width);
+        if (before && state !== before.state) boundaryWidths.push(before.width, width);
+        before = {width, state};
+      }
+      for (const width of new Set(boundaryWidths)) { await check(width); await idleHeader(); }
+      feature.stop();
+      assert(!f.form.hasAttribute('data-gp-toolbar-search') && !f.toolbar.style.getPropertyValue('--gp-header-toolbar-reserve'), 'mode OFF releases both arrow modes');
+    }
+  });
+  await test('cramped Compose accounts for native flex spacing and never retries while idle', async () => {
+    const f = composeFixture();
+    f.actions.style.cssText = 'width:auto;gap:8px;flex:none';
+    f.select.parentElement.style.gap = '8px';
+    for (const button of f.actions.querySelectorAll('button')) button.style.cssText = 'width:80px;flex:none;padding:0';
+    workspace.style.width = '833px'; await start(true);
+    assert(rect(f.shell).height === 0 && f.form.hasAttribute('data-gp-toolbar-search'), 'search/header survive optional Compose fitting');
+    await idleHeader();
+    for (const width of [800, 790, 850, 1300, 833]) {
+      workspace.style.width = `${width}px`; await settle();
+      assert(rect(f.shell).height === 0 && f.form.hasAttribute('data-gp-toolbar-search'), `${width}px: optional Compose does not reset the header`);
+      await idleHeader();
+    }
+  });
+  await test('cramped search sorting stays native and usable while the arrow is hidden', async () => {
+    const f = searchSortFixture(840); await start(true);
+    assert(rect(f.shell).height === 0 && control('toggle').hidden, 'sort plus compact search only hide the arrow');
+    for (const theme of ['light', 'dark']) {
+      document.documentElement.dataset.gpTheme = theme; await settle();
+      f.input.value = 'subject:synthetic'; control('search').click(); await settle();
+      assert(document.activeElement === f.input && rect(f.form).left >= 0, 'native search opens with keyboard focus');
+      assert(rect(f.form).right + 8 <= rect(f.sort).left, 'search overlay clears native sorting');
+      f.sort.click(); await settle();
+      f.menu.querySelector('[role="menuitem"]').click(); await settle();
+      assert(f.opened() > 0, 'original native sorting handler works');
+      f.input.focus(); await settle();
+      f.input.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true, cancelable:true})); await settle();
+      assert(f.input.value === 'subject:synthetic' && document.activeElement === control('search'), 'Escape retains query and returns focus');
+    }
+    await idleHeader();
+    const old = f.toolbar, replacement = old.cloneNode(true); old.replaceWith(replacement); await settle();
+    assert(control('toggle').hidden && rect(f.shell).height === 0 && !old.hasAttribute('data-gp-header-toolbar'), 'rebuilt toolbar keeps the arrow hidden and releases old ownership');
+    workspace.style.width = '1400px'; await settle();
+    assert(!control('toggle').hidden, 'widening the replacement restores the arrow');
   });
   await test('narrow icon opens and closes without losing query', async () => {
     const f=fixture(1000); await start(true); f.input.value='subject:synthetic';

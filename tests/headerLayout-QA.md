@@ -1,5 +1,41 @@
 # Toolbar search and collapsible header — 0.9.28
 
+## Responsive header stability — 2026-10-21
+
+The chevron remains at the far right while compact search and native controls
+fit. At cramped widths it hides and releases the extra toolbar padding without
+restoring the entire header/sidebar. Widening restores it. Saved collapsed and
+expanded choices are retained; resizing never writes a preference. Search and
+Close share one compact slot, including alongside native search sorting.
+Compose is optional and accounts for its native flex spacing before insertion.
+One bounded snapshot of toolbar geometry and sort recognition avoids repeating
+padding probes after unrelated native style updates or an unchanged fallback.
+
+Regression coverage includes the former fit/reject loop, pinned right-edge
+controls, focused-arrow handoff, optional Compose, both themes, native sort and
+search behavior, toolbar replacement, and mode OFF. The width sweep runs from
+320 to 1,920px in both directions, includes 1,300px, and checks each pixel around
+layout transitions. Boundary layouts must remain idle for 120 animation frames
+with no further header/Compose mutations or synthetic resize events.
+
+For live verification, reload the canonical unpacked extension and refresh
+Gmail. Resize slowly through crowded widths with a conversation open in right
+split, then hold the window still. Confirm the arrow hides/reappears without
+repeated header expansion, sidebar resets, or covered paging/split controls.
+Check compact search, Escape, light/dark, and a saved expanded header as well.
+At widths too small for accessible search, verify a stable native layout and
+automatic recovery when widened. Do not send messages during this check.
+
+Validation: 108/108 header browser checks, 69/69 appearance browser checks,
+41/41 repository checks, and diff whitespace checks pass. The original three
+crowding regressions failed before the fix. A native style-reaction regression
+also exposed 360 repeated idle mutations before the geometry snapshot guard.
+Live dark Gmail was checked after extension Reload and Gmail refresh, including
+an already-read conversation in right split, the crowded 1,250–1,300px region,
+compact search/Escape, stable native fallback at 1,000px, and widening recovery.
+Temporary viewport overrides were removed. Live light-mode verification was
+blocked by the browser's extension-page URL policy; both themes passed fixtures.
+
 ## Mailbox loading feedback — 2026-09-30
 
 Apple Mail Mode shows a 14px accent-colored loading ring in the clicked mailbox's
