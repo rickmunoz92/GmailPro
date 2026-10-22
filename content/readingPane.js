@@ -691,7 +691,10 @@
     observer.observe(toolbar, { childList: true, subtree: true, attributes: true,
       attributeFilter: ["style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
     for (let parent = toolbarHost; parent; parent = parent.parentElement) {
-      watchNode(parent); if (parent.matches(S.main)) break;
+      watchNode(parent);
+      if (parent === toolbarHost) observer.observe(parent, { childList: true, attributes: true,
+        attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "data-gp-message-actions-overflow"] });
+      if (parent.matches(S.main)) break;
     }
   }
 
@@ -717,6 +720,25 @@
       let slot = current.more;
       while (slot.parentElement !== current.toolbar && !slot.parentElement.classList.contains("G-tF")) slot = slot.parentElement;
       if (group.parentElement !== slot.parentElement || group.nextElementSibling !== slot) slot.before(group);
+      // Header layout owns the shared toolbar budget. CSS exposes Gmail's
+      // native footer immediately when the duplicate shortcuts cannot fit.
+      // Keep the group mounted so its full current footprint can be measured
+      // again after a width or native-action availability change.
+      if (current.toolbarHost?.hasAttribute('data-gp-message-actions-overflow')) {
+        if (group.contains(document.activeElement)) {
+          const key = document.activeElement.dataset.gpMessageAction;
+          const target = current.actions.get(key) || current.actions.get('reply');
+          const box = target?.getBoundingClientRect();
+          const pane = current.shell.closest(S.pagingReadingPane)?.getBoundingClientRect();
+          // A native footer can sit below a long message. Preserve scroll and
+          // keep keyboard focus onscreen by using the native More control then.
+          const onscreen = visible(target) && box.width > 0 && box.height > 0 &&
+            box.left >= Math.max(0, pane?.left || 0) && box.right <= Math.min(innerWidth, pane?.right ?? innerWidth) &&
+            box.top >= Math.max(0, pane?.top || 0) && box.bottom <= Math.min(innerHeight, pane?.bottom ?? innerHeight);
+          (onscreen ? target : current.more).focus({ preventScroll: true });
+        }
+        return;
+      }
       const bounds = group.getBoundingClientRect(), available = current.toolbar.getBoundingClientRect();
       if (current.replaceable && visible(group) && bounds.width > 0 &&
           bounds.left >= available.left && bounds.right <= available.right && bounds.bottom <= available.bottom + 2) {

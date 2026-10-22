@@ -5,6 +5,7 @@
   const S = app.selectors;
   const GAP = 8, BUTTON = 32, SEARCH_WIDTH = 360, TRANSITION_TIMEOUT = 3000;
   const NATIVE_SORT = 'button[data-idom-class="hsirxb"]', NATIVE_SORT_ANCHOR = '.tB5Jxf-M-X-ql-Jf';
+  const MESSAGE_OVERFLOW = 'data-gp-message-actions-overflow';
   let enabled = false, collapsed = false, open = false, saving = false;
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition, toolbarProbe;
   let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
@@ -289,30 +290,37 @@
     if (sameToolbar(ctx)) {
       return toolbarProbe.showToggle === null ? null : geometry(ctx, 0, toolbarProbe.showToggle);
     }
-    // Measure each candidate with its final padding already applied. Both
-    // probes happen before paint with our observer disconnected; neither tears
-    // down the header/sidebar nor dispatches a synthetic resize. In particular,
-    // cleanup cannot turn a failed reserved candidate into the next admission.
-    for (const showToggle of [true, false]) {
-      placeToolbar(ctx, showToggle);
-      const layout = geometry(ctx, 0, showToggle);
-      if (layout) return layout;
+    // Probe the complete message-action footprint, even when it was hidden.
+    // Hidden shortcuts must never admit themselves using their zero width.
+    // Release the arrow first, then duplicate message shortcuts, before any
+    // Compose/sidebar restoration. All candidates finish synchronously before
+    // paint, with our observer disconnected and without a synthetic resize.
+    const hasMessages = !!ctx.actions.querySelector('.gmail-pro-message-actions');
+    for (const overflow of hasMessages ? [false, true] : [false]) {
+      ctx.toolbar.toggleAttribute(MESSAGE_OVERFLOW, overflow);
+      for (const showToggle of [true, false]) {
+        placeToolbar(ctx, showToggle);
+        const layout = geometry(ctx, 0, showToggle);
+        if (layout) return layout;
+      }
     }
     return null;
   }
 
   function toolbarSnapshot(ctx) {
     const nodes = [ctx.toolbar, ctx.actionRow, ctx.actions, ctx.pager,
-      ...ctx.actionRow.querySelectorAll('button, [role="button"]')];
+      ...ctx.actionRow.querySelectorAll('.gmail-pro-message-actions, button, [role="button"]')];
     // Keep one chrome-only geometry snapshot, including native hit targets.
     // Unrelated native style notifications cannot restart padding probes. A
     // width, control, visibility, position, or sort-slot change permits a retry.
     const values = [location.pathname, mailboxKey(location.hash).startsWith('#search/'), document.documentElement.clientWidth,
       document.documentElement.hasAttribute('data-gp-search-sort-active'),
+      ctx.toolbar.hasAttribute(MESSAGE_OVERFLOW),
       getComputedStyle(ctx.toolbar).paddingRight,
       ...nodes.flatMap(node => {
         const box = node.getBoundingClientRect();
-        return [box.left, box.right, box.top, box.height, getComputedStyle(node).visibility, searchSortLabel(node)];
+        return [box.left, box.right, box.top, box.height, getComputedStyle(node).visibility,
+          node.hidden, node.hasAttribute('disabled'), node.getAttribute('aria-disabled'), searchSortLabel(node)];
       })].join('|');
     return { nodes, values };
   }
@@ -329,6 +337,7 @@
   }
 
   function restoreToolbar(toolbar) {
+    toolbar.removeAttribute(MESSAGE_OVERFLOW);
     toolbar.removeAttribute('data-gp-header-toolbar');
     toolbar.style.removeProperty('--gp-header-toolbar-padding-right');
     toolbar.style.removeProperty('--gp-header-toolbar-reserve');
@@ -711,7 +720,7 @@
     removeCaption();
     restoreCompose();
     // Gmail may clone a marked toolbar before discovery can adopt it.
-    document.querySelectorAll('[gh="tm"][data-gp-header-toolbar]').forEach(restoreToolbar);
+    document.querySelectorAll('[gh="tm"]:is([data-gp-header-toolbar], [data-gp-message-actions-overflow])').forEach(restoreToolbar);
     if (!current) return;
     const wasCollapsed = current.shell.hasAttribute('data-gp-header-collapsed');
     current.shell.removeAttribute('data-gp-header-collapsed');

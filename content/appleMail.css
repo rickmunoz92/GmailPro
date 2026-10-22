@@ -513,8 +513,11 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   [role="listitem"][aria-expanded="true"] > .Bk { margin-block: 0 8px !important; }
   /* Suggested one-click replies are optional chrome, never message content. */
   [role="toolbar"][aria-label="Suggested replies"] { display: none !important; }
-  /* Hide only after the live native footer has a working top replacement.
-     Keep its nodes/handlers in place; compose forms instantly escape this rule. */
+}
+/* Overflow releases the native footer synchronously, before observer delivery.
+   Keep native nodes/styles/handlers intact and exclude received/editor content. */
+@scope (html.gmail-pro-apple-mail-mode [role="main"]:not(:has([gh="tm"][data-gp-message-actions-overflow])) .iY:has(h2[data-thread-perm-id][data-legacy-thread-id])) to (.ii, .a3s, [contenteditable], form, [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
+  /* Hide only after the live native footer has a working top replacement. */
   :scope[data-gp-actions-ready] .btDi4d:has([data-gp-native-actions]):not(:has([contenteditable], input[name="composeid"])),
   :scope[data-gp-actions-ready] .gA:has([data-gp-native-actions]):not(:has([contenteditable], input[name="composeid"])),
   :scope[data-gp-actions-ready] .gA:has(.amn:empty):not(:has([contenteditable], input[name="composeid"])) { display: none !important; }
@@ -537,6 +540,7 @@ html.gmail-pro-apple-mail-mode .gmail-pro-message-actions {
   gap: 2px; margin-inline: 6px 4px; padding-inline-start: 8px;
   border-inline-start: 1px solid var(--gp-border);
 }
+html.gmail-pro-apple-mail-mode [gh="tm"][data-gp-message-actions-overflow] .gmail-pro-message-actions { display: none; }
 html.gmail-pro-apple-mail-mode .gmail-pro-message-actions button {
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; padding: 5px; border: 0; border-radius: 5px;

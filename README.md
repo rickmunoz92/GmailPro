@@ -759,6 +759,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/readingPane.html`
 - `http://127.0.0.1:8765/tests/autoRead.html`
 - `http://127.0.0.1:8765/tests/headerLayout.html`
+- `http://127.0.0.1:8765/tests/headerReadingPane.html`
 - `http://127.0.0.1:8765/tests/floatingCompose.html`
 - `http://127.0.0.1:8765/tests/keyboardShortcuts.html`
 

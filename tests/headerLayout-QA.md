@@ -1,5 +1,55 @@
 # Toolbar search and collapsible header — 0.9.28
 
+## Conversation switching and shared toolbar space — 2026-10-22
+
+The header controller now budgets the reading pane's duplicate message actions
+alongside native actions, search, pagination and split controls. Crowding hides
+the header arrow first, then the duplicate message shortcuts, before restoring
+Compose or the full native layout. Gmail's existing footer actions return
+synchronously through CSS when shortcuts overflow; the reading pane keeps its
+native action targets and handlers. Focus moves to the equivalent visible
+footer action, or native More when the footer is below a long message.
+
+One temporary toolbar overflow marker coordinates the controllers. Candidate
+measurements include the complete group even while suppressed. The bounded
+toolbar snapshot includes action availability so recovery does not require a
+resize, and hidden actions cannot repeatedly admit themselves at zero width.
+Cleanup releases the marker, including marked toolbar clones.
+
+`headerReadingPane.html` loads both production controllers, appearance, message
+list, thread discovery and production CSS together. Its original lower-row
+regression failed before the source fix: header expansion at 940px, sidebar
+restoration at 1,000px. Coverage includes rows 1 → 2 → 3 → 1, delayed native
+footers, reactions, native read transitions, keyboard/rapid switching, both
+themes, saved preferences, list scroll, focus after a long message, width
+recovery, genuine native fallback and cleanup. The width sweep runs both ways
+from 320 to 1,920px, locates actual pixel boundaries and requires 120 idle
+animation frames without mutations or resize events around each boundary.
+
+For live QA, reload the canonical unpacked extension, refresh Gmail, and open
+already-read conversations in right split at crowded widths. Verify the header
+and list stay in place while selecting rows below the first. Where shortcuts
+disappear, native message controls must remain available. Widen again to check
+shortcut recovery, then repeat with compact search and keyboard navigation.
+
+Validation passed: 5/5 integrated scenarios, 108/108 header checks, 31/31
+reading-pane checks, 69/69 appearance checks, 70/70 automatic-read checks,
+41/41 repository checks, and diff whitespace checks. The integrated suite used
+a 1,920px browser viewport for its full width sweep. Scroll-indicator fade
+attributes are excluded from its idle mutation count; all layout/footer
+mutations and resize events remain counted.
+
+After the owner reloaded the unpacked extension and refreshed Gmail, live dark
+Gmail was verified at 1,200, 1,250, 1,300 and 1,450px. At 1,250px, selecting
+rows 1 → 2 → 3 → 1 kept the header at 0px and the list top at 49px. Lower rows
+used native footer actions; at 1,200px native Reply retained a 104px hit target.
+Widening to 1,300px restored the 143px shortcut group. Compact search and Escape
+retained the empty query and collapsed header (the first Escape dismisses
+native suggestions). The original viewport and selected conversation were
+restored. Only already-read conversations were opened; no message was sent or
+read status changed. Live light mode was not exercised; both themes passed the
+integrated and appearance fixtures.
+
 ## Responsive header stability — 2026-10-21
 
 The chevron remains at the far right while compact search and native controls
