@@ -1,5 +1,9 @@
 "use strict";
 
+if (typeof importScripts === "function") {
+  importScripts("../shared/billing-config.js", "billing.js");
+}
+
 // Only our top-level Gmail content script may request the existing settings UI.
 // This bridge accepts no destination URL, settings changes, or message content.
 chrome.runtime.onMessage.addListener((message, sender, respond) => {

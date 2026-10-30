@@ -11,9 +11,11 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "u
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.name, "Gmail Pro");
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
+assert.ok(manifest.description.length <= 132, 'Chrome Web Store description is at most 132 characters');
 assert.deepEqual(manifest.permissions, ["storage"]);
 assert.deepEqual(manifest.background, { service_worker: 'background/settings.js' });
-for (const key of ["host_permissions", "optional_permissions", "optional_host_permissions", "web_accessible_resources", "externally_connectable", "oauth2"]) {
+assert.deepEqual(manifest.host_permissions, ['https://gmail-pro.netlify.app/*']);
+for (const key of ["optional_permissions", "optional_host_permissions", "web_accessible_resources", "externally_connectable", "oauth2"]) {
   assert.equal(manifest[key], undefined, `Unexpected manifest capability: ${key}`);
 }
 assert.equal(manifest.content_scripts.length, 2);
@@ -28,9 +30,9 @@ assert.equal(manifest.content_scripts[0].run_at, "document_start");
 assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css", "content/messageZoom.css", "shared/theme.css", "content/appleMail.css", "content/autoPaging.css"]);
 assert.equal(manifest.content_scripts[1].run_at, "document_idle");
 assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
-assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/);
+assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/gmail-pro\.netlify\.app;/);
 
-const references = [manifest.background.service_worker, manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
+const references = [manifest.background.service_worker, 'background/billing.js', manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
   ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)];
 const html = fs.readFileSync(path.join(root, manifest.action.default_popup), "utf8");
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
@@ -39,6 +41,7 @@ for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
 }
 assert.ok(!/\son\w+\s*=/i.test(html), "No inline event handlers");
 for (const match of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
+  if (/^https:\/\/gmail-pro\.netlify\.app\/(?:support|privacy|terms)$/.test(match[1])) continue;
   assert.ok(!/^(?:[a-z]+:|\/\/)/i.test(match[1]), "Popup resources must be local");
   references.push(path.join("popup", match[1]));
 }
@@ -58,7 +61,10 @@ for (const directory of ["background", "shared", "content", "popup", "tests"]) {
     const filename = path.join(root, directory, file);
     const source = fs.readFileSync(filename, "utf8");
     new vm.Script(source, { filename });
-    assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source), `Unexpected networking, polling, or eval in ${file}`);
+    if (directory === 'background' && file === 'billing.js') {
+      assert.ok(!/\b(?:XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source));
+      assert.ok(source.includes("config.apiOrigin + '/api/billing/'"), 'Worker requests are scoped to our billing service');
+    } else assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source), `Unexpected networking, polling, or eval in ${file}`);
   }
 }
 console.log("Manifest, resource paths, icon dimensions, JavaScript syntax, and minimal-permission checks passed.");

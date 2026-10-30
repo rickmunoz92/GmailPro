@@ -50,3 +50,15 @@ footer { padding-top: 12px; border-top: 1px solid var(--gp-border); text-align: 
 .privacy-title { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .label-actions { display: flex; gap: 8px; margin-top: 12px; }
+/* Billing is isolated from the existing preference form and its save lifecycle. */
+.subscription-card h2 { margin-top: 5px; }
+.subscription-card details { margin-top: 12px; }
+.subscription-card summary { cursor: pointer; font-size: 12px; }
+.subscription-card label { display: block; margin-top: 10px; font-size: 12px; }
+.subscription-card input { box-sizing: border-box; width: 100%; margin: 7px 0; padding: 9px; border: 1px solid var(--gp-border, #7b8088); border-radius: 7px; background: transparent; color: inherit; }
+.subscription-card button { margin-top: 6px; padding: 9px 12px; border: 1px solid var(--gp-border, #7b8088); border-radius: 7px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.subscription-card button:disabled { opacity: .55; cursor: wait; }
+.subscription-buttons { display: flex; gap: 8px; }
+.subscription-buttons button { flex: 1; background: #21654f; color: #fff; border-color: #21654f; font-weight: 600; }
+.subscription-card .quiet-button { font-size: 11px; }
+footer a { color: inherit; text-underline-offset: 3px; }

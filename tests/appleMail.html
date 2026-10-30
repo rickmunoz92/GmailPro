@@ -12,8 +12,20 @@
 #sidebar .TN > svg { flex:none; margin-right:8px; }
 #sidebar .aio { display:flex; flex:1 1 0; align-items:center; }
 #sidebar .nU { white-space:nowrap; margin-right:auto; }
-#sidebar .bsU { color:#444746; }
+#sidebar .bsU { color:#444746; text-shadow:0 1px 2px rgba(0,0,0,.65); }
 #sidebar.collapsed .aio { display:none; }
+/* Native personal-Gmail search bar lives above role=main, not in gh=tm. */
+.biW { display:flex; align-items:center; gap:16px; min-height:48px; }
+.biW > .Th, .biW > .G6 { display:flex; gap:8px; align-items:center; }
+.biW .Th > .T-I, .biW .HW { position:relative; padding:6px 12px; border:1px solid #747775; background:white; color:#444746; font:500 14px/18px Arial; }
+.biW .Th > .T-I::before { content:""; position:absolute; inset:0; background:#1f1f1f; opacity:0; pointer-events:none; }
+.biW .Th > .qO::before { background:#d3e3fd; opacity:1; }
+.biW .Th .Bn { position:relative; color:#041e49; }
+.biW .HY { display:flex; align-items:center; }
+.biW .HY .H5 { color:#444746; }
+.biW .HY svg { width:18px; height:18px; fill:#5f6368; }
+.biW .N5, .biW .Og { color:#0b57d0; font:500 14px/18px Arial; }
+.il { background:#fde293; color:#222; }
 </style>
 <h1>Apple Mail Mode checks</h1>
 <p>Synthetic messages only. No Gmail connection; no email can be sent.</p>

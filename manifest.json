@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "0.9.55",
+  "version": "1.0.0",
   "background": { "service_worker": "background/settings.js" },
-  "description": "Power-user enhancements for Gmail: Apple Mail-inspired appearance, Auto BCC, newest-first threads, label ordering, and message-only zoom.",
+  "description": "A cleaner Gmail with themes, Auto BCC, newest-first conversations, label organization, message-only zoom, and Mac shortcuts.",
+  "minimum_chrome_version": "118",
+  "homepage_url": "https://gmail-pro.netlify.app",
+  "host_permissions": ["https://gmail-pro.netlify.app/*"],
   "permissions": [
     "storage"
   ],
@@ -28,6 +31,8 @@
       ],
       "js": [
         "shared/debug.js",
+        "shared/billing-config.js",
+        "shared/entitlement.js",
         "shared/settings.js",
         "content/gmailSelectors.js",
         "content/reverseThreads.js",
@@ -36,6 +41,7 @@
         "content/messageZoom.js",
         "content/appearance.js",
         "content/headerLayout.js",
+        "content/workspaceLayout.js",
         "content/readingPane.js",
         "content/floatingCompose.js",
         "content/keyboardShortcuts.js",
@@ -67,6 +73,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://gmail-pro.netlify.app; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   }
 }

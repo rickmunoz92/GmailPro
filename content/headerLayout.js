@@ -69,7 +69,7 @@
   function discoverAI(banner, shell, form, bars) {
     const mains = [...document.querySelectorAll(S.main)].filter(visible);
     const input = form.querySelector(S.headerSearchInput);
-    const roots = [...document.querySelectorAll('[role="navigation"] .nM')];
+    const roots = [...document.querySelectorAll(`${S.mailboxNavigation} .nM`)];
     const main = mains[0];
     // The native AI dashboard has no message actions or pager. Require its
     // actual route, sidebar link and dashboard shell before supplying chrome.
@@ -102,7 +102,7 @@
     // stays part of the mailbox identity. Native links use literal slashes
     // while Gmail's SPA route may encode the same nested label path as %2F.
     const hash = mailboxKey(location.hash);
-    const selected = [...document.querySelectorAll('[role="navigation"] .TO.nZ .n0[href]')];
+    const selected = [...document.querySelectorAll(`${S.mailboxNavigation} .TO.nZ .n0[href]`)];
     for (const link of selected) {
       const key = decodeHash(new URL(link.href, location.href).hash);
       if (hash !== key && !hash.startsWith(key + '/')) continue;
@@ -120,7 +120,7 @@
   const mailboxExcluded = '.ii, .a3s, [contenteditable], form, [role="region"], [role="dialog"], [role="menu"], [role="listbox"], [data-gmail-pro-label-ui]';
 
   function loadingTarget(row) {
-    if (!row?.isConnected || !row.closest('[role="navigation"]') || row.closest(mailboxExcluded)) return null;
+    if (!row?.isConnected || !row.closest(S.mailboxNavigation) || row.closest(mailboxExcluded)) return null;
     const line = row.querySelector(':scope > .TO > .TN');
     const links = line?.querySelectorAll('a.n0[href]');
     const slot = line?.querySelector(':scope > .nL'), menu = line?.querySelector(S.labelMenu);
@@ -225,7 +225,7 @@
     if (location.pathname !== state.pathname) { clearMailboxLoading(); return; }
     const target = loadingTarget(state.row);
     if (!target || target.key !== state.key || target.slot !== state.slot || !state.spinner.isConnected) {
-      const replacement = [...document.querySelectorAll('[role="navigation"] .aim')].map(loadingTarget).find(candidate => candidate?.key === state.key);
+      const replacement = [...document.querySelectorAll(`${S.mailboxNavigation} .aim`)].map(loadingTarget).find(candidate => candidate?.key === state.key);
       if (!replacement) { clearMailboxLoading(); return; }
       placeLoadingSlot(state, replacement);
     }
@@ -528,9 +528,21 @@
     searchButton.focus();
   }
 
+  function nativeComposeSource() {
+    const sources = [...document.querySelectorAll(S.headerComposeSource)].filter(node => {
+      if (node.closest(mailboxExcluded)) return false;
+      const modern = node.closest('.aBO');
+      return !modern || (modern.querySelectorAll('.nM').length === 1 &&
+        !!modern.querySelector('.nM .aim a[href$="#inbox"]'));
+    });
+    return sources.length === 1 ? sources[0] : null;
+  }
+
   function sidebarSections() {
-    const nav = compose?.shell.parentElement;
-    if (!nav || compose.brand.hasAttribute('data-compact')) return null;
+    // Mailbox presentation belongs to native navigation, independently of
+    // whether the optional toolbar Compose shortcut has room to relocate.
+    const nav = nativeComposeSource()?.closest('.aic')?.parentElement;
+    if (!nav || nav.getBoundingClientRect().width < 140) return null;
     const roots = [...nav.querySelectorAll('.nM')];
     if (roots.length !== 1) return null;
     const root = roots[0], sections = [...root.children].filter(node => node.matches('.yJ'));
@@ -544,7 +556,7 @@
         !box.children[1].matches('.n6') || !box.children[1].querySelector('[gh="mll"][role="button"]'))) return null;
     const toggles = boxes.map(box => box.children[1].querySelector('[gh="mll"]'));
     if (toggles.some(toggle => !/^(More|Less) labels$/.test(toggle.getAttribute('aria-label') || ''))) return null;
-    return { root, system, labels, header, title, toggles, aiInbox: aiInboxRow(root),
+    return { nav, root, system, labels, header, title, toggles, aiInbox: aiInboxRow(root),
       list: labels.querySelector(':scope > .ajl > .wT > .n3 > [gh="cl"] > .TK'),
       inbox: system.querySelector('.byl > .TK > .aim:has(a[href$="#inbox"])') };
   }
@@ -583,7 +595,7 @@
         sidebar.toggles.some((node, index) => node !== next.toggles[index]) || !sidebar.more.isConnected)) {
       // Gmail can rebuild native rows after a disclosure. Rebind their owners
       // without closing More or repeatedly toggling Gmail's new controls.
-      if (next && sidebar.nav === compose.shell.parentElement) previousState = {
+      if (next && sidebar.nav === next.nav) previousState = {
         open: sidebar.open, disclosures: sidebar.disclosures, focused: sidebar.more === document.activeElement
       };
       restoreSidebar(!previousState);
@@ -598,7 +610,7 @@
       const caption = document.createElement('span'); caption.textContent = 'More'; more.append(caption);
       more.setAttribute('aria-expanded', 'false');
       next.root.append(more);
-      sidebar = { ...next, more, nav: compose.shell.parentElement, open: previousState?.open || false,
+      sidebar = { ...next, more, open: previousState?.open || false,
         disclosures: previousState?.disclosures || next.toggles.map(toggle => toggle.getAttribute('aria-label') === 'Less labels'),
         attempted: new Set(), titles: new Map() };
       for (const node of [next.title, ...next.root.querySelectorAll(':scope > .yJ > .ajl > h2')]) {
@@ -638,7 +650,6 @@
   }
 
   function restoreCompose() {
-    restoreSidebar();
     if (!compose) return;
     compose.shell.removeAttribute('data-gp-compose-relocated');
     compose.button.remove();
@@ -648,9 +659,8 @@
   }
 
   function placeCompose(ctx, layout) {
-    const sources = [...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"][role="button"]')];
     const selects = [...ctx.actions.querySelectorAll('.G-as3[role="button"]:has([role="checkbox"])')].filter(visible);
-    const source = sources.length === 1 ? sources[0] : null;
+    const source = nativeComposeSource();
     const select = ctx.aiInbox ? ctx.anchor : selects.length === 1 ? selects[0] : null;
     const shell = source?.closest('.aic');
     shell?.querySelectorAll('.gmail-pro-sidebar-brand').forEach(node => { if (node !== compose?.brand) node.remove(); });
@@ -770,11 +780,12 @@
     return true;
   }
 
-  function restore() {
+  function restore(keepSidebar = false) {
     toolbarProbe = undefined;
     clearLayoutTransition();
     restoreSearchSort();
     removeCaption();
+    if (!keepSidebar) restoreSidebar();
     restoreCompose();
     // Gmail may clone a marked toolbar before discovery can adopt it.
     document.querySelectorAll('[gh="tm"]:is([data-gp-header-toolbar], [data-gp-message-actions-overflow])').forEach(restoreToolbar);
@@ -806,8 +817,8 @@
     const intact = ctx?.form.isConnected && ctx.toolbar.isConnected && ctx.shell.isConnected;
     const spine = new Set(intact ? [] : [...ancestorSpine].filter(node => node.isConnected));
     for (const node of ctx ? [ctx.form, ctx.toolbar, ctx.shell, ctx.list, ctx.mailboxLink,
-      ...document.querySelectorAll('[role="navigation"] .nM'),
-      ...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"]')].filter(Boolean) : [document.body]) {
+      ...document.querySelectorAll(`${S.mailboxNavigation} .nM`),
+      ...document.querySelectorAll(S.headerComposeSource)].filter(Boolean) : [document.body]) {
       for (let parent = node; parent; parent = parent.parentElement) spine.add(parent);
     }
     for (const node of spine) observer.observe(node, { childList: true, attributes: true,
@@ -844,12 +855,17 @@
     observer.disconnect();
     const next = discover();
     if (!next) {
-      if (retainLayout()) return;
-      const previous = lastContext || current; restore(); watch(previous); return;
+      if (retainLayout()) { placeSidebar(); return; }
+      const previous = lastContext || current;
+      const sameAccount = previous?.pathname === location.pathname;
+      restore(sameAccount);
+      if (sameAccount) placeSidebar();
+      watch(previous); return;
     }
     if (current && (current.form !== next.form || current.shell !== next.shell || current.pathname !== next.pathname)) {
       restore(); open = false;
     }
+    placeSidebar();
     // A failed layout is remembered after native restoration. In particular,
     // don't reapply search-sort/padding overrides just because Gmail reacted
     // to that cleanup; wait for a meaningful native geometry/control change.
@@ -866,7 +882,7 @@
       layout = toolbarGeometry(next);
     }
     if (!layout) {
-      restore(); rememberToolbar(next, null); watch(next); return;
+      restore(true); rememberToolbar(next, null); watch(next); return;
     }
     clearLayoutTransition();
     if (current && current.main !== next.main) {
@@ -881,8 +897,7 @@
     placeCompose(current, layout);
     layout = geometry(current, 0, layout.showToggle);
     if (!layout && compose) { restoreCompose(); layout = toolbarGeometry(current); }
-    if (!layout) { restore(); rememberToolbar(next, null); watch(next); return; }
-    placeSidebar();
+    if (!layout) { restore(true); rememberToolbar(next, null); watch(next); return; }
     bootstrap?.disconnect(); bootstrap = undefined; clearTimeout(bootstrapTimer);
     if (!controls) createControls();
     else if (!controls.isConnected) document.body.append(controls);
@@ -940,7 +955,9 @@
     current.form.style.setProperty('--gp-search-left', `${layout.right - controlWidth - GAP - layout.width}px`);
     current.form.style.setProperty('--gp-search-top', `${layout.top}px`);
     current.form.style.setProperty('--gp-search-width', `${layout.width}px`);
-    current.form.setAttribute('data-gp-toolbar-search', showing ? 'field' : 'icon');
+    const searchMode = showing ? 'field' : 'icon';
+    if (current.form.getAttribute('data-gp-toolbar-search') !== searchMode)
+      current.form.setAttribute('data-gp-toolbar-search', searchMode);
     // Gmail anchors the advanced panel vertically to the form but keeps its
     // original horizontal header offset. Position that native outer shell only;
     // preserve all filter fields, native width, menus, styling and handlers.

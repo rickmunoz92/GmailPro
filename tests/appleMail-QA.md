@@ -1,5 +1,48 @@
 # Apple Mail Mode — implementation and QA
 
+## Personal Gmail search controls and matches — October 30, 2026
+
+Personal Gmail now places its `.biW` search switcher and refinement toolbar
+above `role=main`. The native Mail/Conversations/Spaces segments, filter chips,
+selected/expanded states, keyboard focus and Advanced search link now use the
+shared palette. The older redundant refinement row inside `gh=tm` stays hidden.
+The native query-correction label/link also use readable theme colors.
+
+Search matches inside validated conversation rows have an explicit gold
+background and dark foreground in both themes, including open/checked rows.
+Authored mail, drafts, native menus and label badge colors retain their owners.
+No new observers, network calls or changes to Gmail's handlers were added.
+
+Validation: 43/43 Node checks, 78/78 appearance checks and 116/116 header checks
+passed. Search contrast coverage includes both themes, all eight accents,
+selected/unselected controls, expanded filters, match-bearing row states and
+mode-OFF restoration. The installed extension was reloaded and the personal
+Gmail dark view was checked live. Both themes were visually checked using a
+synthetic preview with production styles; the browser URL policy blocked opening
+the extension settings page for a live light-mode switch. Saved theme remains Dark.
+
+## Shared mailbox styling and native-theme paint — October 30, 2026
+
+Classic mailbox navigation and integrated Mail/Chat/Meet navigation now use
+structural ownership; `.WR` alone is ambiguous. System folders and custom labels
+share a filled tag silhouette in both SVG and bitmap/mask layouts. Native bitmap
+artwork is cleared as well as masks, preventing white fragments inside a tag.
+Original icons return when the mode is off. Disclosure controls and explicit
+custom-label fills remain intact.
+
+Gmail's dark theme sets a blurred shadow directly on unread counts. Count styling
+now removes that shadow and uses a theme-specific neutral: `#4F535A` in Light and
+`#AAACAE` in Dark. Both pass 4.5:1 against the plain and selected sidebar surfaces.
+Native values, tabular digits, trailing alignment, hidden-count gates and zero
+transitions remain Gmail's. Mode OFF restores the original paint.
+
+Native Happening soon cards and the separate expanded Show less footer follow
+the current theme. Delivery-summary text and monochrome delivery/calendar icons
+also follow native row selection without recoloring message label badges or
+authored email. The real-Chrome appearance fixture passed 76/76 checks; the
+fixture includes native bitmap paint and the exact observed count shadow.
+See [workspace layout QA](workspaceLayout-QA.md) for rail and reading-pane checks.
+
 ## Mailbox unread counts — 2026-09-21, version 0.9.25
 
 - Native `.bsU` counts use right-aligned tabular numbers in `#9C9EA0` in both

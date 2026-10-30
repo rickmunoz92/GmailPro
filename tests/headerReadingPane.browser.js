@@ -82,16 +82,20 @@
   }
   async function idle(f, count = 120) {
     let writes = 0, resizes = 0;
+    const changes = [];
     // Appearance intentionally fades its scroll indicator after the scroll
     // preservation check. Count every other mutation, including footer state.
     const observer = new MutationObserver(records => {
-      writes += records.filter(record => !/^data-gp-scroll-[xy]$/.test(record.attributeName || '')).length;
+      const meaningful = records.filter(record => !/^data-gp-scroll-[xy]$/.test(record.attributeName || ''));
+      writes += meaningful.length;
+      for (const record of meaningful) if (changes.length < 5) changes.push(
+        `${record.target.nodeName}.${record.target.className || ''}:${record.attributeName || record.type}`);
     });
     observer.observe(workspace, { childList: true, subtree: true, attributes: true });
     const resized = () => resizes++; window.addEventListener('resize', resized);
     try { await frames(count); }
     finally { observer.disconnect(); window.removeEventListener('resize', resized); }
-    assert(writes === 0 && resizes === 0, `idle has no writes/resizes (${writes}/${resizes})`);
+    assert(writes === 0 && resizes === 0, `idle has no writes/resizes (${writes}/${resizes}) ${changes.join(', ')}`);
   }
   async function test(name, run) {
     if (filter && !name.includes(filter)) return;

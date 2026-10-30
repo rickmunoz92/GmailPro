@@ -1,5 +1,42 @@
 # Toolbar search and collapsible header — 0.9.28
 
+## Stable mailbox navigation during toolbar fallback — 2026-10-30
+
+On the work mailbox, selecting Inbox with a crowded action row restored native
+Compose and also tore down mailbox presentation. That changed Mailboxes back to
+Labels, returned the AI Inbox glyph/spacing to Gmail defaults, and released the
+saved visual order. Mailbox navigation now validates and owns its presentation
+independently of the optional toolbar Compose shortcut. Both reuse the same
+native source validation. Crowded toolbars retain native Compose, while sidebar
+ordering, disclosure state and icon styling persist through fallback/recovery.
+Mode OFF, account changes and invalid/compact navigation still release ownership.
+
+Two new full-sidebar regressions cover AI Inbox → Inbox under toolbar pressure,
+complete header fallback, unchanged saved ordering, idle stability, native source
+replacement, widening/recovery, cold startup without relocated Compose and OFF
+restoration. The complete desktop header fixture passed 119/119 checks at
+1440 × 900; Node validation passed 43/43. Staged mail-view recovery continues to
+watch the newest partially rebuilt toolbar after its loading deadline expires.
+Reloaded the installed work-profile extension and Gmail, clicked native Inbox,
+and verified Mailboxes plus the themed 28px AI Inbox row directly above Inbox.
+
+## Search correction clears the caption — 2026-10-30
+
+Gmail renders its native `.Wz` spelling-correction banner between the toolbar
+and the panes. The pinned Search results caption overlapped this banner because
+its 22px reservation was inside the message list. When the visible native banner
+is present, CSS now reserves those same 22px before it and omits the list spacer.
+The first conversation retains its position, and the suggestion is fully visible
+and clickable. Hidden/removed banners and mode OFF restore the normal layout.
+No controller, observer, or native handler changes were needed.
+
+The focused geometry regression covers both themes, expanded/collapsed headers,
+hit testing at both edges of the link, native focus/click behavior, removal,
+reinsertion, hidden states, scrolling and OFF restoration. The installed extension
+was reloaded, and the complete suggestion was visually verified in personal Gmail.
+Validation passed: 43/43 Node checks and 117/117 header checks at the fixture's
+desktop width (1440 × 900 viewport), including the new geometry regression.
+
 ## Conversation switching and shared toolbar space — 2026-10-22
 
 The header controller now budgets the reading pane's duplicate message actions

@@ -1,0 +1,49 @@
+'use strict';
+const test = require('node:test'), assert = require('node:assert/strict');
+const vm = require('node:vm'), fs = require('node:fs'), path = require('node:path');
+const source = fs.readFileSync(path.join(__dirname, '../content/content.js'), 'utf8');
+function fixture() {
+  let settingsChanged, licenseChanged, pagehide, nextStatus = { active: false }, visibility;
+  const starts = [], updates = [], stops = [], timers = new Map();
+  const settings = { autoBccEnabled: true, bccAddress: 'archive@example.com', appleMailModeEnabled: true };
+  const app = { settings: { subscribe: fn => { settingsChanged = fn; return () => {}; }, load: async () => settings },
+    debug: { log() {} }, entitlement: { subscribe: fn => { licenseChanged = fn; return () => {}; }, getStatus: async () =>
+      typeof nextStatus === 'function' ? nextStatus() : nextStatus } };
+  for (const name of ['autoBcc', 'reverseThreads', 'messageList', 'autoPaging', 'appearance', 'headerLayout', 'readingPane',
+    'floatingCompose', 'keyboardShortcuts', 'messageZoom', 'labelOrder', 'workspaceLayout']) app[name] = {
+      start: data => starts.push({ name, data: structuredClone(data) }),
+      update: data => updates.push({ name, data: structuredClone(data) }), stop: () => stops.push(name) };
+  const context = vm.createContext({ GmailPro: app, GmailProBillingConfig: { required: true },
+    setTimeout: (fn, ms) => { const id = timers.size + 1; timers.set(id, { fn, ms }); return id; }, clearTimeout: id => timers.delete(id),
+    document: { visibilityState: 'visible', addEventListener: (_name, fn) => { visibility = fn; }, removeEventListener() {} },
+    window: { addEventListener: (_name, fn) => { pagehide = fn; } } });
+  vm.runInContext(source, context); app.startAutoBcc();
+  return { app, starts, updates, stops, timers, settings, settle: () => new Promise(setImmediate),
+    change: patch => settingsChanged(patch), setStatus: value => { nextStatus = value; }, check: () => licenseChanged(),
+    hide: () => pagehide(), focus: () => visibility() };
+}
+test('no module starts without entitlement, saved changes survive activation, expiry restores Gmail', async () => {
+  const f = fixture(); await f.settle(); assert.equal(f.starts.length, 0);
+  f.change({ bccAddress: 'new@example.com' }); assert.equal(f.updates.length, 0);
+  f.setStatus({ active: true, validUntil: Date.now() + 86400000 }); await f.check();
+  assert.equal(f.starts.length, 12); assert.ok(f.starts.every(value => value.data.bccAddress === 'new@example.com'));
+  assert.equal(f.settings.bccAddress, 'archive@example.com', 'no saved preference was erased');
+  f.setStatus({ active: false, validUntil: Date.now() }); await f.check();
+  assert.equal(f.stops.length, 12); assert.ok(f.stops.includes('labelOrder'));
+  assert.equal(f.timers.size, 0);
+});
+test('a stale active response cannot override a newer inactive result or navigation', async () => {
+  const f = fixture(); await f.settle(); let resolve;
+  f.setStatus(() => new Promise(done => { resolve = done; })); const old = f.check();
+  f.setStatus({ active: false }); await f.check(); resolve({ active: true, validUntil: Date.now() + 86400000 }); await old;
+  assert.equal(f.starts.length, 0);
+  f.setStatus(() => new Promise(done => { resolve = done; })); const late = f.check(); f.hide();
+  resolve({ active: true, validUntil: Date.now() + 86400000 }); await late;
+  assert.equal(f.starts.length, 0);
+});
+test('already-expired active responses never start features; transport failure stops running modules', async () => {
+  const f = fixture(); await f.settle();
+  f.setStatus({ active: true, validUntil: Date.now() - 1 }); await f.check(); assert.equal(f.starts.length, 0);
+  f.setStatus({ active: true, validUntil: Date.now() + 50000 }); await f.check(); assert.equal(f.starts.length, 12);
+  f.setStatus(() => Promise.reject(new Error('unavailable'))); await f.check(); assert.equal(f.stops.length, 12);
+});

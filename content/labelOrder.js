@@ -28,7 +28,9 @@
   function account() {
     const accounts = new Set();
     for (const node of document.querySelectorAll(S.labelAccount)) {
-      const address = /\(([^()\s]+@[^()\s]+)\)\s*$/.exec(node.getAttribute("aria-label") || "")?.[1];
+      // Google membership appends a fixed suffix on personal-account controls.
+      // Keep the Gmail-owned header boundary and reject ambiguous addresses.
+      const address = /\(([^()\s]+@[^()\s]+)\)(?:, Google membership)?\s*$/.exec(node.getAttribute("aria-label") || "")?.[1];
       if (address && app.settings.isValidEmail(address)) accounts.add(address.toLowerCase());
     }
     return accounts.size === 1 ? [...accounts][0] : null;
@@ -867,5 +869,5 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", discover, { once: true });
     discover();
   }
-  app.labelOrder = Object.freeze({ start, update, stop, edit, setMailboxes });
+  app.labelOrder = Object.freeze({ start, update, stop, edit, setMailboxes, account });
 })();

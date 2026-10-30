@@ -50,6 +50,193 @@
     feature.stop(); GmailPro.messageList.stop(); workspace.replaceChildren(); workspace.style.width = "";
     result.textContent = reports.join("\n");
   }
+  function searchBar() {
+    const bar = document.createElement('div'); bar.className = 'biW';
+    bar.innerHTML = '<div class="Th"><div id="etsc" class="T-I qO" role="button" tabindex="0"><div aria-label="Email search results"><div class="Bn">Mail</div></div></div><div id="ctsc" class="T-I" role="button" tabindex="0"><div aria-label="Results in direct messages and spaces"><div class="Bn">Conversations</div></div></div><div id="stsc" class="T-I" role="button" tabindex="0"><div aria-label="Spaces matched by name"><div class="Bn">Spaces</div></div></div></div><div class="G6" role="toolbar" aria-label="search refinement"><div class="HW" role="button" tabindex="0" aria-pressed="false" aria-expanded="false"><div class="HY"><span class="H5">From</span><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"></path></svg><div role="menu" style="color:#202124;background:white;font:14px Arial" hidden><span class="H5">Native menu item</span></div></div></div><div class="HW" role="button" tabindex="0" aria-pressed="true"><div class="HY"><span class="H5">Has attachment</span></div></div><div class="N5" role="button" tabindex="0" aria-haspopup="true"><span class="N7"><span class="Og">Advanced search</span></span></div></div>';
+    return bar;
+  }
+  await test('personal search tabs, filters and Advanced search stay readable in both themes and all accents', () => {
+    const bar = searchBar(); workspace.before(bar); // Deliberately outside main.
+    const tabs = [...bar.querySelector('.Th').children], chips = [...bar.querySelectorAll('.HW')], advanced = bar.querySelector('.Og');
+    const labels = [...bar.querySelectorAll('.Bn, .HW > .HY > .H5, .Og')];
+    const correction = document.createElement('div');
+    correction.innerHTML = '<div style="color:#202124">Did you mean: <span class="Wy" role="link" tabindex="0" qsugg="example" style="color:#1a73e8">example</span></div>';
+    workspace.append(correction);
+    const suggestion = correction.querySelector('[qsugg]');
+    const snapshot = () => JSON.stringify([...bar.querySelectorAll('*')].map(n => [css(n).color, css(n).backgroundColor, getComputedStyle(n, '::before').backgroundColor]));
+    const native = snapshot(), menu = bar.querySelector('[role="menu"]'), menuColor = css(menu).color;
+    let clicks = 0; bar.addEventListener('click', () => clicks++);
+    try {
+      for (const appearanceTheme of ['dark', 'light']) for (const accentColor of GmailPro.settings.choices.accentColor) {
+        enable({appearanceTheme, accentColor});
+        assert(css(bar).backgroundColor === token('--gp-bg-primary'), 'search host uses the page surface above main');
+        for (let selected = 0; selected < tabs.length; selected++) {
+          tabs.forEach((tab, i) => tab.classList.toggle('qO', i === selected));
+          for (const tab of tabs) {
+            assert(contrast(css(tab.querySelector('.Bn')).color, css(tab).backgroundColor) >= 4.5, 'every selected/unselected segment is readable');
+            assert(getComputedStyle(tab, '::before').backgroundColor === 'rgba(0, 0, 0, 0)', 'native selection overlay cannot hide themed text');
+          }
+          assert(css(tabs[selected]).backgroundColor !== css(tabs[(selected + 1) % tabs.length]).backgroundColor, 'active segment remains distinct');
+        }
+        for (const expanded of ['false', 'true']) {
+          chips[0].setAttribute('aria-expanded', expanded);
+          for (const chip of chips) assert(contrast(css(chip.querySelector('.H5')).color, css(chip).backgroundColor) >= 4.5, 'plain, selected and expanded chip labels are readable');
+          assert(css(chips[0].querySelector('svg')).fill === css(chips[0]).color, 'dropdown icon uses the same readable foreground');
+        }
+        assert(contrast(css(advanced).color, css(bar).backgroundColor) >= 4.5 && contrast(css(advanced).color, token('--gp-hover')) >= 4.5, 'Advanced search is readable at rest and on hover');
+        assert(contrast(css(suggestion).color, token('--gp-bg-primary')) >= 4.5 && contrast(css(suggestion.parentElement).color, token('--gp-bg-primary')) >= 4.5, 'query-correction label and link are readable');
+        assert(css(menu).color === menuColor && css(menu).backgroundColor === 'rgb(255, 255, 255)', 'native nested menu retains its own text/background pair');
+      }
+      chips[0].click(); tabs[0].click(); advanced.parentElement.parentElement.click();
+      assert(clicks === 3 && labels.every(n => n.textContent), 'native controls and labels remain usable');
+      tabs.forEach((tab, i) => tab.classList.toggle('qO', i === 0)); chips[0].setAttribute('aria-expanded', 'false');
+      feature.stop(); assert(snapshot() === native, 'mode OFF restores all native search colors and overlays');
+      assert(css(suggestion).color === 'rgb(26, 115, 232)' && css(suggestion.parentElement).color === 'rgb(32, 33, 36)', 'mode OFF restores native query-correction colors');
+    } finally { bar.remove(); }
+  });
+  await test('search-match text contrasts in read, unread, open and checked conversations without changing authored content', () => {
+    const node = row({unread:true}), sender = node.querySelector('.sender'), subject = node.querySelector('[data-thread-id]'), snippet = node.querySelector('.y2');
+    for (const target of [sender, subject, snippet]) target.innerHTML = 'Synthetic <span class="il">match</span>';
+    const matches = [...node.querySelectorAll('.il')], native = matches.map(n => [css(n).color, css(n).backgroundColor]);
+    const protectedContent = document.createElement('div'); protectedContent.className = 'a3s';
+    protectedContent.innerHTML = '<div class="bog"><span class="il" style="color:#123456;background:#efe0c0">Authored match</span></div>';
+    const fakeBar = searchBar(); protectedContent.append(fakeBar); workspace.append(protectedContent);
+    const authored = protectedContent.querySelector('.il'), before = [css(authored).color, css(authored).backgroundColor, css(fakeBar.querySelector('.H5')).color];
+    try {
+      for (const appearanceTheme of ['dark', 'light']) for (const accentColor of GmailPro.settings.choices.accentColor) {
+        enable({appearanceTheme, accentColor});
+        for (const state of ['read', 'unread', 'open', 'checked']) {
+          node.classList.toggle('zE', state !== 'read'); node.classList.toggle('aps', state === 'open');
+          node.querySelector('[role="checkbox"]').setAttribute('aria-checked', String(state === 'checked'));
+          for (const match of matches) assert(contrast(css(match).color, css(match).backgroundColor) >= 4.5, 'all match foreground/background pairs remain readable');
+        }
+        assert(JSON.stringify([css(authored).color, css(authored).backgroundColor, css(fakeBar.querySelector('.H5')).color]) === JSON.stringify(before), 'authored matches and search-control lookalikes stay unchanged');
+      }
+      feature.stop(); assert(matches.every((n, i) => JSON.stringify([css(n).color, css(n).backgroundColor]) === JSON.stringify(native[i])), 'mode OFF restores native match paint');
+    } finally { protectedContent.remove(); }
+  });
+  await test('Happening soon follows each theme without changing native data or controls', () => {
+    workspace.innerHTML = '<div class="Nu tf"><div class="ae4"><div><div class="dgq5vc"><div class="E22Lmb"><div class="wNSjCf" style="background:#f0f4f9"><h2 class="iqFh3e" style="color:#202124">Happening soon</h2><button aria-label="Dismiss all">×</button></div><div><div class="vvhV3c"><div class="mNKakd gfbKJd" style="background:#f0f4f9"><span class="a8DSAf" style="color:black">Fictional delivery</span><div class="rjuWBc"><span>Arrives tomorrow</span></div><div class="FOBRw-I" style="background:#c2e7ff"><span>View order</span><a aria-label="View order" href="#fictional-order"></a></div><button aria-label="Toggle more actions menu">More actions</button></div></div><div class="L0lHNd vvhV3c"><button aria-label="Show more">Show more</button><span class="AV6tSd">+ 1 more</span></div></div></div></div></div></div></div>';
+    const card = workspace.querySelector('.E22Lmb'), header = card.firstElementChild, native = card.innerHTML;
+    let dismisses=0, expands=0, actions=0;
+    card.querySelector('[aria-label="Dismiss all"]').addEventListener('click', () => dismisses++);
+    card.querySelector('[aria-label="Show more"]').addEventListener('click', () => expands++);
+    card.querySelector('[aria-label="Toggle more actions menu"]').addEventListener('click', () => actions++);
+    for (const theme of ['dark','light','dark']) {
+      enable({appearanceTheme:theme});
+      assert(css(card).backgroundColor === token('--gp-bg-primary'), 'summary uses the selected page canvas');
+      assert(css(header).backgroundColor === token('--gp-bg-tertiary'), 'heading uses the selected secondary surface');
+      assert(css(card.querySelector('.gfbKJd')).backgroundColor === token('--gp-bg-primary'), 'cards never retain the native white surface in dark mode');
+      assert(contrast(css(card.querySelector('.a8DSAf')).color,css(card).backgroundColor) >= 4.5, 'summary text is readable');
+      assert(contrast(css(card.querySelector('.rjuWBc span')).color,css(card).backgroundColor) >= 4.5, 'status is readable');
+      assert(css(card.querySelector('.FOBRw-I')).borderRadius === '6px', 'native action uses the shared control shape');
+    }
+    for (const label of ['Dismiss all','Show more','Toggle more actions menu']) card.querySelector(`[aria-label="${label}"]`).click();
+    assert(dismisses===1 && expands===1 && actions===1, 'Gmail keeps all native action handlers');
+    feature.stop(); assert(card.innerHTML===native && css(header).backgroundColor===color('#f0f4f9'), 'OFF restores the original banner exactly');
+    const clone=card.cloneNode(true), authored=document.createElement('div'); authored.className='ii';
+    authored.innerHTML='<div class="Nu tf"><div class="ae4"><div><div class="dgq5vc"></div></div></div></div>';
+    authored.querySelector('.dgq5vc').append(clone); workspace.querySelector('.ae4').append(authored);
+    enable(); assert(css(clone).borderRadius!=='8px' && css(clone.firstElementChild).backgroundColor===color('#f0f4f9'), 'email/body lookalikes stay untouched');
+  });
+  await test('expanded Happening soon footer follows the theme and its Show less control remains native', () => {
+    workspace.innerHTML='<div class="Nu tf"><div class="ae4"><div><div class="dgq5vc"><div class="E22Lmb"><div class="wNSjCf"><h2 class="iqFh3e">Happening soon</h2></div><div class="L0lHNd vvhV3c"><button aria-label="Show more">+ 1 more</button></div><div class="h1hEId" style="background:#f0f4f9" hidden><div><button aria-label="Show less">Show less</button></div></div></div></div></div></div></div>';
+    const card=workspace.querySelector('.E22Lmb'), more=card.querySelector('[aria-label="Show more"]'), less=card.querySelector('[aria-label="Show less"]'), footer=card.querySelector('.h1hEId');
+    let opens=0,closes=0;
+    more.addEventListener('click',()=>{opens++;footer.hidden=false;more.parentElement.hidden=true;});
+    less.addEventListener('click',()=>{closes++;footer.hidden=true;more.parentElement.hidden=false;});
+    const native=card.innerHTML;
+    for(const appearanceTheme of ['dark','light']) {
+      enable({appearanceTheme});more.click();
+      assert(css(footer).backgroundColor===token('--gp-bg-primary'),'expanded footer shares the card canvas');
+      assert(contrast(css(less).color,css(footer).backgroundColor)>=4.5,'Show less text is readable');
+      less.click();assert(footer.hidden&&!more.parentElement.hidden,'native collapse restores Show more');
+    }
+    assert(opens===2&&closes===2,'native disclosure handlers run once per action');
+    feature.stop();assert(card.innerHTML===native&&css(footer).backgroundColor===color('#f0f4f9'),'OFF restores expanded native surface and markup');
+  });
+  await test('native delivery summaries and calendar icons stay readable without recoloring label badges or email content', () => {
+    const node=row({label:'Projects/Example'}), summary=document.createElement('div');summary.className='by1 bFv bu7';
+    summary.innerHTML='<div class="bFw"><svg width="16" height="16" fill="none" style="color:#1f1f1f"><path fill="#1f1f1f" d="M2 2h12v12H2z"/></svg></div><div style="color:#1f1f1f">Expected by: <span style="color:#1f1f1f">Fri, Oct 30</span></div>';
+    node.querySelector('.xT').append(summary);
+    const image=document.createElement('img');image.className='xL';image.width=16;image.height=16;
+    image.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Cpath fill="black" d="M2 2h12v12H2z"/%3E%3C/svg%3E';node.querySelector('td.yf').append(image);
+    const badge=node.querySelector('.at'), label=node.querySelector('.av'), nativeSummary=summary.innerHTML;
+    const labelColors=[css(badge).backgroundColor,css(label).color].join('|');
+    const probe=document.createElement('span');workspace.append(probe);
+    const authored=document.createElement('div');authored.className='ii';authored.innerHTML='<div class="xS" role="link"><div class="xT"></div></div>';
+    const fake=summary.cloneNode(true);authored.querySelector('.xT').append(fake);node.querySelector('td.a4W').append(authored);
+    for(const appearanceTheme of ['dark','light']) for(const accentColor of appAccents()) {
+      enable({appearanceTheme,accentColor});
+      for(const state of ['normal','open','checked']) {
+        node.classList.toggle('aps',state==='open');node.querySelector('[role="checkbox"]').setAttribute('aria-checked',String(state==='checked'));
+        const selected=state!=='normal', foreground=selected?'--gp-accent-contrast':'--gp-text-secondary';
+        const filter=selected?'--gp-selected-icon-filter':'--gp-icon-filter';probe.style.filter=`var(${filter})`;
+        assert(css(summary.lastElementChild).color===token(foreground)&&css(summary.querySelector('span')).color===token(foreground),'summary descendants use the selected row palette');
+        assert(contrast(css(summary.lastElementChild).color,css(node).backgroundColor)>=(selected&&accentColor==='blue'?4:4.5),'summary text contrast');
+        assert(css(summary.querySelector('svg')).filter===css(probe).filter&&css(image).filter===css(probe).filter,'delivery and calendar icon paint follows the row palette');
+        assert(css(summary.querySelector('svg')).fill==='none','outlined SVG geometry is preserved');
+        assert([css(badge).backgroundColor,css(label).color].join('|')===labelColors,'native colored label badge remains intact');
+        assert(css(fake.lastElementChild).color===color('#1f1f1f'),'authored lookalike is excluded');
+      }
+      node.classList.remove('aps');node.querySelector('[role="checkbox"]').setAttribute('aria-checked','false');
+    }
+    feature.stop();assert(summary.innerHTML===nativeSummary&&css(summary.lastElementChild).color===color('#1f1f1f')&&css(image).filter==='none','OFF restores native summary text and icon styles');
+  });
+  function appAccents(){return GmailPro.settings.choices.accentColor;}
+  await test('system folders and custom labels share the Inbox tag silhouette without changing disclosure arrows or label text', () => {
+    workspace.innerHTML='<nav role="navigation" class="aeN WR"><div class="aim" data-gp-inbox><div class="TO nZ"><div class="TN"><div class="KCRnif"><svg width="20" height="20"><path d="M1 1h18v18H1z"/></svg></div><div class="aio"><a class="n0" href="#inbox">Inbox</a></div></div></div></div><div class="aim"><div class="TO"><div class="TN"><div class="KCRnif"><svg width="20" height="20"><path d="M10 1l3 5 6 1-4 5 1 7-6-3-6 3 1-7-4-5 6-1z"/></svg></div><div class="aio"><a class="n0" href="#starred">Starred</a></div></div></div></div><div class="aim"><div class="TO"><div class="TN"><div class="TH" role="link" aria-label="Expand label: Example"><svg width="12" height="12"><path d="M3 1l5 5-5 5"/></svg></div><div class="qj aEe" style="width:20px;height:20px"></div><div class="aio"><a class="n0" href="#label/Example">Example</a></div></div></div></div></nav>';
+    const nav=workspace.querySelector('nav'), svg=nav.querySelector('a[href="#starred"]').closest('.TN').querySelector('svg');
+    const marker=nav.querySelector('.qj'), arrow=nav.querySelector('.TH svg'), box=rect(svg);
+    // Classic Gmail's system symbols use PNG background images, unlike masked
+    // custom-label icons. Clearing only the mask leaves white artwork in a tag.
+    marker.style.backgroundImage='linear-gradient(white,black)';
+    const native=nav.innerHTML, nativeImage=css(marker).backgroundImage;
+    for(const appearanceTheme of ['dark','light']) {
+      enable({appearanceTheme});
+      const shape=getComputedStyle(nav.querySelector('[data-gp-inbox] .TN'),'::before').clipPath;
+      assert(css(svg).clipPath===shape&&css(marker).clipPath===shape,'all native glyph types share the filled tag');
+      assert(css(marker).backgroundImage==='none','native bitmap artwork cannot remain inside the filled tag');
+      assert(css(svg.firstElementChild).visibility==='hidden'&&css(arrow.firstElementChild).visibility==='visible','replace only the decorative mailbox symbol');
+      assert(rect(svg).width===box.width&&rect(svg).height===box.height,'native symbol slot and hierarchy stay stable');
+      assert(css(svg).backgroundColor===token('--gp-text-secondary'),'neutral tag follows the readable theme color');
+      svg.closest('.TO').classList.add('nZ');
+      assert(css(svg).backgroundColor===token('--gp-label-accent'),'selected tag follows the chosen accent');svg.closest('.TO').classList.remove('nZ');
+    }
+    feature.stop();assert(css(marker).backgroundImage===nativeImage,'OFF restores native bitmap artwork');
+    assert(nav.innerHTML===native&&css(svg.firstElementChild).visibility==='visible'&&css(svg).clipPath==='none','OFF restores each native icon and every label');
+  });
+  await test('integrated app rail icons and labels remain readable in both themes without resizing or recoloring badges', () => {
+    const rail = document.createElement('nav'); rail.className = 'WR'; rail.setAttribute('role','navigation');
+    rail.style.cssText = 'width:68px;min-width:68px';
+    rail.innerHTML = '<div class="Xa"><div class="V6 CL W9" role="link" aria-label="Mail" style="color:white"><span class="XU aH7" style="color:white;background:#b3261e">99+</span></div><div class="apW" role="heading" style="color:white">Mail</div></div>';
+    workspace.append(rail); const original = rail.innerHTML;
+    const probe = document.createElement('span'); probe.style.filter = 'var(--gp-icon-filter)'; workspace.append(probe);
+    for (const appearanceTheme of ['light','dark','light']) {
+      enable({appearanceTheme});
+      const link=rail.querySelector('.V6'), label=rail.querySelector('.apW'), badge=rail.querySelector('.XU');
+      assert(contrast(css(label).color, token('--gp-sidebar-bg')) >= 4.5, 'rail labels override the native white palette');
+      assert(getComputedStyle(link,'::before').filter === css(probe).filter, 'only the native pseudo icon receives the theme filter');
+      assert(css(badge).color === color('white') && css(badge).backgroundColor === color('#b3261e'), 'badge colors remain native');
+      assert(rect(rail).width === 68 && rail.innerHTML === original, 'native rail sizing, markup and link handlers remain intact');
+    }
+    feature.stop();
+    assert(css(rail.querySelector('.apW')).color === color('white') && getComputedStyle(rail.querySelector('.V6'),'::before').filter === 'none', 'OFF restores native rail colors and icon filter');
+  });
+  await test('native masked label markers have readable neutral and selected fills while custom colors stay intact', () => {
+    workspace.innerHTML='<style>.native-glyphs .qj { background-color:white;opacity:.71;mask-image:linear-gradient(black,black);width:14px;height:14px; }</style><nav role="navigation" class="native-glyphs"><div class="aim"><div class="TO"><div class="TN"><div class="qj aEe"></div><a href="#label/Demo">Demo</a></div></div></div><div class="aim"><div class="TO"><div class="TN"><div class="qj aEe" style="background-color:#ff9900"></div><a href="#label/Colored">Colored</a></div></div></div></nav>';
+    const marker=workspace.querySelector('.qj'), selected=marker.closest('.TO'), custom=workspace.querySelector('[style*="background-color"]');
+    for (const appearanceTheme of ['light','dark']) {
+      enable({appearanceTheme});
+      assert(css(marker).backgroundColor===token('--gp-text-secondary')&&css(marker).opacity==='1','neutral masked glyph uses a full-opacity theme fill');
+      assert(contrast(css(marker).backgroundColor,token('--gp-sidebar-bg'))>=3,'neutral marker has graphical contrast');
+      selected.classList.add('nZ');
+      assert(css(marker).backgroundColor===token('--gp-label-accent')&&contrast(css(marker).backgroundColor,css(selected).backgroundColor)>=3,'selected marker remains visible');
+      assert(css(custom).backgroundColor===color('#ff9900'),'explicit Gmail label color preserved');
+      selected.classList.remove('nZ');
+    }
+    feature.stop();assert(css(marker).backgroundColor===color('white')&&css(marker).opacity==='0.71','OFF restores native glyph fill and opacity');
+  });
   await test("off has no styles or DOM changes; on includes existing two-line list", () => {
     const node = row(), html = workspace.innerHTML, baseline = css(node).backgroundColor;
     feature.start(GmailPro.settings.defaults);
@@ -183,8 +370,8 @@
     const badge = node.querySelector('.at'), labelText = badge.querySelector('.av');
     const labelBackground = css(badge).backgroundColor, labelForeground = css(labelText).color;
     node.classList.add("aps");
-    // Keep the requested exact label blue and the existing contrast checks
-    // for other accents; white selection text on vivid blue remains ~4:1.
+    // Keep cyan mailbox highlights in Dark and readable label shades in Light.
+    // White selection text on vivid blue remains ~4:1.
     const selectionContrast = accent === "blue" ? 4 : 4.5;
     assert(css(node).backgroundColor === token("--gp-accent"), "native open row uses accent");
     assert(contrast(css(node).backgroundColor, css(node.querySelector(".bog")).color) >= selectionContrast, "subject contrast");
@@ -198,10 +385,12 @@
     assert(css(selected).backgroundColor === token("--gp-selection-sidebar-bg"), "neutral sidebar selection");
     assert(css(link).color === token("--gp-label-accent"), "accent mailbox text");
     assert(css(selected.querySelector("svg")).fill === token("--gp-label-accent"), "accent mailbox icon");
-    assert(css(link).color !== token("--gp-accent") && css(link).color !== token("--gp-accent-ui"), "mailbox highlight has its own shade across all accents");
-    if (accent === "blue") assert(css(link).color === "rgb(0, 174, 255)", "exact requested blue label color");
+    if (accent === 'blue' && theme === 'light') assert(css(link).color === token('--gp-accent-ui'), 'light blue uses the readable blue shade');
+    else assert(css(link).color !== token("--gp-accent") && css(link).color !== token("--gp-accent-ui"), "mailbox highlight has its own shade");
+    if (accent === "blue" && theme === 'dark') assert(css(link).color === "rgb(0, 174, 255)", "dark blue retains its cyan highlight");
     else assert(contrast(css(link).color, css(selected).backgroundColor) >= 4.5, "sidebar text contrast");
-    assert(css(selected.querySelector(".bsU")).color === "rgb(156, 158, 160)", "exact requested mailbox count gray in both themes");
+    assert(css(selected.querySelector(".bsU")).color === token('--gp-sidebar-count'), "mailbox count uses the theme's readable neutral");
+    assert(css(selected.querySelector(".bsU")).textShadow === 'none' && contrast(css(selected.querySelector(".bsU")).color,css(selected).backgroundColor) >= 4.5, "counts remain sharp with readable selected contrast");
     selected.classList.add("nY");
     assert(css(selected).backgroundColor === token("--gp-accent"), "drop target uses current accent");
     assert(contrast(css(link).color, css(selected).backgroundColor) >= selectionContrast, "drop label contrast");
@@ -251,7 +440,7 @@
         assert(Math.abs(rect(count).right - rect(rows[0].querySelector(".bsU")).right) < 1, "top-level and nested counts share right edge");
         assert(rect(rows[1].querySelector(".nU")).right <= rect(count).left, "long name stays clear of count");
         assert(count.scrollWidth <= count.clientWidth && css(count).textAlign === "right", "count is untruncated and right justified");
-        assert(css(count).color === "rgb(156, 158, 160)", "unselected count uses requested gray");
+        assert(css(count).color === token('--gp-sidebar-count'), "unselected count uses the readable theme neutral");
       }
       sidebar.classList.add("collapsed");
       assert(count.getClientRects().length === 0, "native collapsed sidebar still hides counts");
@@ -259,6 +448,22 @@
       sidebar.classList.remove("collapsed"); sidebar.style.width = "";
       name.textContent = originalName; count.textContent = originalCount;
     }
+  });
+  await test('native unread-count shadows are removed in both themes and restored on mode OFF', () => {
+    const count=document.querySelector('#sidebar .bsU'), selected=count.closest('.TO');
+    const originalText=count.textContent, nativeShadow=css(count).textShadow;
+    assert(nativeShadow!=='none','fixture includes the native dark-theme count shadow');
+    for(const appearanceTheme of ['light','dark','light']) {
+      enable({appearanceTheme});
+      for(const current of [false,true]) {
+        selected.classList.toggle('nZ',current);
+        assert(css(count).textShadow==='none','count has no native blurred shadow');
+        assert(contrast(css(count).color,token(current?'--gp-selection-sidebar-bg':'--gp-sidebar-bg'))>=4.5,'count contrasts with the visible sidebar surface');
+        assert(css(count).fontVariantNumeric==='tabular-nums'&&count.textContent===originalText,'native value and aligned digits retained');
+      }
+    }
+    feature.stop();selected.classList.add('nZ');
+    assert(css(count).textShadow===nativeShadow&&count.textContent===originalText,'OFF restores the native paint without altering its count');
   });
   await test("native unread updates show no number at zero and mode OFF restores count styling", () => {
     const aio = document.querySelector("#sidebar .aio"), count = aio.querySelector(".bsU");

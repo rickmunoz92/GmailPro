@@ -131,6 +131,19 @@
     if (dashboard) showAI();
     return { ...f, ai, main, showAI, showInbox };
   }
+  function integratedMailboxFixture() {
+    const f = mailboxFixture();
+    const rail = document.createElement('div'); rail.className = 'aeN WR'; rail.setAttribute('role', 'navigation');
+    rail.style.cssText = 'width:72px;min-width:72px;max-width:72px;flex:none';
+    rail.innerHTML = '<a role="link" aria-label="Mail">Mail</a><a role="link" aria-label="Chat">Chat</a><a role="link" aria-label="Meet">Meet</a>';
+    const frame = document.createElement('div'); frame.className = 'aqn'; frame.style.cssText = 'width:256px;flex:none';
+    f.nav.removeAttribute('role'); f.nav.className = 'aBO'; f.nav.style.cssText = 'width:256px;box-sizing:border-box';
+    f.source.removeAttribute('gh'); f.source.className = 'T-I T-I-KE L3';
+    f.composeShell.style.height = '60px';
+    f.nav.replaceWith(frame); frame.append(f.nav); frame.before(rail);
+    workspace.querySelector('[aria-label="Main menu"]').setAttribute('aria-expanded', 'true');
+    return { ...f, rail, frame };
+  }
   function addLabelFilters(f) {
     const filters=document.createElement('div');
     filters.className='native-label-filters'; filters.setAttribute('role','toolbar');
@@ -330,6 +343,41 @@
   await test('AI Inbox unknown or ambiguous native dashboard stays usable with native chrome', async () => {
     const f=aiMailboxFixture(true); f.main.firstElementChild.className='unknown-dashboard'; await start();
     assert(!f.root.hasAttribute('data-gp-mailboxes') && !workspace.querySelector('.gmail-pro-ai-toolbar') && rect(f.shell).height>0, 'unsupported dashboard fails safely');
+  });
+  await test('AI Inbox sidebar survives toolbar Compose pressure, full fallback and recovery', async () => {
+    const f = aiMailboxFixture(true);
+    GmailPro.labelOrder.start({customLabelOrderEnabled:true,customLabelOrder:['mailbox/aiinbox','mailbox/inbox','label/Mgr','label/Projects','label/Internal']});
+    await start(true);
+    const more = f.root.querySelector('.gmail-pro-mailboxes-more'), parent = f.ai.parentElement;
+    more.click(); await settle();
+    f.actions.style.cssText = 'width:auto;gap:8px;flex:none'; f.select.parentElement.style.gap = '8px';
+    for (const button of f.actions.querySelectorAll('button')) button.style.cssText = 'width:80px;flex:none;padding:0';
+    workspace.style.width = '750px'; f.showInbox(); await settle();
+    const check = () => {
+      assert(f.root.hasAttribute('data-gp-mailboxes') && f.ai.hasAttribute('data-gp-ai-inbox'), 'sidebar keeps its independent presentation owner');
+      assert(f.title.textContent === 'Mailboxes' && rect(f.ai).bottom === rect(f.inbox).top, 'heading, AI icon row and order remain themed');
+      assert(f.root.querySelector('.gmail-pro-mailboxes-more') === more && more.getAttribute('aria-expanded') === 'true', 'same More control and disclosure state retained');
+      assert(f.ai.parentElement === parent && Object.keys(saved).length === 0, 'native ownership and saved order unchanged');
+    };
+    assert(!workspace.querySelector('.gmail-pro-toolbar-compose') && rect(f.source).height > 0, 'crowded toolbar leaves native Compose available');
+    assert(f.form.hasAttribute('data-gp-toolbar-search'), 'compact header still fits without optional Compose'); check();
+    await idleHeader(); check();
+    workspace.style.width = '600px'; await settle();
+    assert(!f.form.hasAttribute('data-gp-toolbar-search') && rect(f.shell).height > 0, 'complete header fallback remains usable'); check();
+    f.source.replaceWith(f.source.cloneNode(true)); await settle(); check();
+    workspace.style.width = '1400px'; await settle();
+    assert(workspace.querySelectorAll('.gmail-pro-toolbar-compose').length === 1, 'Compose recovers once space returns'); check();
+    feature.stop();
+    assert(!f.root.hasAttribute('data-gp-mailboxes') && !f.ai.hasAttribute('data-gp-ai-inbox') && f.title.textContent === 'Labels', 'mode OFF restores native sidebar');
+  });
+  await test('AI Inbox sidebar applies on a cold load when toolbar Compose cannot fit', async () => {
+    const f = aiMailboxFixture();
+    GmailPro.labelOrder.start({customLabelOrderEnabled:false,customLabelOrder:[]});
+    f.actions.style.cssText = 'width:auto;gap:8px;flex:none'; f.select.parentElement.style.gap = '8px';
+    for (const button of f.actions.querySelectorAll('button')) button.style.cssText = 'width:80px;flex:none;padding:0';
+    workspace.style.width = '750px'; await start(true);
+    assert(!workspace.querySelector('.gmail-pro-toolbar-compose') && rect(f.source).height > 0, 'native Compose remains available');
+    assert(f.root.hasAttribute('data-gp-mailboxes') && f.ai.hasAttribute('data-gp-ai-inbox') && rect(f.ai).bottom === rect(f.inbox).top, 'sidebar applies without ever relocating Compose');
   });
   await test('Inbox replaces both native icon wrappers with one aligned label tab and restores native fallback', async () => {
     for (const iconClass of ['KCRnif', 'qj']) {
@@ -1172,6 +1220,46 @@
     await settle(); observer.disconnect(); assert(writes===0,'no work from message mutations or idle frames');
   });
   const caption = () => document.querySelector('.gmail-pro-mailbox-caption');
+  await test('search correction stays fully visible below the caption without duplicating reserved space', async () => {
+    for (const theme of ['dark', 'light']) for (const collapsed of [false, true]) {
+      feature.stop();
+      const f = spacedListFixture('#search/synthetic', 'Search results');
+      document.documentElement.dataset.gpTheme = theme;
+      const correction = document.createElement('div'); correction.className = 'native-correction';
+      correction.innerHTML = '<div class="Wz"><div>Did you mean: <span class="Wy" role="link" qsugg="synthetic example" tabindex="0"><b><i>synthetic example</i></b></span></div></div>';
+      // Gmail inserts an empty sibling between the toolbar and correction.
+      f.toolbar.after(document.createElement('div'), correction);
+      const suggestion = correction.querySelector('[qsugg]'), banner = correction.firstElementChild;
+      const nativePadding = getComputedStyle(correction).paddingTop;
+      let clicks = 0; suggestion.addEventListener('click', () => clicks++);
+      await start(collapsed);
+      const check = () => {
+        const link = rect(suggestion), heading = rect(caption());
+        assert(link.top >= heading.bottom, 'entire correction clears the pinned caption');
+        for (const y of [link.top + 1, link.bottom - 1]) assert(suggestion.contains(document.elementFromPoint(link.left + 2, y)), 'caption cannot intercept the suggestion');
+        assert(Math.abs(rect(f.content).top - rect(f.list).top) < 1, 'no duplicate caption gap inside the list');
+        assert(Math.abs(rect(correction).height - rect(banner).height - 22) < 1, 'caption space is reserved once, before the banner');
+      };
+      check();
+      suggestion.focus(); suggestion.click(); assert(document.activeElement === suggestion && clicks === 1, 'native focus and click handler retained');
+      const firstRow = rect(f.content).top;
+      correction.remove(); await settle();
+      assert(Math.abs(rect(f.content).top - rect(caption()).bottom) < 1, 'removing correction restores normal list spacing');
+      f.toolbar.nextElementSibling.after(correction); await settle(); check();
+      assert(rect(f.content).top === firstRow, 'reinsertion does not accumulate spacing');
+      for (const hidden of ['wrapper', 'banner', 'inline']) {
+        if (hidden === 'inline') correction.style.display = 'none';
+        else (hidden === 'wrapper' ? correction : banner).hidden = true;
+        await settle();
+        assert(Math.abs(rect(f.content).top - rect(caption()).bottom) < 1, 'hidden correction restores caption space in the list');
+        correction.style.display = ''; correction.hidden = false; banner.hidden = false; await settle(); check();
+      }
+      f.content.style.height = '1500px'; f.list.scrollTop = 80; await settle();
+      assert(rect(suggestion).top >= rect(caption()).bottom && f.list.scrollTop === 80, 'scrolling retains the visible suggestion and native scroll position');
+      feature.stop();
+      assert(!caption() && getComputedStyle(correction).paddingTop === nativePadding, 'mode OFF restores native geometry');
+    }
+  });
   await test('mailbox caption uses the native total and occupies only 22px in the list', async () => {
     const f = captionFixture(), paneTop = rect(workspace.querySelector('.Nu.S3')).top;
     await start(true);
@@ -1441,6 +1529,37 @@
     observer.observe(spinner().parentElement,{childList:true,attributes:true,subtree:true});
     f.identity().closest('tr').classList.add('zE','aps'); f.identity().setAttribute('data-gp-message-row','');
     await settle(); observer.disconnect(); assert(writes===0 && spinner(), 'no polling, repeated spinner writes, or false completion');
+  });
+  await test('classic mailbox navigation may use WR without being mistaken for the integrated app rail', async () => {
+    const f=mailboxFixture();f.nav.classList.add('aeN','WR');f.nav.style.boxSizing='content-box';
+    workspace.querySelector('[aria-label="Main menu"]').setAttribute('aria-expanded','true');
+    await start();
+    assert(f.nav.matches(GmailPro.selectors.mailboxNavigation)&&!f.nav.matches(GmailPro.selectors.appRail),'mailbox/app identity comes from native structure');
+    assert(f.composeShell.querySelectorAll('.gmail-pro-sidebar-brand').length===1&&f.root.hasAttribute('data-gp-mailboxes'),'brand and consolidated Mailboxes remain active');
+    assert(rect(f.nav).width===216&&getComputedStyle(f.nav).backgroundColor==='rgb(28, 32, 33)','legacy mailbox receives the theme and design width');
+    assert(getComputedStyle(f.inbox.querySelector('a')).color==='rgb(0, 174, 255)','selected mailbox retains its accent');
+  });
+  await test('integrated Chat/Meet rail stays native while the separate mailbox owner receives Gmail Pro chrome', async () => {
+    const f = integratedMailboxFixture(); await start();
+    assert(rect(f.rail).width === 72, 'the app rail never receives the mailbox width');
+    assert(rect(f.frame).width === 216 && rect(f.nav).width === 216, 'the actual mailbox frame and owner follow the 216px design');
+    assert(getComputedStyle(f.nav).backgroundColor === 'rgb(28, 32, 33)', 'mailboxes use the dark sidebar palette');
+    assert(f.composeShell.querySelectorAll('.gmail-pro-sidebar-brand').length === 1 && !f.rail.querySelector('.gmail-pro-sidebar-brand'), 'brand belongs to the mailbox column');
+    assert(f.root.hasAttribute('data-gp-mailboxes') && f.title.textContent === 'Mailboxes', 'native mailbox sections consolidate');
+    assert(workspace.querySelectorAll('.gmail-pro-toolbar-compose').length === 1, 'the native modern Compose control is bridged once');
+    feature.stop(); document.documentElement.className = '';
+    assert(rect(f.rail).width === 72 && rect(f.frame).width === 256 && rect(f.nav).width === 256, 'OFF restores native widths');
+    assert(!f.nav.querySelector('.gmail-pro-sidebar-brand') && f.title.textContent === 'Labels' && !f.source.hasAttribute('gh'), 'OFF restores native markup without adding legacy attributes');
+  });
+  await test('integrated mailbox replacement and collapse rebind once without changing the app rail', async () => {
+    const f = integratedMailboxFixture(); await start();
+    const replacement = f.nav.cloneNode(true); f.nav.replaceWith(replacement); await settle();
+    assert(replacement.querySelectorAll('.gmail-pro-sidebar-brand').length === 1 && workspace.querySelectorAll('.gmail-pro-toolbar-compose').length === 1, 'replacement adopts one brand and one toolbar control');
+    assert(rect(f.rail).width === 72 && replacement.querySelector('.nM').hasAttribute('data-gp-mailboxes'), 'replacement keeps the owners separate');
+    workspace.querySelector('[aria-label="Main menu"]').setAttribute('aria-expanded', 'false');
+    f.frame.style.width = '56px'; replacement.style.width = '56px'; window.dispatchEvent(new Event('resize')); await settle();
+    assert(rect(f.rail).width === 72 && rect(f.frame).width === 56 && rect(replacement).width === 56, 'collapsed mailboxes retain native sizing');
+    assert(replacement.querySelector('.gmail-pro-sidebar-brand').hasAttribute('data-compact'), 'the existing compact wordmark is reused');
   });
   window.removeEventListener('resize',nativeResize);
   results.textContent += `\n${passes} passed; ${failures} failed.\n`;

@@ -3,8 +3,9 @@
 **Power-user enhancements for Gmail.**
 
 Gmail Pro is a lightweight Chrome extension that adds useful power-user
-functionality to the Gmail web interface. It runs locally in your browser, with
-plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backend.
+functionality to the Gmail web interface. Mail features run locally in your
+browser using bundled HTML, CSS, and JavaScript. The Chrome Web Store build
+verifies subscriptions through a small Netlify service backed by Stripe.
 
 ## Features
 
@@ -82,8 +83,9 @@ styles the main inbox, sidebar, and reading toolbar. There is no popup ownership
 custom white override, or inherited dark composer skin.
 
 DOM assumptions: English desktop Gmail, native action labels/classes and the validated
-conversation shell. Unknown structures fall back to Gmail. Only `storage` permission is
-required. See [native compose QA](tests/floatingCompose-QA.md).
+conversation shell. Unknown structures fall back to Gmail. Mail features use
+`storage` and Gmail content-script access; subscription checks additionally use
+the dedicated billing host. See [native compose QA](tests/floatingCompose-QA.md).
 
 ## Installation
 
@@ -152,15 +154,33 @@ Purple, Pink, Red, Orange, Yellow, Green, or Graphite. Changes persist through t
 existing `chrome.storage.sync` adapter and reach open Gmail tabs without a reload.
 No Gmail permissions, API calls, data stores, analytics, or dependencies are added.
 
-For the three-pane layout, use Gmail's own **Settings → Reading pane → Right of
-inbox**. Gmail Pro styles the existing panes; it does not enable a Gmail preference
-behind your back or simulate a reading pane. Gmail owns splitters and saved pane
-widths. The vertical divider paints a single 1px line inside Gmail's original
+Apple Mail Mode starts with Gmail's native right-hand reading pane and gives
+the conversation list about 25% of the available mail area. Gmail's minimum
+pane widths apply in narrow windows. Drag the native divider to resize; Gmail
+keeps control of saved pane widths. The initial 25/75 preset stays reversible;
+manual layout choices are remembered using a small hashed-account marker and
+take priority on later starts.
+Unknown account or layout structures keep Gmail's native behavior. The vertical
+divider paints a single 1px line inside Gmail's original
 resize handle, keeping its full drag area. The line is pale gray in Light and
 dark in Dark. The expanded mailbox sidebar is about
 216px on wide desktop windows; narrow
 windows and collapsed navigation retain Gmail's sizing. The collapsible header described below reclaims space while fitting the right reading
 pane to Gmail’s measured viewport.
+
+The left Mail/Chat/Meet rail and right Workspace side panel start collapsed.
+Use the left edge arrow or Gmail's native right edge arrow to reopen them.
+Each explicit expansion/collapse saves independently. The mailbox sidebar and
+all original app links remain available; disabling Apple Mail Mode restores the
+native left rail and removes its extra arrow. See [workspace layout QA](tests/workspaceLayout-QA.md).
+
+System mailboxes and custom labels share a filled tag marker in both classic and
+integrated Gmail navigation. Selected mailboxes use the accent color; uncolored
+labels use a readable neutral, while explicit Gmail label colors stay intact.
+Unread counts use sharp, shadow-free text with a readable neutral in each theme.
+Native disclosure arrows and menu controls retain their behavior. Gmail's
+Happening soon cards, expanded Show less footer, delivery summaries and calendar
+indicators use the current interface theme without changing message HTML.
 
 - **Scrollbars:** Gmail pane thumbs appear only on the axis that moves and hide
   after 700ms idle. Tracks keep a stable size, with a square, theme-colored corner.
@@ -199,7 +219,8 @@ pane to Gmail’s measured viewport.
   (`.btb`) keeps an outline and is not mistaken for an opened conversation.
 - **Current mailbox/label:** Gmail's `.TO.nZ` state gets neutral gray selection
   chrome with an accent-tinted icon/text. Native unread counts sit at the right
-  edge in **#9C9EA0**, including nested labels; mailboxes with no unread messages
+  edge in a shadow-free neutral (**#4F535A** in Light, **#AAACAE** in Dark),
+  including nested labels; mailboxes with no unread messages
   show no number. Gmail owns the totals and updates, so counts are not limited to
   the currently loaded message page. Nesting and disclosure controls retain
   Gmail's hierarchy and behavior.
@@ -243,11 +264,12 @@ root styling, and the temporary range anchor.
 popup. It supplies surface, text, border, focus, sidebar, and accent variables.
 Precomputed luminance-based foreground choices use dark text for Orange/Yellow and
 white for the other six accents. Blue uses vivid **#007AFF** selection backgrounds
-and the requested exact **#00AEFF** selected sidebar text/icons in both themes.
-The blue palette prioritizes these specified colors: white selection text has about
-**4:1** contrast, and blue sidebar text does not meet the 4.5:1 normal-text target
-in every theme. Other accent pairs and sidebar counts retain the **4.5:1** checks
-across both themes. `content/appleMail.css` documents the native selector contract and scopes
+and **#00AEFF** selected sidebar text/icons in Dark. Light uses the darker
+**#005EC7** selected label shade for readable contrast. Neutral masked label icons
+use the theme foreground at full opacity; explicit Gmail label colors stay intact.
+White selection text on vivid blue retains about **4:1** contrast. Other accent
+foreground pairs retain the **4.5:1** checks across both themes.
+`content/appleMail.css` documents the native selector contract and scopes
 chrome styling away from message HTML and editable content.
 
 The existing `messageList.css` supplies the two-line layout. Auto BCC, Newest Email
@@ -628,11 +650,17 @@ updates. See [label organization QA](tests/labelOrder-QA.md).
 
 ## Privacy
 
-- Gmail Pro runs locally in the browser and does not operate a backend.
-- It includes no analytics, tracking, remote logging, remote code, or external APIs.
-- It does not intentionally transmit Gmail message content to external services.
-  The extension code initiates no network requests and does not read message bodies,
-  subjects, or attachment contents.
+- Mail features process Gmail page elements locally, including displayed message
+  content, labels, account addresses, recipients and read status as needed.
+- Gmail Pro does not send Gmail bodies, subjects, attachments, recipients, BCC
+  settings, label names or Gmail account addresses to its billing service.
+- There are no advertising trackers, behavioral analytics or remotely loaded code.
+- The service worker sends a random purchase token or license key to
+  `https://gmail-pro.netlify.app` for Checkout, activation, status checks and the
+  customer portal. Stripe holds billing records and handles payment details.
+  Active status is normally cached for six hours. After a temporary failure,
+  previously verified access lasts at most 24 hours and never beyond its trial
+  or paid period. Manual refresh and activation can make additional checks.
 - Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
   Gmail network traffic or call undocumented Gmail APIs.
 - Preferences are stored through **`chrome.storage.sync`**. This includes the configured
@@ -640,6 +668,15 @@ updates. See [label organization QA](tests/labelOrder-QA.md).
   and verified Gmail account addresses paired with hidden sublabel paths. Chrome can
   synchronize those preferences through Google's Chrome Sync service when enabled;
   this is not strictly device-only storage.
+- Small boolean manual-layout markers use separate, hashed-account Sync
+  keys so two tabs cannot overwrite each other's layout choices. They contain
+  no message data or saved pane dimensions.
+- License keys, purchase tokens and cached subscription status stay in trusted
+  local extension storage, outside Chrome Sync and Gmail content-script access.
+- Netlify hosts the website and service, processes routine security/request logs,
+  and stores submitted support forms. Do not include mailbox content or secrets
+  in support requests. The public [privacy policy](https://gmail-pro.netlify.app/privacy)
+  describes these services and deletion requests.
 - Gmail may save recipient changes as part of its normal draft behavior. If you send
   a message, the configured BCC recipient receives a copy through Gmail.
 
@@ -650,12 +687,28 @@ repository. Documentation and fixtures use synthetic examples only.
 
 | Capability | Purpose |
 | --- | --- |
-| `storage` | Load and save extension preferences. |
+| `storage` | Save preferences, private local activation and cached subscription status. |
 | Content-script match: `https://mail.google.com/*` | Run only on Gmail over HTTPS, in the top-level frame. |
+| Host permission: `https://gmail-pro.netlify.app/*` | Allow the service worker to verify subscriptions and create Stripe Checkout/customer-portal sessions. No Gmail content is sent. |
 
-This is a Manifest V3 extension. It has no background service worker, OAuth scopes,
-`tabs`, `activeTab`, `scripting`, `webRequest`, or broad host permissions. The popup's
-content security policy permits bundled resources and disallows network connections.
+This Manifest V3 extension uses a background service worker for subscription
+verification and the existing settings bridge. It has no Gmail OAuth scopes,
+`tabs`, `activeTab`, `scripting`, `webRequest`, or all-sites host permission.
+The extension CSP permits bundled executable code and connections only to the
+dedicated billing host. Stripe credentials never ship in the extension.
+
+## Subscriptions and release builds
+
+The planned store offer is **US$0.99/month or US$10/year**, with a **7-day free
+trial** on either plan. Checkout collects payment details. Cancel before the
+trial ends to avoid the first charge; later cancellation stops renewal at the
+end of the current period. Uninstalling does not cancel a subscription.
+
+The canonical unpacked checkout uses `shared/billing-config.js` with
+`required:false` for development. `npm run package:store` always writes
+`required:true` into the store ZIP and includes only production extension files.
+The store build does not start feature modules until access is verified.
+See [release setup and acceptance](release/README.md) before submitting or opening sales.
 
 ## Clean reading pane and persistent message actions
 
@@ -738,14 +791,17 @@ changes instead. See [paging QA](tests/autoPaging-QA.md).
 
 ### Validation
 
-Use Node.js 18 or newer for the local validation suite:
+Use Node.js 22 or newer for the release tooling and billing tests:
 
 ```sh
-node scripts/validate.cjs
+npm ci
+npm test
 ```
 
 This checks the manifest, referenced assets, icon dimensions, JavaScript syntax,
-permissions, and settings/lifecycle unit tests. There is no package installation.
+permissions, settings/lifecycle behavior, and mocked billing/security scenarios.
+`node scripts/validate.cjs` also runs the local extension checks independently.
+Mocked tests do not replace Stripe sandbox acceptance.
 
 For real-Chrome synthetic DOM tests, run the local development server with Python 3:
 
@@ -767,6 +823,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/autoRead.html`
 - `http://127.0.0.1:8765/tests/headerLayout.html`
 - `http://127.0.0.1:8765/tests/headerReadingPane.html`
+- `http://127.0.0.1:8765/tests/workspaceLayout.html`
 - `http://127.0.0.1:8765/tests/floatingCompose.html`
 - `http://127.0.0.1:8765/tests/keyboardShortcuts.html`
 

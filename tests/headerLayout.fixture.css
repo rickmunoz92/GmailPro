@@ -35,6 +35,10 @@ form > button > svg { width: 24px; height: 24px; padding: 8px; margin: 3px; }
 .native-pager-owner { margin-left: auto; }
 .native-mail-action-row :is([gh=mtb], .Di, button) { height: 20px; }
 .panes { display: flex; flex: 1; min-height: 0; }
+/* Native query correction is outside the panes, after the mail toolbar. */
+[role=main] > .native-correction { flex: none; }
+.native-correction > .Wz { display: flex; align-items: center; min-height: 32px; padding: 3px 0 3px 18px; }
+.native-correction[hidden], .native-correction > .Wz[hidden] { display: none; }
 .Nu { flex: 1; overflow: auto; }
 .Nu > div { height: 1500px; }
 .ZF-Av { position: fixed; z-index: 200; top: 60px; left: 600px; }

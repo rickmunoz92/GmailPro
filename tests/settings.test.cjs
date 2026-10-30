@@ -15,6 +15,8 @@ function fixture(initial = {}) {
   let writes = 0;
   let failure = null;
   const context = vm.createContext({
+    GmailProBillingConfig: { required: false },
+    crypto: require('node:crypto').webcrypto,
     TextEncoder,
     chrome: { storage: {
       sync: {
@@ -37,6 +39,7 @@ function fixture(initial = {}) {
   run("shared/settings.js");
   context.GmailPro.appearance = { start() {}, update() {}, stop() {} };
   context.GmailPro.headerLayout = { start() {}, update() {}, stop() {} };
+  context.GmailPro.workspaceLayout = { start() {}, update() {}, stop() {} };
   context.GmailPro.keyboardShortcuts = { start() {}, update() {}, stop() {} };
   context.GmailPro.floatingCompose = { start() {}, update() {}, stop() {} };
   context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
@@ -50,7 +53,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -63,10 +66,25 @@ test("malformed stored values normalize safely without destructive rewrites", as
   assert.equal(f.writes, 0);
 });
 
+test('workspace choices save independently and account initialization markers cannot overwrite one another', async () => {
+  const f=fixture({[prefix+'headerCollapsed']:false});
+  await f.settings.save({leftRailCollapsed:false,rightRailCollapsed:true});
+  const saved=plain(await f.settings.load());
+  assert.equal(saved.headerCollapsed,false);assert.equal(saved.leftRailCollapsed,false);assert.equal(saved.rightRailCollapsed,true);
+  await Promise.all(['ONE@example.test','two@example.test'].map(owner=>f.settings.markReadingLayoutHandled(owner)));
+  assert.equal(await f.settings.readingLayoutHandled('one@example.test'),true);
+  assert.equal(await f.settings.readingLayoutHandled('two@example.test'),true);
+  assert.equal(await f.settings.readingLayoutHandled('other@example.test'),false);
+  const markers=Object.keys(f.data).filter(key=>key.startsWith(prefix+'readingLayout.'));
+  assert.equal(markers.length,2);assert.ok(markers.every(key=>!key.includes('@')&&f.data[key]===true));
+  await assert.rejects(f.settings.markReadingLayoutHandled('not-an-account'));
+  assert.equal(f.writes,3);
+});
+
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});

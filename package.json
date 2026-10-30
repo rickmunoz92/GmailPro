@@ -1,0 +1,30 @@
+{
+  "name": "gmail-pro-release",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gmail Pro store release and private subscription service",
+  "scripts": {
+    "test": "node scripts/validate.cjs && node --test tests/billing*.test.cjs tests/billing*.test.mjs",
+    "package:store": "node scripts/package-store.cjs",
+    "deploy:preview": "netlify deploy --dir website/public --functions website/netlify/functions",
+    "deploy:production": "netlify deploy --prod --dir website/public --functions website/netlify/functions"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rickmunoz92/GmailPro.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "stripe": "23.1.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "27.16.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "bugs": {
+    "url": "https://github.com/rickmunoz92/GmailPro/issues"
+  },
+  "homepage": "https://github.com/rickmunoz92/GmailPro#readme"
+}

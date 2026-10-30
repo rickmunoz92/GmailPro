@@ -17,6 +17,8 @@ dist/
 *.pem
 .env
 .env.*
+!.env.example
+.netlify/
 
 # Local settings, credentials, and editor state
 *.local

@@ -326,6 +326,16 @@
     eye(list, "Alpha/Child").click(); await settle(); equal(prefs.sidebarHiddenSublabels, []);
     assert(!child.hasAttribute("data-gmail-pro-label-hidden") && !grandchild.hasAttribute("data-gmail-pro-label-hidden"), "branch restored");
   });
+  await test('personal Google membership identity is recognized without accepting unknown or ambiguous accounts', () => {
+    fixture(); const control=host.querySelector('header button');
+    control.setAttribute('aria-label','Google Account: Fixture (one@example.test), Google membership');
+    equal(feature.account(),'one@example.test');
+    control.setAttribute('aria-label','Google Account: Fixture (one@example.test), Unknown suffix');
+    equal(feature.account(),null);
+    control.setAttribute('aria-label','Google Account: Fixture (one@example.test)');
+    const other=control.cloneNode(true);other.setAttribute('aria-label','Google Account: Other (two@example.test), Google membership');
+    control.after(other);equal(feature.account(),null);
+  });
   await test("visibility persists independently of ordering and is isolated by verified account", async () => {
     const list = fixture(); on(); feature.edit(); eye(list, "Alpha/Child").click(); await settle();
     feature.update({ customLabelOrderEnabled: false }); await settle();

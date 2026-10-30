@@ -27,12 +27,18 @@
 
   function fixture({ unread = true, labels = ["Projects/Example"], ignoreReads = 0, confirmDelay = 0,
       ignoreArchive = false, archiveDelay = 0, replaceRow = false, route = "#inbox", enabled = true,
-      sidebar = true, timeout = 10000, withActions = false, archiveNoticeDelay = 0, omitArchiveNotice = false, theme = "light", withDraft = false, omitUndoLink = false } = {}) {
+      sidebar = true, timeout = 10000, withActions = false, archiveNoticeDelay = 0, omitArchiveNotice = false, theme = "light", withDraft = false, omitUndoLink = false, integrated = false, classicWR = false } = {}) {
     expiry = timeout;
     history.replaceState(null, "", route);
     workspace.replaceChildren();
     const navigation = document.createElement("div"); navigation.setAttribute("role", "navigation");
     navigation.innerHTML = '<div gh="cl"><div class="TK"></div></div>'; workspace.append(navigation);
+    if (classicWR) navigation.className='aeN WR';
+    if (integrated) {
+      navigation.removeAttribute('role'); navigation.className='aBO';
+      navigation.insertAdjacentHTML('afterbegin','<div class="aic"><div class="z0"><div class="T-I T-I-KE" role="button" tabindex="0">Compose</div></div></div>');
+      const rail=document.createElement('div');rail.className='aeN WR';rail.setAttribute('role','navigation');rail.innerHTML='<div class="Xa"><div class="V6" role="link">Mail Chat Meet</div></div>';navigation.before(rail);
+    }
     function addLabel(name) {
       const owner = document.createElement("div"); owner.className = "aim";
       const line = document.createElement("div"); line.className = "TN"; line.style.marginLeft = "0px";
@@ -600,6 +606,12 @@
   });
   await test('Apple Mail Mode off leaves ordinary badge clicks native', async () => {
     const f=fixture({enabled:false}); f.click(); await wait(80); assert(!f.reads()&&!f.archives()&&f.fallbackCount()===1,'feature off');
+  });
+  for (const layout of [{integrated:true},{classicWR:true}]) await test('label metadata remains valid in '+(layout.integrated?'integrated Gmail':'classic WR Gmail'), async () => {
+    const f=fixture(layout);
+    assert(f.badge().hasAttribute('data-gp-file-label'),'the modern mailbox owner validates its custom label');
+    f.click(); await wait(200);
+    assert(f.reads()===1 && f.archives()===1 && f.fallbackCount()===0,'filing remains native and happens once');
   });
   const passed=reports.filter(line=>line.startsWith('PASS')).length;
   results.textContent = `${passed}/${reports.length} passed\n`+reports.join('\n');

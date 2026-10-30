@@ -11,13 +11,15 @@
   --gp-text-primary: #202124;
   --gp-text-secondary: #4f535a;
   --gp-text-muted: #656a73;
+  --gp-sidebar-count: var(--gp-text-secondary);
   --gp-reading-meta-text: var(--gp-text-muted);
   --gp-border: #d9dadd;
   --gp-pane-divider: #e3e5e7;
   --gp-hover: #e9eaed;
+  --gp-search-match-bg: #fde293;
+  --gp-search-match-text: #202124;
   --gp-selection-sidebar-bg: #dedfe3;
   --gp-sidebar-width: 216px;
-  --gp-message-list-width: 380px; /* design reference; native splitter owns width */
   --gp-accent: #007AFF;
   --gp-accent-contrast: #ffffff;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 80%, black);
@@ -37,9 +39,11 @@
   --gp-text-secondary: var(--gp-text-primary);
   --gp-text-muted: var(--gp-text-primary);
   --gp-reading-meta-text: #9C9EA0;
+  --gp-sidebar-count: #AAACAE;
   --gp-border: #3b3d42;
   --gp-pane-divider: #111517;
   --gp-hover: #34363b;
+  --gp-search-match-bg: #dcb857;
   --gp-selection-sidebar-bg: #3c3e43;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 48%, white);
   --gp-label-accent: var(--gp-label-accent-dark, var(--gp-accent-ui));
@@ -54,7 +58,7 @@
 :is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"][data-gp-accent="blue"] {
   --gp-accent-ui: #008AFF;
 }
-:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-accent="blue"] {
+:is(.gmail-pro-apple-mail-mode, .gmail-pro-appearance-preview)[data-gp-theme="dark"][data-gp-accent="blue"] {
   --gp-label-accent: #00AEFF;
 }
 /* Mailbox highlights have their own shades, like blue's cyan highlight.

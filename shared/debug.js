@@ -10,7 +10,7 @@
   const events = new Set(["content-ready", "settings-load-failed", "settings-save-failed",
     "compose-detected", "bcc-insertion-attempted", "bcc-already-present",
     "bcc-user-removal", "bcc-selector-failure", "thread-detected",
-    "thread-reordered", "thread-original-restored", "thread-selector-failure"]);
+    "thread-reordered", "thread-original-restored", "thread-selector-failure", "workspace-reading-default-ready"]);
 
   app.debug = Object.freeze({
     log(event) {

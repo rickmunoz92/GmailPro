@@ -34,7 +34,7 @@
   function customLabelNames() {
     const names = new Set();
     if (!appleMail || !S) return names;
-    for (const node of document.querySelectorAll(`[role="navigation"] ${S.labelContainer} ${S.labelRow}`)) {
+    for (const node of document.querySelectorAll(`${S.mailboxNavigation} ${S.labelContainer} ${S.labelRow}`)) {
       if (node.closest(excluded)) continue;
       const links = node.querySelectorAll(S.labelLink), menu = node.querySelector(S.labelMenu);
       if (links.length !== 1 || !menu) continue;
@@ -245,7 +245,7 @@
       mains.add(main);
       discovery.observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: discoveryAttributes, attributeOldValue: true });
     }
-    if (S && appleMail) for (const labels of root.matches('[role="navigation"]') ? [root] : root.querySelectorAll('[role="navigation"]')) if (!labelRoots.has(labels)) {
+    if (S && appleMail) for (const labels of root.matches(S.mailboxNavigation) ? [root] : root.querySelectorAll(S.mailboxNavigation)) if (!labelRoots.has(labels)) {
       labelRoots.add(labels);
       discovery.observe(labels, { childList: true, subtree: true, attributes: true, attributeFilter: ["href", "data-label-name"] });
     }
@@ -269,7 +269,7 @@
     let removed = false, labelsChanged = false;
     for (const record of records) {
       if (record.type === "attributes" && !relevantAttribute(record)) continue;
-      if (S && record.target instanceof Element && record.target.closest('[role="navigation"]') && !record.target.closest(excluded)) labelsChanged = true;
+      if (S && record.target instanceof Element && record.target.closest(S.mailboxNavigation) && !record.target.closest(excluded)) labelsChanged = true;
       if (record.target instanceof Element && grids.has(record.target.closest(gridSelector))) continue;
       if (record.type !== "attributes" && record.target instanceof Element && record.target.closest(excluded)) continue;
       if (record.removedNodes.length) removed = true;
@@ -309,7 +309,7 @@
     if (!running) return;
     prune();
     for (const main of document.querySelectorAll('[role="main"]')) scan(main);
-    if (S && appleMail) for (const navigation of document.querySelectorAll('[role="navigation"]')) scan(navigation);
+    if (S && appleMail) for (const navigation of document.querySelectorAll(S.mailboxNavigation)) scan(navigation);
     watchSpines();
     refresh();
   }

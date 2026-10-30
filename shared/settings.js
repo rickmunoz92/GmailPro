@@ -7,6 +7,8 @@
   const defaults = Object.freeze({
     appleMailModeEnabled: false,
     headerCollapsed: true,
+    leftRailCollapsed: true,
+    rightRailCollapsed: true,
     appearanceTheme: "dark",
     accentColor: "blue",
     floatingReplyEnabled: true,
@@ -35,6 +37,8 @@
   const keys = Object.freeze({
     appleMailModeEnabled: "gmailPro.v1.appleMailModeEnabled",
     headerCollapsed: "gmailPro.v1.headerCollapsed",
+    leftRailCollapsed: "gmailPro.v1.leftRailCollapsed",
+    rightRailCollapsed: "gmailPro.v1.rightRailCollapsed",
     appearanceTheme: "gmailPro.v1.appearanceTheme",
     accentColor: "gmailPro.v1.accentColor",
     floatingReplyEnabled: "gmailPro.v1.floatingReplyEnabled",
@@ -176,5 +180,21 @@
     return unsubscribe;
   }
 
-  app.settings = Object.freeze({ defaults, choices, load, save, subscribe, isValidEmail });
+  async function readingLayoutKey(account) {
+    if (!isValidEmail(account)) throw new TypeError('A verified Gmail account is required.');
+    const hash = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(account.toLowerCase()));
+    return 'gmailPro.v1.readingLayout.' + [...new Uint8Array(hash)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  }
+  async function readingLayoutHandled(account) {
+    const key = await readingLayoutKey(account);
+    return (await chrome.storage.sync.get([key]))[key] === true;
+  }
+  async function markReadingLayoutHandled(account) {
+    // Independent account markers cannot overwrite another tab's initialization.
+    // Store only a hashed identity and boolean, never pane sizes or mail content.
+    const key = await readingLayoutKey(account);
+    await chrome.storage.sync.set({[key]:true});
+  }
+  app.settings = Object.freeze({ defaults, choices, load, save, subscribe, isValidEmail,
+    readingLayoutHandled, markReadingLayoutHandled });
 })();

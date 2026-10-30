@@ -29,6 +29,14 @@
     labelEditor: '[role="alertdialog"], [role="dialog"]',
     labelExpand: '[role="link"][aria-label^="Expand label:"], [role="link"][title^="Expand label:"]',
     main: '[role="main"]',
+    // Integrated Chat/Meet Gmail has a separate .WR application rail and a
+    // mailbox .aBO owner. Its native Compose button omits the legacy gh=cm.
+    // Verified in both desktop layouts, 2026-10-29. Never size the app rail as mailboxes.
+    mailboxNavigation: ':is([role="navigation"]:not(:has(> .Xa > .V6[role="link"])), .aBO:has(> .aic > .z0 > .T-I-KE[role="button"]))',
+    headerComposeSource: '[role="navigation"]:not(:has(> .Xa > .V6[role="link"])) > .aic > .z0 > [gh="cm"][role="button"], .aBO > .aic > .z0 > .T-I-KE[role="button"]',
+    appRail: '[role="navigation"].WR:has(> .Xa > .V6[role="link"])',
+    sidePanelToggle: '.bAw .brC-dA-I-Jw > [role="button"].brC-dA-I:is([aria-label="Show side panel"], [aria-label="Hide side panel"])',
+    splitMenuButton: '[role="main"] [aria-label="Toggle split pane mode"] + .apG[role="button"][aria-haspopup="true"]',
     // Header/search ownership inspected in English desktop Gmail, 2026-09-21.
     // Use the actual HEADER: search suggestions also contain role=banner cells.
     headerBanner: 'header[role="banner"]',
