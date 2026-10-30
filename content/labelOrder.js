@@ -4,12 +4,15 @@
   if (app.labelOrder) return;
   const S = app.selectors;
   const states = new Map(), handles = new Map(), hiddenRows = new Set();
+  const mailboxStyles = { styles: new Map() };
+  let mailboxes;
   let active = false, enabled = false, started = false, order = [], hidden = [];
   let observer, bootstrap, bootstrapTimer, headerButton, toolbar, status, returnFocus;
   let editing = false, revealHidden = false, dragging, scrollFrame = 0, saving = false;
   let operation, generation = 0, orderRevision = 0, hiddenRevision = 0;
   let labelMenu, visibilitySave, notice, noticeTimer;
-  const help = "Drag parents to reorder. Drag a sublabel onto its new parent. Enter on a sublabel opens Gmail’s editor.";
+  const help = "Drag mailboxes and parent labels to reorder. Drag a sublabel onto its new parent. Enter on a sublabel opens Gmail’s editor.";
+  const rowSelector = S.labelRow + ", [data-gp-ai-inbox]";
   const below = (path, parent) => path.startsWith(parent + "/");
   const visible = node => node?.isConnected && node.getClientRects().length > 0 &&
     getComputedStyle(node).visibility !== "hidden";
@@ -56,7 +59,23 @@
 
   function allRows() {
     return [...states.keys()].filter(list => list.isConnected).flatMap(list =>
-      (read(list) || []).flatMap(group => group.rows));
+      groupsFor(list).flatMap(group => group.rows));
+  }
+  function groupsFor(list) {
+    const groups = read(list);
+    if (!groups) return [];
+    if (!mailboxes?.root.isConnected || mailboxes.list !== list) return groups;
+    const core = [[mailboxes.aiInbox, "mailbox/aiinbox"], [mailboxes.inbox, "mailbox/inbox"]].map(([node, id]) => {
+      const link = node.querySelector('a[href]');
+      const row = { node, line: id === "mailbox/aiinbox" ? node : node.querySelector(S.labelLine),
+        link, id, depth: 0, list, groupId: id, mailbox: true };
+      return { ...row, rows: [row] };
+    });
+    return [...core, ...groups];
+  }
+  function orderedGroups(list) {
+    const groups = groupsFor(list);
+    return mailboxes?.list === list && !enabled ? groups : rank(groups);
   }
   function findRow(id) {
     const rows = allRows().filter(row => row.id === id);
@@ -64,6 +83,9 @@
   }
   function rank(groups) {
     const ranks = new Map(order.map((id, index) => [id, index]));
+    // Existing saved label orders predate these two native mailbox rows.
+    if (!ranks.has("mailbox/aiinbox")) ranks.set("mailbox/aiinbox", -2);
+    if (!ranks.has("mailbox/inbox")) ranks.set("mailbox/inbox", -1);
     return groups.slice().sort((a, b) => (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity));
   }
   function hiddenBy(row, owner = account()) {
@@ -144,7 +166,7 @@
         }
         const groups = read(list);
         // Never override Gmail's explicit hidden state or its native display:none.
-        if (!groups || !enabled || !order.length || list.hidden || list.getAttribute("aria-hidden") === "true" ||
+        if (list === mailboxes?.list || !groups || !enabled || !order.length || list.hidden || list.getAttribute("aria-hidden") === "true" ||
             list.style.display === "none" || getComputedStyle(list).display === "none") restore(state);
         else {
           // Gmail indexes this native flat child sequence: presentation only.
@@ -158,6 +180,10 @@
           seenHidden.add(row.node); hiddenRows.add(row.node);
         }
       }
+      const mailboxRows = mailboxes?.root.isConnected ? orderedGroups(mailboxes.list).flatMap(group => group.rows) : [];
+      const mailboxNodes = new Set(mailboxRows.map(row => row.node));
+      for (const node of mailboxStyles.styles.keys()) if (!mailboxNodes.has(node)) restoreNode(mailboxStyles, node);
+      mailboxRows.forEach((row, index) => style(mailboxStyles, row.node, "order", String(index + 1)));
       for (const row of hiddenRows) {
         if (!seenHidden.has(row)) { row.removeAttribute("data-gmail-pro-label-hidden"); hiddenRows.delete(row); }
       }
@@ -166,6 +192,14 @@
       refreshLabelMenu();
       if (notice && (!notice.node.isConnected || notice.account !== owner)) clearNotice();
     } finally { observe(); }
+  }
+
+  function setMailboxes(next) {
+    if (mailboxes?.root === next?.root && mailboxes?.list === next?.list &&
+        mailboxes?.aiInbox === next?.aiInbox && mailboxes?.inbox === next?.inbox) return;
+    observer?.disconnect(); cancelDrag(); restore(mailboxStyles);
+    mailboxes = next;
+    if (active) { if (next) register(next.labels); apply(); }
   }
 
   function register(root) {
@@ -403,8 +437,10 @@
     if (!editing || saving) return;
     const source = findRow(id), target = findRow(targetId);
     if (!source || source.depth || !target || target.depth || source.list !== target.list || id === targetId) return;
-    const groups = rank(read(source.list) || []), visibleIds = groups.map(group => group.id);
-    const next = [...order, ...visibleIds.filter(key => !order.includes(key))];
+    const groups = orderedGroups(source.list), visibleIds = groups.map(group => group.id);
+    const missingMailboxes = visibleIds.filter(key => key.startsWith("mailbox/") && !order.includes(key));
+    const next = [...missingMailboxes, ...order,
+      ...visibleIds.filter(key => !order.includes(key) && !missingMailboxes.includes(key))];
     next.splice(next.indexOf(id), 1); next.splice(next.indexOf(targetId) + (after ? 1 : 0), 0, id);
     const token = generation, revision = orderRevision;
     setSaving(true); announce("Saving label order…");
@@ -563,7 +599,7 @@
     if (!editing || saving) return;
     const source = findRow(id), target = targetId ? findRow(targetId) : null, owner = account();
     if (!source?.depth || !source.parentId || !owner) { announce("Couldn’t identify this sublabel or Gmail account. Refresh Gmail and try again."); return; }
-    if (targetId && (!target || id === targetId || below(targetId, id) || targetId === source.parentId)) {
+    if (targetId && (!target || target.mailbox || id === targetId || below(targetId, id) || targetId === source.parentId)) {
       announce("Choose a different parent outside this sublabel’s branch."); return;
     }
     const op = { controller: new AbortController(), account: owner, submitted: false, generation };
@@ -656,15 +692,15 @@
   }
   function dragTarget() {
     const fresh = dragging && findRow(dragging.id);
-    if (!fresh || !dragging.button.isConnected || fresh.node !== dragging.button.closest(S.labelRow) ||
+    if (!fresh || !dragging.button.isConnected || fresh.node !== dragging.button.closest(rowSelector) ||
         fresh.parentId !== dragging.parentId || dragging.account !== account()) { cancelDrag(); return; }
     const current = dragging, source = findRow(current.id);
-    const hit = document.elementFromPoint(current.x, current.y)?.closest(S.labelRow);
+    const hit = document.elementFromPoint(current.x, current.y)?.closest(rowSelector);
     const row = allRows().find(item => item.node === hit && visible(item.node));
     clearDrop(); source.node.classList.add("gmail-pro-label-dragging"); current.target = null;
     if (!row || row.id === source.id) return;
     if (source.depth) {
-      if (row.id === source.parentId || below(row.id, source.id)) return;
+      if (row.mailbox || row.id === source.parentId || below(row.id, source.id)) return;
       row.node.classList.add("gmail-pro-label-parent"); current.target = { id: row.id };
       announce("Move under " + row.link.textContent + ".");
     } else if (row.list === source.list) {
@@ -692,6 +728,7 @@
       let entry = handles.get(row.id);
       if (entry && entry.row !== row.node) { entry.button.remove(); entry.eye?.remove(); handles.delete(row.id); entry = null; }
       if (!entry) {
+        row.line.querySelectorAll(':scope > .gmail-pro-label-handle, :scope > .gmail-pro-label-eye').forEach(node => node.remove());
         const button = document.createElement("button"); button.type = "button";
         button.className = "gmail-pro-label-handle"; button.dataset.gmailProLabelUi = "handle";
         button.textContent = "⠿"; button.draggable = false;
@@ -705,7 +742,7 @@
           }
           if (row.depth || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
           event.preventDefault(); event.stopPropagation();
-          const current = rank(read(row.list) || []), index = current.findIndex(item => item.id === row.id);
+          const current = orderedGroups(row.list), index = current.findIndex(item => item.id === row.id);
           const target = current[index + (event.key === "ArrowUp" ? -1 : 1)];
           if (target) void move(row.id, target.id, event.key === "ArrowDown");
         });
@@ -781,9 +818,10 @@
     if (!active) return false;
     discover();
     if (editing) { toolbar?.querySelector("button")?.focus(); return true; }
-    const list = [...states.keys()].find(node => read(node)?.length && visible(node));
+    const list = [...states.keys()].find(node => groupsFor(node).length && (visible(node) ||
+      (node === mailboxes?.list && visible(mailboxes.inbox))));
     const section = list?.closest(S.labelSection);
-    if (!section || !list.getBoundingClientRect().width) return false;
+    if (!section || (!list.getBoundingClientRect().width && list !== mailboxes?.list)) return false;
     clearNotice();
     returnFocus = document.activeElement; editing = true; generation++; observer.disconnect();
     toolbar = document.createElement("div"); toolbar.className = "gmail-pro-label-toolbar";
@@ -805,6 +843,7 @@
     window.removeEventListener("hashchange", discover); window.removeEventListener("popstate", discover); document.removeEventListener("DOMContentLoaded", discover);
     for (const type of ["pointerdown", "click", "keydown"]) document.removeEventListener(type, labelMenuTrigger, true);
     for (const state of states.values()) restore(state); states.clear();
+    restore(mailboxStyles); mailboxes = undefined;
     for (const row of hiddenRows) row.removeAttribute("data-gmail-pro-label-hidden"); hiddenRows.clear();
     headerButton?.remove(); headerButton = null;
     if (started) chrome.runtime?.onMessage.removeListener(message); started = false;
@@ -828,5 +867,5 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", discover, { once: true });
     discover();
   }
-  app.labelOrder = Object.freeze({ start, update, stop, edit });
+  app.labelOrder = Object.freeze({ start, update, stop, edit, setMailboxes });
 })();

@@ -56,6 +56,9 @@ form > button > svg { width: 24px; height: 24px; padding: 8px; margin: 3px; }
 .nM .TN { display: flex; align-items: center; padding-left: 26px; }
 .nM :is(.KCRnif, .qj) { width: 20px; margin-right: 12px; }
 .nM .KCRnif svg { width: 20px; height: 20px; fill: currentColor; }
+.CL:not(.VDSZAf) .ai-native-filled, .CL.VDSZAf .ai-native-outline { display: none; }
+.CL:not(.VDSZAf) .ai-native-outline { margin-right: 16px; }
+.CL.VDSZAf .ai-native-filled { margin-right: 18px; }
 .nM .qj { height: 20px; background: currentColor; clip-path: polygon(10% 20%, 90% 20%, 90% 80%, 10% 80%); }
 .nM .aio { display: flex; flex: 1 1 0; min-width: 0; }
 .nM .nU { margin-right: auto; }

@@ -9,6 +9,7 @@
   let enabled = false, collapsed = false, open = false, saving = false;
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition, toolbarProbe;
   let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
+  let aiChrome;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
   let ancestorSpine = new Set();
@@ -22,7 +23,9 @@
     const banner = banners[0], shell = banner.closest(S.headerShell);
     const forms = [...banner.querySelectorAll(S.headerSearch)];
     const bars = [...document.querySelectorAll(S.headerToolbar)].filter(visible);
-    if (!shell || shell.querySelector('[role="main"], [role="navigation"]') || forms.length !== 1 || bars.length !== 1) return null;
+    if (!shell || shell.querySelector('[role="main"], [role="navigation"]') || forms.length !== 1) return null;
+    if (mailboxKey(location.hash) === '#aiinbox') return discoverAI(banner, shell, forms[0], bars);
+    if (bars.length !== 1) return null;
     const form = forms[0], toolbar = bars[0];
     const input = form.querySelector(S.headerSearchInput);
     const actions = [...toolbar.querySelectorAll('[gh="mtb"]')].filter(visible);
@@ -43,6 +46,51 @@
     catch { return value; }
   };
   const mailboxKey = hash => decodeHash(hash.split('?')[0].replace(/\/p[1-9]\d*$/, ''));
+
+  function aiInboxRow(root) {
+    const rows = [...root.querySelectorAll(':scope > .yJ > .ajl > .wT > .n3 > .CL')].filter(row => {
+      const links = row.querySelectorAll(':scope > a.CK[href]');
+      if (links.length !== 1 || links[0].textContent.trim() !== 'AI Inbox') return false;
+      try {
+        const url = new URL(links[0].href, location.href);
+        return url.origin === location.origin && url.pathname === location.pathname && url.hash === '#aiinbox';
+      } catch { return false; }
+    });
+    return rows.length === 1 ? rows[0] : null;
+  }
+
+  function restoreAI() {
+    if (!aiChrome) return;
+    aiChrome.toolbar.remove();
+    aiChrome.main.removeAttribute('data-gp-ai-inbox-view');
+    aiChrome = undefined;
+  }
+
+  function discoverAI(banner, shell, form, bars) {
+    const mains = [...document.querySelectorAll(S.main)].filter(visible);
+    const input = form.querySelector(S.headerSearchInput);
+    const roots = [...document.querySelectorAll('[role="navigation"] .nM')];
+    const main = mains[0];
+    // The native AI dashboard has no message actions or pager. Require its
+    // actual route, sidebar link and dashboard shell before supplying chrome.
+    if (!input || bars.length || mains.length !== 1 || roots.length !== 1 || !aiInboxRow(roots[0]) ||
+        main.querySelectorAll(':scope > .Siz9fe').length !== 1) return null;
+    if (aiChrome && (aiChrome.main !== main || !aiChrome.toolbar.isConnected)) restoreAI();
+    main.querySelectorAll(':scope > .gmail-pro-ai-toolbar').forEach(node => { if (node !== aiChrome?.toolbar) node.remove(); });
+    if (!aiChrome) {
+      const toolbar = document.createElement('div'), actions = document.createElement('div');
+      const anchor = document.createElement('span'), pager = document.createElement('span');
+      toolbar.className = 'gmail-pro-ai-toolbar'; toolbar.setAttribute('role', 'toolbar');
+      toolbar.setAttribute('aria-label', 'AI Inbox controls');
+      actions.className = 'gmail-pro-ai-actions'; anchor.className = 'gmail-pro-ai-compose-slot';
+      pager.className = 'gmail-pro-ai-trailing';
+      actions.append(anchor); toolbar.append(actions, pager); main.prepend(toolbar);
+      main.setAttribute('data-gp-ai-inbox-view', '');
+      aiChrome = { main, toolbar, actions, pager, anchor };
+    }
+    return { ...aiChrome, banner, shell, form, input, actionRow: aiChrome.toolbar,
+      viewport: main.closest(S.headerViewport), list: null, pathname: location.pathname, aiInbox: true };
+  }
 
   const mailboxNames = { inbox: 'Inbox', sent: 'Sent', starred: 'Starred', snoozed: 'Snoozed',
     scheduled: 'Scheduled', drafts: 'Drafts', all: 'All Mail', important: 'Important',
@@ -496,17 +544,21 @@
         !box.children[1].matches('.n6') || !box.children[1].querySelector('[gh="mll"][role="button"]'))) return null;
     const toggles = boxes.map(box => box.children[1].querySelector('[gh="mll"]'));
     if (toggles.some(toggle => !/^(More|Less) labels$/.test(toggle.getAttribute('aria-label') || ''))) return null;
-    return { root, system, labels, header, title, toggles,
+    return { root, system, labels, header, title, toggles, aiInbox: aiInboxRow(root),
+      list: labels.querySelector(':scope > .ajl > .wT > .n3 > [gh="cl"] > .TK'),
       inbox: system.querySelector('.byl > .TK > .aim:has(a[href$="#inbox"])') };
   }
 
   function restoreSidebar(restoreDisclosure = true) {
     if (!sidebar) return;
     const previous = sidebar; sidebar = undefined;
+    app.labelOrder?.setMailboxes(undefined);
     previous.more.remove();
     for (const [node, attribute] of [[previous.root, 'data-gp-mailboxes'], [previous.system, 'data-gp-system-section'],
       [previous.labels, 'data-gp-label-section'], [previous.inbox, 'data-gp-inbox']]) node.removeAttribute(attribute);
     previous.root.removeAttribute('data-gp-mailboxes-open');
+    previous.root.removeAttribute('data-gp-mailbox-order');
+    previous.aiInbox?.removeAttribute('data-gp-ai-inbox');
     for (const [node, text] of previous.titles) if (node.textContent === 'Mailboxes') node.textContent = text;
     // Undo only native disclosure changes made by this presentation layer.
     if (restoreDisclosure) for (const [index, toggle] of previous.toggles.entries()) {
@@ -527,7 +579,7 @@
   function placeSidebar() {
     const next = sidebarSections();
     let previousState;
-    if (sidebar && (!next || ['root', 'system', 'labels', 'header', 'title', 'inbox'].some(key => sidebar[key] !== next[key]) ||
+    if (sidebar && (!next || ['root', 'system', 'labels', 'header', 'title', 'inbox', 'aiInbox', 'list'].some(key => sidebar[key] !== next[key]) ||
         sidebar.toggles.some((node, index) => node !== next.toggles[index]) || !sidebar.more.isConnected)) {
       // Gmail can rebuild native rows after a disclosure. Rebind their owners
       // without closing More or repeatedly toggling Gmail's new controls.
@@ -562,6 +614,11 @@
       });
       for (const [node, attribute] of [[next.root, 'data-gp-mailboxes'], [next.system, 'data-gp-system-section'],
         [next.labels, 'data-gp-label-section'], [next.inbox, 'data-gp-inbox']]) node.setAttribute(attribute, '');
+      if (next.aiInbox && next.list) {
+        next.aiInbox.setAttribute('data-gp-ai-inbox', '');
+        next.root.setAttribute('data-gp-mailbox-order', '');
+        app.labelOrder?.setMailboxes(next);
+      }
       if (previousState?.focused) more.focus({ preventScroll: true });
     }
     for (const node of [sidebar.title, ...sidebar.root.querySelectorAll(':scope > .yJ > .ajl > h2')]) {
@@ -594,7 +651,7 @@
     const sources = [...document.querySelectorAll('[role="navigation"] > .aic > .z0 > [gh="cm"][role="button"]')];
     const selects = [...ctx.actions.querySelectorAll('.G-as3[role="button"]:has([role="checkbox"])')].filter(visible);
     const source = sources.length === 1 ? sources[0] : null;
-    const select = selects.length === 1 ? selects[0] : null;
+    const select = ctx.aiInbox ? ctx.anchor : selects.length === 1 ? selects[0] : null;
     const shell = source?.closest('.aic');
     shell?.querySelectorAll('.gmail-pro-sidebar-brand').forEach(node => { if (node !== compose?.brand) node.remove(); });
     // Hide only the dedicated native Compose row, never other sidebar content.
@@ -721,12 +778,13 @@
     restoreCompose();
     // Gmail may clone a marked toolbar before discovery can adopt it.
     document.querySelectorAll('[gh="tm"]:is([data-gp-header-toolbar], [data-gp-message-actions-overflow])').forEach(restoreToolbar);
-    if (!current) return;
+    if (!current) { restoreAI(); return; }
     const wasCollapsed = current.shell.hasAttribute('data-gp-header-collapsed');
     current.shell.removeAttribute('data-gp-header-collapsed');
     current.banner.removeAttribute('data-gp-header-collapsed');
     current.form.removeAttribute('data-gp-toolbar-search');
     restoreToolbar(current.toolbar);
+    restoreAI();
     current.main.removeAttribute('data-gp-header-main');
     current.main.style.removeProperty('--gp-header-main-height');
     for (const panel of markedPanels) {
@@ -769,6 +827,10 @@
       for (const toggle of sidebar.toggles) observer.observe(toggle, { attributes: true, attributeFilter: ['aria-label'] });
       observer.observe(sidebar.header, { childList: true });
       observer.observe(sidebar.title, { childList: true, characterData: true, subtree: true });
+      if (sidebar.aiInbox) {
+        observer.observe(sidebar.aiInbox, { childList: true });
+        observer.observe(sidebar.aiInbox.querySelector('a.CK'), { attributes: true, attributeFilter: ['href'] });
+      }
     }
     for (const panel of document.querySelectorAll(S.headerAdvancedPanel)) observer.observe(panel,
       { childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
@@ -814,6 +876,7 @@
       current.main.style.removeProperty('--gp-header-main-height');
     }
     if (current && current.toolbar !== next.toolbar) restoreToolbar(current.toolbar);
+    if (!next.aiInbox) restoreAI();
     current = next;
     placeCompose(current, layout);
     layout = geometry(current, 0, layout.showToggle);
@@ -837,7 +900,7 @@
     // right-split main retains a CSS height with the old 64px header allowance.
     // Fit that one wrapper to Gmail's measured viewport; never set pane widths,
     // scrolling positions, message heights, or a guessed viewport constant.
-    if (collapsed && current.viewport && current.main.querySelector(S.headerRightSplit)) {
+    if (collapsed && current.viewport && (current.aiInbox || current.main.querySelector(S.headerRightSplit))) {
       const height = current.viewport.getBoundingClientRect().bottom - current.main.getBoundingClientRect().top;
       if (height > 100) {
         current.main.style.setProperty('--gp-header-main-height', `${height}px`);

@@ -39,7 +39,7 @@ plain HTML, CSS, and JavaScript—no build step, runtime dependencies, or backen
 - **Automatic page changes:** scroll down at the bottom for Gmail’s next page or up at the top for the previous page, in Apple Mail Mode with the reading pane on the right.
 - **Message-only Zoom:** enlarge or reduce message content with ⌘+, ⌘−, and ⌘0
   without scaling Gmail’s interface. Resets to 100% for each new conversation.
-- **Organize labels:** reorder top-level labels visually, move sublabels to new
+- **Organize labels:** reorder AI Inbox, Inbox, and top-level labels visually, move sublabels to new
   Gmail parents, and hide individual sublabel branches from this sidebar.
 
 Floating Reply, Reply All, Forward, and Mac keyboard shortcuts default on.
@@ -204,7 +204,9 @@ pane to Gmail’s measured viewport.
   the currently loaded message page. Nesting and disclosure controls retain
   Gmail's hierarchy and behavior.
 - **Mailboxes sidebar:** the heading sits directly below the Gmail Pro logo.
-  Inbox is the first row, using the same filled label icon and spacing as your
+  When Gmail provides AI Inbox, it defaults directly below Mailboxes and above
+  Inbox. Both rows can be moved among your labels using **Organize labels**;
+  the saved order survives Gmail refreshes. Inbox uses the same filled label icon and spacing as your
   labels. Your saved label order and nested branches remain intact. One collapsed
   **More** at the bottom reveals Starred, Snoozed, Sent, Scheduled, Drafts,
   Categories, Important, All Mail, Spam, Trash, category links, subscription/label
@@ -310,6 +312,9 @@ Inbox, Sent, Starred, other mailboxes, labels, and search results use the same
 single toolbar row. The redundant From/time/attachment filter row is hidden;
 Gmail's native advanced search remains available from the search bar's filter
 button. Turning Apple Mail Mode off restores the native filter row.
+AI Inbox keeps the same Gmail Pro logo, Mailboxes sidebar, native search, Compose
+shortcut, and saved header state. Its dashboard receives a matching toolbar
+without requiring ordinary message actions or pagination; Gmail owns the AI content.
 A slim, muted caption below the toolbar shows the current mailbox or final label
 name and Gmail's total (for example, `Flowserve • 231 messages`). It reserves 22px
 above the conversations and stays attached to the toolbar while the list scrolls.
@@ -557,7 +562,9 @@ order** is off.
 
 - Drag a top-level label's handle to change its visual position, or focus the
   handle and press **↑ / ↓**. Each move saves and enables Custom label order.
-  Turning that switch off restores native presentation; **Reset label order**
+  In Apple Mail Mode with AI Inbox available, AI Inbox and Inbox also have
+  reorder handles. Parent labels keep their descendants together; these mailbox
+  rows cannot become label parents. Turning the switch off restores the default order; **Reset label order**
   clears only visual ranks.
 - Drag a sublabel's handle onto another custom label to **Move under [parent]**.
   Dropping saves the real Gmail parent change through its native **Edit → Nest

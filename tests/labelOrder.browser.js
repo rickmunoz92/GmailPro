@@ -223,11 +223,12 @@
     assert(host.querySelector(".extra").hidden && !host.querySelector(".gmail-pro-label-handle"), "More preserved, edit controls removed");
   });
   await test("editing visible labels preserves missing/More order entries", async () => {
-    const list = fixture(["Alpha", "Beta", "Gamma"]); on(["label/Hidden B", "label/Hidden A", "label/Gamma", "label/Alpha", "label/Beta"]);
+    const list = fixture(["Alpha", "Beta", "Gamma"]); on(["label/Hidden B", "label/Gamma", "label/Hidden A", "label/Alpha", "label/Beta"]);
     feature.edit(); await settle();
     host.querySelector('[gh="mll"]').click(); await settle();
     list.querySelector('a[href="#label/Gamma"]').closest(".aim").querySelector("button").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })); await settle();
     assert(saved.indexOf("label/Hidden B") < saved.indexOf("label/Hidden A"), "hidden ranks preserved");
+    equal(saved, ["label/Hidden B", "label/Hidden A", "label/Alpha", "label/Gamma", "label/Beta"]);
     const hiddenList = host.querySelector(".extra .TK"); equal(ids(hiddenList), ["Hidden B", "Hidden A"]);
   });
   await test("storage failure reports error without changing order", async () => {

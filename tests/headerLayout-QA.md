@@ -121,6 +121,40 @@ Flowserve showed the ring while Inbox remained visible, then restored native
 controls and the Flowserve caption. Gmail's fetch duration remains native. No
 messages were opened, changed or sent during live verification.
 
+## AI Inbox in Mailboxes — October 29, 2026
+
+AI Inbox's native `.CL > a.CK` link now participates in the validated Mailboxes
+layout. Its default position is below Mailboxes and immediately above Inbox.
+The existing label organizer saves both mailbox rows alongside label ranks;
+parent/child branches stay together and original Gmail DOM parents stay intact.
+Existing label orders and hidden/More ranks are preserved. The same sync byte
+limit and 500-label capacity apply, with room for the two whitelisted mailbox IDs.
+
+The `#aiinbox` route uses Gmail's inspected `.Siz9fe` dashboard shell instead of
+requiring the normal message actions/pager. It gets one matching chrome toolbar,
+the native search form, existing Compose shortcut, logo and saved header state.
+Gmail owns all dashboard content and scrolling. Unsupported or ambiguous views
+still fall back to native chrome. Native AI SVG visibility is retained without
+letting its hidden icon wrapper leave an extra gap beside the label.
+
+Browser fixtures cover cold AI startup; Inbox → AI → Inbox; staying on AI past
+the old three-second fallback; explicit header expansion/collapse; default
+placement in both themes; keyboard and pointer reordering; saved-order restart;
+save failures; row/dashboard cloning; mode OFF cleanup; idle mutation checks;
+and unknown-dashboard fallback. Settings tests cover mailbox ID validation and
+the full 500-label capacity.
+
+Validation: 113/113 header/sidebar checks, 49/49 label-order checks, 69/69
+appearance checks and 42/42 settings/lifecycle tests passed. The five AI cases
+passed again after the final native SVG-margin correction. Manifest, resource,
+syntax, minimal-permission and diff-whitespace checks passed.
+
+Live English work Gmail: verified default placement, saved keyboard reordering
+across a refresh, restoration above Inbox, and Inbox/AI navigation while the
+custom header stayed collapsed. After the final extension reload, both AI Inbox
+and Inbox text started at x=64px with one AI toolbar and the original dashboard.
+Changes remain local; Git publication was not requested.
+
 ## Mailboxes sidebar — 0.9.44 (2026-09-30)
 
 The expanded Apple Mail Mode sidebar now reads Gmail Pro → Mailboxes → Inbox →

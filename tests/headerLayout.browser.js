@@ -112,6 +112,25 @@
     }
     return {...f, nav, root, system, labels, inbox, toggles, title:root.querySelector('.aAv'), list:labels.querySelector('.TK')};
   }
+  function aiMailboxFixture(dashboard = false) {
+    const f = mailboxFixture(), ai = document.createElement('div');
+    ai.className = 'CL u7KLgd';
+    ai.innerHTML = '<div class="KCRnif"><svg class="ai-native-outline" viewBox="0 0 24 24"><path d="M4 11h5l3 4 3-4h5v9H4zM12 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></svg></div><div class="KCRnif"><svg class="ai-native-filled" viewBox="0 0 24 24"><path d="M4 11h5l3 4 3-4h5v9H4zM12 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></svg></div><a class="CK" href="?usp=installed_webapp#aiinbox">AI Inbox</a><div class="DkLnYc"></div>';
+    f.system.querySelector('.wT > .n3').append(ai);
+    const main = workspace.querySelector('main'), normal = [...main.childNodes];
+    const showAI = () => {
+      history.replaceState(null, '', '#aiinbox'); ai.classList.add('VDSZAf'); f.inbox.firstElementChild.classList.remove('nZ');
+      main.replaceChildren(); const dashboard = document.createElement('div'); dashboard.className = 'Siz9fe';
+      dashboard.innerHTML = '<div class="k4Xpje"><h2>Synthetic AI Inbox</h2><p>Suggested to-dos and topics stay owned by Gmail.</p><button>Refresh AI Inbox</button></div>';
+      main.append(dashboard); window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+    const showInbox = () => {
+      history.replaceState(null, '', '#inbox'); ai.classList.remove('VDSZAf'); f.inbox.firstElementChild.classList.add('nZ');
+      main.replaceChildren(...normal); window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+    if (dashboard) showAI();
+    return { ...f, ai, main, showAI, showInbox };
+  }
   function addLabelFilters(f) {
     const filters=document.createElement('div');
     filters.className='native-label-filters'; filters.setAttribute('role','toolbar');
@@ -199,7 +218,10 @@
     finally { feature.stop(); GmailPro.labelOrder.stop(); workspace.querySelectorAll('.ZF-Av').forEach(node=>node.remove()); }
   }
   if (new URLSearchParams(location.search).has('preview')) {
-    if (new URLSearchParams(location.search).has('mailboxes')) mailboxFixture();
+    if (new URLSearchParams(location.search).has('aiinbox')) {
+      aiMailboxFixture(new URLSearchParams(location.search).has('dashboard'));
+      GmailPro.labelOrder.start({customLabelOrderEnabled:true,customLabelOrder:['label/Mgr','label/Projects','label/Internal']});
+    } else if (new URLSearchParams(location.search).has('mailboxes')) mailboxFixture();
     else fixture(Number(new URLSearchParams(location.search).get('width')) || 1400);
     await start(defaultSettings.headerCollapsed); results.hidden=true; return;
   }
@@ -237,6 +259,77 @@
     assert(f.inbox.parentElement === parent && rows.every((node, i) => f.list.children[i] === node), 'Gmail owns original parent and label sequence');
     f.inbox.querySelector('.bsU').textContent = '12'; await settle();
     assert(f.inbox.querySelector('.bsU').textContent === '12' && f.inbox.querySelector('.TO').classList.contains('nZ'), 'native count and selection retained');
+  });
+  await test('AI Inbox defaults below Mailboxes and above Inbox with the original native link', async () => {
+    const f = aiMailboxFixture(), parent = f.ai.parentElement, href = f.ai.querySelector('a').href;
+    GmailPro.labelOrder.start({customLabelOrderEnabled:true, customLabelOrder:['label/Mgr','label/Internal','label/Projects']});
+    await start();
+    assert(rect(f.ai).top >= rect(f.title).bottom && rect(f.ai).bottom === rect(f.inbox).top, 'AI Inbox below heading, directly above Inbox');
+    assert(f.ai.parentElement === parent && f.ai.querySelector('a').href === href, 'native link, query and parent preserved');
+    assert(rect(f.list.children[3]).top < rect(f.list.children[1]).top, 'preexisting label order preserved');
+    assert(rect(f.system.querySelector('a[href="#starred"]')).height === 0, 'More remains collapsed');
+    for (const theme of ['dark','light']) for (const selected of [false,true]) {
+      document.documentElement.dataset.gpTheme = theme; f.ai.classList.toggle('VDSZAf',selected); await settle();
+      if (selected) assert(getComputedStyle(f.ai).backgroundColor === getComputedStyle(f.inbox.firstElementChild).backgroundColor, 'AI and Inbox share selected mailbox skin');
+      assert(Math.abs(rect(f.ai.querySelector('a')).left-rect(f.inbox.querySelector('a')).left)<1, 'AI label aligns with Inbox despite native hidden icon wrapper');
+    }
+  });
+  await test('AI Inbox reorders by keyboard around Inbox and whole label branches and survives restart', async () => {
+    const f = aiMailboxFixture(), original = [...f.list.children];
+    GmailPro.labelOrder.start({customLabelOrderEnabled:true,customLabelOrder:['label/Mgr','label/Projects','label/Internal']}); await start();
+    assert(GmailPro.labelOrder.edit(), 'organizer opens with flattened native label list'); await settle();
+    const handle = () => f.ai.querySelector('.gmail-pro-label-handle');
+    for (let i=0;i<3;i++) { handle().dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true})); await settle(); }
+    assert(rect(f.ai).top === rect(original[2]).bottom && rect(f.ai).bottom === rect(original[3]).top, 'AI can follow a complete parent/child branch');
+    assert(original.every((node,i)=>f.list.children[i]===node), 'Gmail flat label sequence never moved');
+    assert(saved.customLabelOrder.includes('mailbox/aiinbox') && saved.customLabelOrder.includes('mailbox/inbox'), 'mailbox and label order persist together');
+    const order = [...saved.customLabelOrder];
+    handle().dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); await settle();
+    feature.stop(); GmailPro.labelOrder.stop();
+    GmailPro.labelOrder.start({customLabelOrderEnabled:true,customLabelOrder:order}); await start();
+    assert(rect(f.ai).top === rect(original[2]).bottom, 'saved position reapplies on startup');
+    assert(GmailPro.labelOrder.edit(), 'organizer reopens'); await settle(); failSave=true;
+    handle().dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true,cancelable:true})); await settle();
+    assert(rect(f.ai).top === rect(original[2]).bottom && workspace.querySelector('[role="status"]').textContent.includes('Couldn’t save'), 'failed save keeps previous placement');
+  });
+  await test('AI Inbox supports cold load and round trip without restoring Gmail header or sidebar', async () => {
+    const f = aiMailboxFixture(true); GmailPro.labelOrder.start({customLabelOrderEnabled:false,customLabelOrder:[]}); await start(true);
+    assert(rect(f.shell).height === 0 && f.form.hasAttribute('data-gp-toolbar-search'), 'AI cold load honors collapsed header');
+    const brand=f.composeShell.querySelector('.gmail-pro-sidebar-brand'), more=f.root.querySelector('.gmail-pro-mailboxes-more');
+    assert(brand && f.main.querySelectorAll('.gmail-pro-ai-toolbar').length===1 && rect(f.ai).bottom===rect(f.inbox).top, 'AI chrome and default sidebar apply');
+    assert(f.main.querySelectorAll('[gh="mtb"], .Di').length===0, 'AI dashboard needs no simulated message actions or pager');
+    const originalDashboard=f.main.querySelector('.Siz9fe');
+    window.dispatchEvent(new Event('resize')); await settle();
+    assert(f.main.querySelector('.Siz9fe')===originalDashboard && f.composeShell.querySelector('.gmail-pro-sidebar-brand')===brand, 'resize preserves native dashboard and logo');
+    control('toggle').click(); await settle(); assert(rect(f.shell).height>0 && saved.headerCollapsed===false, 'AI header can explicitly expand');
+    control('toggle').click(); await settle(); assert(rect(f.shell).height===0 && saved.headerCollapsed===true, 'AI header can collapse again');
+    f.showInbox(); await settle();
+    assert(!workspace.querySelector('.gmail-pro-ai-toolbar') && f.composeShell.querySelector('.gmail-pro-sidebar-brand')===brand && more.isConnected, 'return to Inbox preserves chrome owners');
+    f.showAI(); await settle();
+    let writes=0; const watch=new MutationObserver(records=>writes+=records.length); watch.observe(workspace,{subtree:true,childList:true,attributes:true,characterData:true});
+    await new Promise(resolve=>setTimeout(resolve,3200)); watch.disconnect();
+    assert(rect(f.shell).height===0 && f.root.hasAttribute('data-gp-mailboxes') && writes===0, 'AI stays styled beyond old fallback timeout and remains idle');
+    feature.stop();
+    assert(!workspace.querySelector('.gmail-pro-ai-toolbar') && !f.ai.hasAttribute('data-gp-ai-inbox') && f.title.textContent==='Labels', 'mode OFF restores native AI view and sidebar');
+  });
+  await test('AI Inbox pointer reordering, native row replacement and cloned dashboard preserve one chrome owner', async () => {
+    const f=aiMailboxFixture(true); GmailPro.labelOrder.start({customLabelOrderEnabled:false,customLabelOrder:[]}); await start(true);
+    assert(GmailPro.labelOrder.edit(), 'organizer opens'); await settle();
+    const handle=f.ai.querySelector('.gmail-pro-label-handle'), source=rect(handle), target=rect(f.list.children[0]);
+    handle.setPointerCapture=()=>{}; handle.hasPointerCapture=()=>false;
+    for (const [type,x,y] of [['pointerdown',source.left+2,source.top+2],['pointermove',target.left+40,target.bottom-2],['pointerup',target.left+40,target.bottom-2]]) {
+      handle.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:6,isPrimary:true,button:0,clientX:x,clientY:y}));
+    }
+    await settle(); assert(rect(f.ai).top===rect(f.list.children[0]).bottom, 'native AI row can be dragged after a label');
+    const row=f.ai.cloneNode(true); f.ai.replaceWith(row); await settle();
+    assert(row.querySelectorAll('.gmail-pro-label-handle').length===1 && rect(row).top===rect(f.list.children[0]).bottom, 'replacement row keeps one handle and saved placement');
+    const replacement=f.main.cloneNode(true); f.main.replaceWith(replacement); await settle();
+    assert(replacement.querySelectorAll('.gmail-pro-ai-toolbar').length===1 && replacement.querySelectorAll('.gmail-pro-toolbar-compose').length===1, 'cloned dashboard gets one live toolbar and Compose');
+    feature.stop(); assert(!replacement.querySelector('.gmail-pro-ai-toolbar'), 'mode OFF removes all cloned AI chrome');
+  });
+  await test('AI Inbox unknown or ambiguous native dashboard stays usable with native chrome', async () => {
+    const f=aiMailboxFixture(true); f.main.firstElementChild.className='unknown-dashboard'; await start();
+    assert(!f.root.hasAttribute('data-gp-mailboxes') && !workspace.querySelector('.gmail-pro-ai-toolbar') && rect(f.shell).height>0, 'unsupported dashboard fails safely');
   });
   await test('Inbox replaces both native icon wrappers with one aligned label tab and restores native fallback', async () => {
     for (const iconClass of ['KCRnif', 'qj']) {

@@ -418,6 +418,19 @@ test("label order validates, deduplicates, preserves other settings and handles 
 });
 
 
+test("AI Inbox and Inbox ordering round-trips with labels and rejects unknown mailbox IDs", async () => {
+  const f=fixture({[prefix + "customLabelOrder"]:["label/Projects"]});
+  const order=["mailbox/aiinbox","mailbox/inbox","label/Projects"];
+  await f.settings.save({customLabelOrder:order});
+  assert.deepEqual(plain((await f.settings.load()).customLabelOrder),order);
+  await assert.rejects(f.settings.save({customLabelOrder:["mailbox/unknown"]}));
+  assert.deepEqual(plain((await f.settings.load()).customLabelOrder),order);
+  const fullOrder=[...order.slice(0,2),...Array.from({length:500},(_,index)=>"label/"+index)];
+  await f.settings.save({customLabelOrder:fullOrder});
+  assert.deepEqual(plain((await f.settings.load()).customLabelOrder),fullOrder);
+  await assert.rejects(f.settings.save({customLabelOrder:[...fullOrder,"label/overflow"]}));
+});
+
 test("message zoom toggle round-trips independently; temporary levels are not stored", async () => {
   const f = fixture({ [prefix + "autoBccEnabled"]: true });
   await f.settings.save({ messageZoomEnabled: true });

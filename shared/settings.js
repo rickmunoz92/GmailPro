@@ -71,8 +71,10 @@
 
   // Stay below Chrome Sync's per-item quota, including key/JSON overhead.
   function validOrder(value) {
-    return Array.isArray(value) && value.length <= 500 &&
-      value.every(id => typeof id === "string" && id.startsWith("label/") && id.length <= 1024) &&
+    return Array.isArray(value) && value.length <= 502 &&
+      value.every(id => typeof id === "string" &&
+        (id.startsWith("label/") || ["mailbox/aiinbox", "mailbox/inbox"].includes(id)) && id.length <= 1024) &&
+      value.filter(id => id.startsWith("label/")).length <= 500 &&
       new TextEncoder().encode(JSON.stringify(value)).length <= 7500;
   }
 
