@@ -8,6 +8,8 @@
   const settings = {appleMailModeEnabled:true,appearanceTheme:"dark",accentColor:"blue"};
   const start = () => { app.appearance.start(settings); app.readingPane.start(settings); };
   const clicks = [];
+  const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  const mockClipboard = writeText => Object.defineProperty(navigator, 'clipboard', {configurable:true,value:{writeText}});
   const bodyHTML = '<p>Simple message text <a href="#link">link</a></p><table style="width:1400px;background:#122333;color:white"><tbody><tr><td>Wide table</td></tr></tbody></table><img width="50" height="30" alt="Image" src="../icons/icon32.png"><blockquote>Quoted history</blockquote><p style="font:16px Georgia;color:#573595">Signature</p>';
   function fixture(id = "one", {hook=true, all=true, reaction=true, body=bodyHTML} = {}) {
     const main = document.createElement("div"); main.setAttribute("role", "main");
@@ -17,15 +19,27 @@
     for (const [key, selector] of [['replyAll','.bkI'],['reply','.bkH'],['forward','.bkG'],['reaction','button']]) footer.querySelector(selector)?.addEventListener('click', event => clicks.push({id,key,shift:event.shiftKey}));
     return {main,shell,footer,body:main.querySelector('.a3s'),toolbar:main.querySelector('[gh=mtb]')};
   }
+  function recipients(f, kinds = ['To','CC','BCC']) {
+    const header=f.main.querySelector('.gE .ajw'), summary=document.createElement('span'); summary.className='hb';
+    summary.innerHTML=kinds.map((kind,i)=>`${i?', ':''}${kind.toLowerCase()}${i?':':''} <span class="g2" email="${kind.toLowerCase()}+tag@example.test"><span>${kind} Person</span></span>${kind==='To'?', <span class="g2" data-hovercard-id="Other.Person@example.test">Other Person</span>':''}`).join('');
+    const details=header.querySelector('button'), row=document.createElement('div'); row.className='ady'; details.className='ajy';
+    header.before(row); header.replaceChildren(summary); row.append(header,details);
+    const sender=f.main.querySelector('.gD'); sender.setAttribute('email','Sender.Name+tag@example.test'); sender.setAttribute('role','gridcell'); sender.setAttribute('tabindex','-1');
+    return summary;
+  }
   async function test(name, run) {
     try { await run(); reports.push(`PASS ${name}`); }
     catch(error) { reports.push(`FAIL ${name}: ${error.message}`); }
     app.readingPane.stop(); app.appearance.stop(); app.messageZoom.stop(); app.reverseThreads.stop(); app.autoBcc.stop();
+    if (originalClipboard) Object.defineProperty(navigator,'clipboard',originalClipboard); else delete navigator.clipboard;
     workspace.replaceChildren(); clicks.length = 0; await settle();
     result.textContent = reports.join('\n');
   }
   if (new URLSearchParams(location.search).has('preview')) {
     const f=fixture('preview');
+    recipients(f);
+    const paste=document.createElement('input'); paste.setAttribute('aria-label','Clipboard verification'); paste.placeholder='Paste here to verify a copied address';
+    workspace.append(paste);
     f.footer.addEventListener('click',()=>{ result.textContent='Native action invoked: '+clicks.at(-1)?.key; });
     start(); result.textContent='Synthetic visual preview — no Gmail connection.'; return;
   }
@@ -42,13 +56,94 @@
     const decoy=summary.cloneNode(true); f.body.append(decoy); const bodyBefore=f.body.innerHTML;
     let clicked=0; contact.addEventListener('click',()=>clicked++);
     start(); await settle();
-    assert(summary.textContent==='To: One, CC: Two, BCC: Three','all labels normalized');
+    assert(summary.textContent==='To: One\nCC: Two\nBCC: Three','all fields on separate lines');
     assert(css(summary).color==='rgb(222, 224, 226)' && css(contact).color==='rgb(156, 158, 160)','exact label and recipient colors');
-    contact.click(); assert(clicked===1 && summary.querySelector('.g2')===contact,'native contact node/handler retained');
+    assert(summary.querySelector('.g2')===contact,'native contact node retained');
     assert(f.body.innerHTML===bodyBefore,'received HTML untouched');
     summary.firstChild.data='to '; await settle();
     assert(summary.firstChild.data==='To: ','native text refresh normalized');
     app.readingPane.stop(); assert(summary.innerHTML===original,'native labels restored on OFF');
+    contact.click(); assert(clicked===1,'native contact handler restored on OFF');
+  });
+  for (const kinds of [['To'],['To','CC'],['To','BCC'],['To','CC','BCC']]) await test(kinds.join('+')+' uses consecutive recipient lines in light and dark themes',async()=>{
+    const f=fixture(), summary=recipients(f,kinds), original=summary.innerHTML;
+    start(); await settle();
+    for (const theme of ['light','dark']) {
+      app.appearance.update({appearanceTheme:theme}); await settle();
+      const people=[...summary.querySelectorAll('.g2')];
+      assert(Math.abs(people[0].getBoundingClientRect().top-people[1].getBoundingClientRect().top)<2,'To recipients share a line');
+      for(let i=2;i<people.length;i++) {
+        const previous=people[i-1].getBoundingClientRect(), current=people[i].getBoundingClientRect();
+        assert(current.top>=previous.bottom && current.top-previous.top<25,'next field directly below previous field');
+        assert(Math.abs(current.left-people[0].getBoundingClientRect().left)<12,'field aligns with To');
+      }
+      assert(summary.textContent.split('\n').length===kinds.length,'no empty recipient rows');
+      assert(f.main.querySelector('[aria-label="Show details"]').checkVisibility(),'Details stays available');
+    }
+    app.readingPane.stop(); assert(summary.innerHTML===original,'exact native markup restored');
+  });
+  await test('recipient rows wrap in a narrow pane and repeated refreshes do not add line breaks',async()=>{
+    const f=fixture(), summary=recipients(f); f.main.style.width='280px';
+    start(); await settle(); const before=summary.innerHTML;
+    window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('resize')); await settle();
+    assert(summary.innerHTML===before,'refresh is idempotent');
+    const last=summary.querySelector('.g2:last-child').getBoundingClientRect();
+    assert(last.bottom<=f.body.getBoundingClientRect().top,'all recipient rows above body');
+    assert(summary.parentElement.scrollWidth<=summary.parentElement.clientWidth+1,'recipient summary does not overflow');
+  });
+  await test('sender and each recipient name copy the exact address with feedback, without native contact actions',async()=>{
+    const f=fixture(), summary=recipients(f), writes=[]; mockClipboard(async address=>writes.push(address));
+    let native=0; f.main.querySelector('.gE').addEventListener('click',()=>native++);
+    start(); start(); await settle();
+    for(const node of [f.main.querySelector('.gD'),...summary.querySelectorAll('.g2')]) {
+      (node.querySelector('span')||node).click(); await settle();
+      assert(writes.at(-1)===(node.getAttribute('email')||node.getAttribute('data-hovercard-id')),'exact metadata copied');
+      assert(document.querySelector('.gmail-pro-copy-notice')?.textContent==='Email address copied','successful copy announced');
+      assert(node.getAttribute('role')==='button' && node.tabIndex===0,'keyboard accessible copy control');
+    }
+    assert(writes.length===5 && native===0,'one copy per click; no native contact/message toggle');
+    app.readingPane.stop();
+    const sender=f.main.querySelector('.gD');
+    assert(sender.getAttribute('role')==='gridcell' && sender.tabIndex===-1 && !sender.hasAttribute('title'),'native sender attributes restored');
+    assert(!document.querySelector('.gmail-pro-copy-notice'),'feedback cleaned up');
+  });
+  await test('Enter and Space copy once; held or modified keys and modified clicks preserve native behavior',async()=>{
+    const f=fixture(), summary=recipients(f), writes=[]; mockClipboard(async address=>writes.push(address));
+    start(); await settle(); const person=summary.querySelector('.g2'); person.focus();
+    for(const key of ['Enter',' ']) person.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}));
+    person.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',repeat:true,bubbles:true,cancelable:true}));
+    person.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',metaKey:true,bubbles:true,cancelable:true}));
+    person.dispatchEvent(new MouseEvent('click',{ctrlKey:true,bubbles:true,cancelable:true}));
+    await settle(); assert(writes.length===2,'only the two plain key presses copy');
+  });
+  await test('failed clipboard write reports failure; stale completion after OFF cannot show success',async()=>{
+    const f=fixture(), summary=recipients(f); mockClipboard(async()=>{throw new Error('Denied');});
+    start(); await settle(); const person=summary.querySelector('.g2'); person.click(); await settle();
+    assert(document.querySelector('.gmail-pro-copy-notice')?.textContent.includes('Couldn’t copy'),'failure announced');
+    let resolve; mockClipboard(()=>new Promise(done=>resolve=done)); person.click();
+    app.readingPane.stop(); resolve(); await settle(); assert(!document.querySelector('.gmail-pro-copy-notice'),'no stale success');
+  });
+  await test('native recipient updates and replacement contacts copy fresh metadata',async()=>{
+    const f=fixture(), summary=recipients(f,['To','BCC']), writes=[]; mockClipboard(async address=>writes.push(address));
+    start(); await settle(); const old=summary.querySelector('.g2'); old.setAttribute('email','Fresh+Case@example.test'); await settle();
+    assert(old.title==='Copy Fresh+Case@example.test','address attribute update observed');
+    old.click(); await settle(); assert(writes.at(-1)==='Fresh+Case@example.test','updated address copied');
+    const replacement=document.createElement('span'); replacement.className='hb';
+    replacement.innerHTML='to <span class="g2" email="new@example.test">New</span>, cc: <span class="g2" email="cc@example.test">CC</span>';
+    summary.replaceWith(replacement); await settle();
+    assert(replacement.textContent==='To: New\nCC: CC' && !old.hasAttribute('data-gp-copy-email'),'new rows normalized; detached contact restored');
+    replacement.querySelector('.g2').click(); await settle(); assert(writes.at(-1)==='new@example.test','replacement name works');
+  });
+  await test('missing/invalid metadata, body names and compose names never invoke clipboard',async()=>{
+    const f=fixture(), summary=recipients(f), writes=[]; mockClipboard(async address=>writes.push(address));
+    const decoy=document.createElement('div'); decoy.className='gE'; decoy.innerHTML='<span class="gD" email="body@example.test">Body</span>';
+    f.body.append(decoy); const form=decoy.cloneNode(true), compose=document.createElement('form'); compose.append(form); f.shell.append(compose);
+    const before=f.body.innerHTML; start(); await settle();
+    const person=summary.querySelector('.g2'); person.removeAttribute('email'); await settle(); person.click();
+    person.setAttribute('email','not an email'); await settle(); person.click();
+    decoy.querySelector('.gD').click(); form.querySelector('.gD').click(); await settle();
+    assert(!writes.length && !person.hasAttribute('data-gp-copy-email'),'unknown names stay native');
+    assert(f.body.innerHTML===before && !form.querySelector('[data-gp-copy-email]'),'body and compose markup unchanged');
   });
   await test('idempotent group follows hook, precedes More, delegates all native actions', async () => {
     const f=fixture(); start(); start(); await settle();

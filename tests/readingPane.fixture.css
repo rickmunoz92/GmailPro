@@ -11,6 +11,11 @@
 .gE { padding-top: 20px; line-height: 20px; }
 .gE h3 { display: inline-block; }
 .gE .g3 { float: right; }
+.gE .ajw { height: 20px; overflow: hidden; white-space: nowrap; }
+.gE .hb { white-space: nowrap; }
+.gE .ady { display: flex; align-items: center; }
+.gE .ady > .ajw { flex: 0 1 auto; }
+.gE .ajy { flex-shrink: 0; margin-left: 8px; }
 .ii { margin-top: 8px; }
 .a3s { font: 14px Arial; color: black; }
 [hidden] { display: none !important; }

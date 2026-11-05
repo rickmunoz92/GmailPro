@@ -23,6 +23,9 @@
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
   const markedFooters = new Set();
   const recipientLabels = new Map();
+  const emailContacts = new Map();
+  const emailContactSelector = '.gE :is(.gD, .hb .g2):is([email], [data-hovercard-id])';
+  let emailCopyContext, emailCopyNotice, emailCopyTimer;
   const visible = node => !!node?.isConnected && node.checkVisibility({ visibilityProperty: true }) && !node.closest('[hidden], [aria-hidden="true"], [inert]');
   const usable = node => node && !node.matches('[disabled], [aria-disabled="true"]');
   const ownsChrome = node => !node.closest(S.readingExcluded);
@@ -561,17 +564,93 @@
     for (const summary of shell?.querySelectorAll(S.readingRecipients) || []) {
       if (!ownsChrome(summary)) continue;
       // Only Gmail's direct English label fragments, never recipient nodes or
-      // received HTML. Preserve native nodes, contact handlers and punctuation.
+      // received HTML. Line breaks replace only the separators between fields;
+      // contacts and separators within each recipient list remain native.
       for (const node of summary.childNodes) {
         if (node.nodeType !== Node.TEXT_NODE || recipientLabels.has(node)) continue;
         const match = /^(\s*(?:,\s*)?)(to|cc|bcc):?(\s*)$/i.exec(node.data);
         if (!match) continue;
-        const after = match[1] + ({ to: "To:", cc: "CC:", bcc: "BCC:" })[match[2].toLowerCase()] + match[3];
+        const kind = match[2].toLowerCase();
+        const after = (kind === "to" ? "" : "\n") + ({ to: "To:", cc: "CC:", bcc: "BCC:" })[kind] + " ";
         if (node.data === after) continue;
         recipientLabels.set(node, { before: node.data, after });
         node.data = after;
       }
     }
+  }
+
+  function contactAddress(node) {
+    for (const attribute of ["email", "data-hovercard-id"]) {
+      const address = node.getAttribute(attribute)?.trim();
+      if (app.settings.isValidEmail(address)) return address;
+    }
+    return "";
+  }
+
+  function clearEmailCopy() {
+    emailCopyContext = undefined;
+    clearTimeout(emailCopyTimer); emailCopyTimer = undefined;
+    emailCopyNotice?.remove(); emailCopyNotice = undefined;
+  }
+
+  function updateEmailContacts(shell) {
+    const contacts = new Set([...shell?.querySelectorAll(emailContactSelector) || []].filter(node =>
+      ownsChrome(node) && node.closest(S.threadMessage) && contactAddress(node)));
+    for (const [node, attributes] of emailContacts) {
+      if (contacts.has(node)) continue;
+      for (const [name, change] of attributes) if (node.getAttribute(name) === change.after) {
+        if (change.before === null) node.removeAttribute(name);
+        else node.setAttribute(name, change.before);
+      }
+      emailContacts.delete(node);
+    }
+    for (const node of contacts) {
+      let attributes = emailContacts.get(node);
+      if (!attributes) emailContacts.set(node, attributes = new Map());
+      const address = contactAddress(node);
+      for (const [name, after] of Object.entries({
+        "data-gp-copy-email": "", role: "button", tabindex: "0",
+        title: `Copy ${address}`, "aria-label": `Copy email address for ${node.textContent.trim()}: ${address}`
+      })) {
+        const current = node.getAttribute(name), change = attributes.get(name);
+        const before = change && current === change.after ? change.before : current;
+        attributes.set(name, { before, after });
+        if (current !== after) node.setAttribute(name, after);
+      }
+    }
+    if (emailCopyContext && (emailCopyContext.shell !== shell ||
+        emailCopyContext.route !== location.hash || emailCopyContext.page !== location.pathname)) clearEmailCopy();
+  }
+
+  async function copyContactEmail(event) {
+    if (!enabled || !(event.target instanceof Element) || event.defaultPrevented ||
+        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.type === "keydown" ? !["Enter", " "].includes(event.key) : event.button !== 0) return;
+    const node = event.target.closest(emailContactSelector);
+    const shell = app.reverseThreads.currentConversation()?.heading.closest(S.readingShell);
+    if (!node || !shell?.contains(node) || !node.closest(S.threadMessage) || !ownsChrome(node) || !visible(node)) return;
+    const address = contactAddress(node);
+    if (!address) return;
+    // Stop Gmail's contact card / message toggle only for this copy gesture.
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (event.repeat) return;
+    clearEmailCopy();
+    const current = { shell, route: location.hash, page: location.pathname };
+    emailCopyContext = current;
+    let message;
+    try {
+      await navigator.clipboard.writeText(address);
+      message = "Email address copied";
+    } catch {
+      message = "Couldn’t copy email address. Try again.";
+    }
+    if (!enabled || emailCopyContext !== current || !visible(node) ||
+        location.hash !== current.route || location.pathname !== current.page) return;
+    const notice = document.createElement("div");
+    notice.className = "gmail-pro-copy-notice";
+    notice.setAttribute("role", "status"); notice.setAttribute("aria-live", "polite");
+    notice.textContent = message; document.body.append(notice); emailCopyNotice = notice;
+    emailCopyTimer = setTimeout(clearEmailCopy, 2000);
   }
 
   function restore() {
@@ -666,9 +745,6 @@
     // the thread or removes its toolbar, so restoration needs no polling.
     if (!observedContext?.shell.isConnected) return;
     const { shell, toolbar, toolbarHost } = observedContext;
-    for (const summary of shell.querySelectorAll(S.readingRecipients)) {
-      if (ownsChrome(summary)) observer.observe(summary, { childList: true, subtree: true, characterData: true });
-    }
     const watched = new Set();
     const watchNode = node => {
       if (!node || watched.has(node) || !ownsChrome(node)) return;
@@ -687,6 +763,10 @@
     }
     for (let parent = shell.parentElement; parent; parent = parent.parentElement) {
       watchNode(parent); if (parent.matches(S.main)) break;
+    }
+    for (const header of shell.querySelectorAll('.gE')) if (ownsChrome(header)) {
+      observer.observe(header, { childList: true, subtree: true, characterData: true, attributes: true,
+        attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "email", "data-hovercard-id"] });
     }
     observer.observe(toolbar, { childList: true, subtree: true, attributes: true,
       attributeFilter: ["style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
@@ -708,7 +788,9 @@
       refreshFiling();
       if (!enabled) return;
       current = context();
-      updateRecipientLabels(current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell));
+      const shell = current?.shell || app.reverseThreads.currentConversation()?.heading.closest(S.readingShell);
+      updateRecipientLabels(shell);
+      updateEmailContacts(shell);
       if (!current?.actions.size) { group?.remove(); return; }
       if (!group) group = createGroup();
       for (const button of group.children) {
@@ -776,6 +858,10 @@
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
     updateRecipientLabels(null);
+    updateEmailContacts(null);
+    clearEmailCopy();
+    document.removeEventListener("click", copyContactEmail, true);
+    document.removeEventListener("keydown", copyContactEmail, true);
     window.removeEventListener("resize", schedule);
     group?.remove(); group = undefined;
     observedContext = undefined;
@@ -786,6 +872,8 @@
     if (!patch.appleMailModeEnabled) return stop();
     if (enabled) return;
     enabled = true;
+    document.addEventListener("click", copyContactEmail, true);
+    document.addEventListener("keydown", copyContactEmail, true);
     // Enabling the mode does not change the status of an already-open message.
     readVisit = selectedReadCandidate();
     observer = new MutationObserver(observeMutations);

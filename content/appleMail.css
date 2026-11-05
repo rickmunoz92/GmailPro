@@ -665,8 +665,13 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   .gE h3 { margin: 0; }
   .gE .gD { font-weight: 600; font-size: 14px; }
   .gE :is(.g3, .g2, .go, .ajw) { font-size: 12px; }
-  .gE .hb { color: var(--gp-text-primary) !important; }
+  .gE .ajw:has(> .hb) { height: auto !important; min-width: 0; white-space: normal !important; }
+  .gE .ady:has(.hb) { align-items: flex-start; }
+  .gE .hb { color: var(--gp-text-primary) !important; white-space: pre-line !important; overflow-wrap: anywhere; }
   .gE .hb .g2 { color: var(--gp-reading-meta-text) !important; }
+  .gE [data-gp-copy-email] { cursor: pointer; }
+  .gE [data-gp-copy-email]:hover { text-decoration: underline; }
+  .gE [data-gp-copy-email]:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 2px; border-radius: 2px; }
   .gE .gH { vertical-align: top; }
   .gE button:has(svg) { width: 30px !important; height: 30px !important; }
   .gE :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }
@@ -675,6 +680,12 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   [role="listitem"][aria-expanded="true"] > .Bk { margin-block: 0 8px !important; }
   /* Suggested one-click replies are optional chrome, never message content. */
   [role="toolbar"][aria-label="Suggested replies"] { display: none !important; }
+}
+html.gmail-pro-apple-mail-mode .gmail-pro-copy-notice {
+  position: fixed; inset: auto auto 24px 50%; transform: translateX(-50%); z-index: 120;
+  max-width: calc(100vw - 32px); padding: 10px 14px; border: 1px solid var(--gp-border); border-radius: 6px;
+  color: var(--gp-text-primary); background: var(--gp-bg-secondary); font: 13px/1.4 var(--gp-font);
+  pointer-events: none;
 }
 /* Overflow releases the native footer synchronously, before observer delivery.
    Keep native nodes/styles/handlers intact and exclude received/editor content. */

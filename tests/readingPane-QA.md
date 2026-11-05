@@ -1,5 +1,27 @@
 # Reading pane and persistent native actions — 0.9.0
 
+## Recipient rows and email copying — November 4, 2026
+
+- To, CC and BCC use consecutive lines, omitting absent fields. Long lists wrap
+  within the header; Gmail's Details control stays available. Only direct native
+  label text changes, and disabling Apple Mail Mode restores original markup.
+- Sender and recipient names with valid native email metadata copy the exact
+  address on click, Enter or Space. Copy feedback reports success or failure;
+  body/compose lookalikes and names without addresses remain native. Addresses
+  are neither logged nor persisted, and no extension permission was added.
+- Validation: repository checks 43/43; reading pane 41/41; Apple Mail appearance
+  78/78; automatic read 70/70; header/reading-pane integration 5/5. Total 237.
+  Coverage includes all four recipient combinations in light/dark themes,
+  narrow wrapping, restoration, replacement/metadata changes, rejected writes,
+  held/modified keys, and stale feedback after disabling the mode.
+- Real Chrome preview: clicking a synthetic recipient and pasting into a local
+  verification field produced the exact `to+tag@example.test` address. The
+  three-line synthetic layout was visually inspected.
+- Live Gmail header structure was inspected before implementation. Activating
+  the updated extension and checking the live mailbox remain pending: the
+  browser tool blocks Chrome's extension-management page. Reload Gmail Pro in
+  Chrome, then refresh Gmail to load the changed content script and stylesheet.
+
 Baseline: `bc6aaa9` on `codex/apple-mail-mode`, clean in both local repositories.
 Implementation: `feat: refine reading pane and add persistent message actions`.
 
