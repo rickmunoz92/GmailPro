@@ -66,6 +66,21 @@
     f.pager.style.marginLeft = '0'; owner.append(anchor, f.pager); f.toolbar.append(owner);
     return { ...f, sort, anchor, owner, menu, opened: () => opened };
   }
+  function searchClearFixture() {
+    const f = fixture(), clear = document.createElement('button');
+    clear.type = 'button'; clear.setAttribute('aria-label', 'Clear search');
+    clear.innerHTML = '<svg width="24" height="24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    let clears = 0;
+    clear.addEventListener('click', event => {
+      event.stopPropagation(); // Gmail may stop bubbling after handling its X.
+      if (!clear.hasAttribute('data-native-ignore')) { f.input.value = ''; clears++; }
+    });
+    f.form.append(clear);
+    const navigate = (hash, type = 'hashchange') => {
+      history.replaceState(null, '', hash); window.dispatchEvent(new Event(type));
+    };
+    return { ...f, clear, navigate, clears: () => clears };
+  }
   function nativeResize() { const stage=workspace.querySelector('.stage'), shell=workspace.querySelector('.w-asV'); if (stage) stage.style.height=`${innerHeight - rect(shell).height}px`; }
   function composeFixture() {
     const f=fixture();
@@ -820,6 +835,51 @@
     feature.stop(); assert(!panel.hasAttribute('data-gp-search-panel'),'native popup positioning restored');
   });
   await test('native submit listener receives unchanged query', async () => { const f=fixture(); await start(); f.input.value='in:inbox synthetic'; f.form.requestSubmit(); assert(f.form.dataset.submitted==='in:inbox synthetic','native submit preserved'); });
+  await test('native search X clears results and returns to the previous Inbox or nested label', async () => {
+    for (const mailbox of ['#inbox', '#label/Projects/Alpha%20%26%20Beta']) {
+      const f = searchClearFixture();
+      const selected = document.createElement('div'); selected.className = 'TO nZ';
+      const link = document.createElement('a'); link.className = 'n0'; link.href = mailbox; link.textContent = 'Synthetic mailbox';
+      selected.append(link); workspace.querySelector('nav').append(selected);
+      f.navigate(mailbox); await start();
+      f.navigate('#search/first'); await settle();
+      f.navigate('#search/second', 'popstate'); await settle(); f.input.value = 'second';
+      f.clear.querySelector('path').dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, button:0})); await settle();
+      assert(location.hash === mailbox && f.input.value === '', 'X restores the unfiltered mailbox without a reload');
+      assert(f.clears() === 1, 'Gmail clears the query once, including clicks on the icon');
+    }
+  });
+  await test('native search X falls back to Inbox for a directly opened search and respects mode OFF', async () => {
+    const f = searchClearFixture(); f.navigate('#search/direct'); await start(); f.input.value = 'direct';
+    f.clear.click(); await settle(); assert(location.hash === '#inbox' && !f.input.value, 'direct search returns to Inbox');
+    feature.stop(); f.navigate('#search/native'); f.input.value = 'native'; f.clear.click(); await settle();
+    assert(location.hash === '#search/native' && !f.input.value, 'mode OFF leaves native clear behavior intact');
+  });
+  await test('native search X leaves draft queries, other controls and newer navigation alone', async () => {
+    const f = searchClearFixture(); await start(); f.input.value = 'draft'; f.clear.click(); await settle();
+    assert(location.hash === '#inbox' && !f.input.value, 'clearing an unsubmitted query stays in the mailbox');
+    f.navigate('#search/active'); await settle(); f.input.value = '';
+    f.input.dispatchEvent(new Event('input', {bubbles:true})); await settle();
+    assert(location.hash === '#search/active', 'ordinary editing never clears the active route');
+    f.form.querySelector('[aria-label="Advanced search options"]').click(); await settle();
+    const other = f.clear.cloneNode(true); workspace.querySelector('.ii').append(other); other.click(); await settle();
+    assert(location.hash === '#search/active', 'advanced search and email lookalikes cannot clear results');
+    f.input.value = 'active'; f.clear.setAttribute('data-native-ignore', ''); f.clear.click(); await settle();
+    assert(location.hash === '#search/active' && f.input.value === 'active', 'a failed native clear never navigates');
+    f.clear.removeAttribute('data-native-ignore'); f.clear.click(); f.navigate('#sent'); await settle();
+    assert(location.hash === '#sent', 'a newer navigation wins over a queued clear');
+    f.navigate('#search/stopped'); f.input.value = 'stopped'; f.clear.click(); feature.stop(); await settle();
+    assert(location.hash === '#search/stopped', 'stopping the feature cancels a queued clear');
+  });
+  await test('native search X cannot reuse another account mailbox', async () => {
+    const f = searchClearFixture(), path = location.pathname;
+    f.navigate('#sent'); await start();
+    try {
+      history.replaceState(null, '', '/tests/other-account#search/private'); window.dispatchEvent(new Event('popstate')); await settle();
+      f.input.value = 'private'; f.clear.click(); await settle();
+      assert(location.hash === '#inbox', 'account changes reset the return mailbox');
+    } finally { history.replaceState(null, '', path + '#inbox'); }
+  });
   await test('toolbar replacement reattaches without duplicate controls', async () => {
     const f=fixture(); await start(true); f.toolbar.replaceWith(f.toolbar.cloneNode(true)); await settle();
     assert(document.querySelectorAll('.gmail-pro-header-controls').length===1,'one controls group'); assert(rect(f.form).top<50,'search in replacement toolbar');

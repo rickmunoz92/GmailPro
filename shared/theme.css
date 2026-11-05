@@ -16,7 +16,9 @@
   --gp-border: #d9dadd;
   --gp-pane-divider: #e3e5e7;
   --gp-hover: #e9eaed;
-  --gp-search-match-bg: #fde293;
+  /* Pale accent tint in Light; a stronger tint in Dark. Keep the paired dark
+     foreground readable even when Gmail selects the surrounding row. */
+  --gp-search-match-bg: color-mix(in srgb, var(--gp-accent) 25%, white);
   --gp-search-match-text: #202124;
   --gp-selection-sidebar-bg: #dedfe3;
   --gp-sidebar-width: 216px;
@@ -43,7 +45,7 @@
   --gp-border: #3b3d42;
   --gp-pane-divider: #111517;
   --gp-hover: #34363b;
-  --gp-search-match-bg: #dcb857;
+  --gp-search-match-bg: color-mix(in srgb, var(--gp-accent) 65%, white);
   --gp-selection-sidebar-bg: #3c3e43;
   --gp-accent-ui: color-mix(in srgb, var(--gp-accent) 48%, white);
   --gp-label-accent: var(--gp-label-accent-dark, var(--gp-accent-ui));

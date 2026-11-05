@@ -10,6 +10,7 @@
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition, toolbarProbe;
   let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
   let aiChrome;
+  let searchMailbox;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
   let observedSizes = new Set();
   let ancestorSpine = new Set();
@@ -980,8 +981,35 @@
   }
 
   function navigate() {
+    rememberSearchMailbox();
     if (mailboxLoading && mailboxKey(location.hash) !== mailboxLoading.key) clearMailboxLoading();
     open = false; schedule();
+  }
+
+  function rememberSearchMailbox() {
+    if (searchMailbox?.pathname !== location.pathname) searchMailbox = undefined;
+    const folder = mailbox(), key = folder?.key;
+    if (key && (Object.hasOwn(mailboxNames, key.slice(1)) || key.startsWith('#label/'))) {
+      // Keep the mailbox link, never an opened conversation or a compose ID.
+      searchMailbox = { pathname: location.pathname, hash: folder.link ? new URL(folder.link.href, location.href).hash : key };
+    } else if (mailboxKey(location.hash) === '#aiinbox') {
+      searchMailbox = { pathname: location.pathname, hash: '#aiinbox' };
+    }
+  }
+
+  function clearSearch(event) {
+    if (!enabled || !current || event.defaultPrevented || event.button !== 0 ||
+        event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !(event.target instanceof Element)) return;
+    const button = event.target.closest(S.headerSearchClear);
+    if (!button || !current.form.contains(button) || !mailboxKey(location.hash).startsWith('#search/')) return;
+    const { form, input } = current, hash = location.hash, pathname = location.pathname, token = generation;
+    const destination = searchMailbox?.pathname === pathname ? searchMailbox.hash : '#inbox';
+    // Gmail clears the input and dismisses suggestions itself. Leave its active
+    // search route only if that clear succeeds and no newer navigation wins.
+    setTimeout(() => {
+      if (enabled && generation === token && current?.form === form && form.isConnected && !input.value &&
+          location.pathname === pathname && location.hash === hash) location.hash = destination;
+    }, 0);
   }
 
   function stop() {
@@ -990,7 +1018,7 @@
     cancelAnimationFrame(frame); frame = 0;
     clearTimeout(bootstrapTimer); bootstrap?.disconnect(); bootstrap = undefined;
     observer?.disconnect(); resizeObserver?.disconnect(); observedSizes.clear();
-    ancestorSpine.clear(); lastContext = undefined; countSnapshot = undefined;
+    ancestorSpine.clear(); lastContext = undefined; countSnapshot = undefined; searchMailbox = undefined;
     window.removeEventListener('resize', schedule);
     window.removeEventListener('hashchange', navigate);
     window.removeEventListener('popstate', navigate);
@@ -998,6 +1026,7 @@
     document.removeEventListener('keydown', keydown);
     document.removeEventListener('pointerdown', outside, true);
     document.removeEventListener('click', mailboxClicked, true);
+    document.removeEventListener('click', clearSearch, true);
     restore(); controls?.remove(); controls = undefined; sortSlot = undefined;
   }
 
@@ -1006,6 +1035,7 @@
     if (Object.hasOwn(patch, 'appleMailModeEnabled') && !patch.appleMailModeEnabled) return stop();
     if (!enabled && patch.appleMailModeEnabled) {
       enabled = true; generation++;
+      rememberSearchMailbox();
       observer = new MutationObserver(records => {
         if (mailboxLoading) {
           const state = mailboxLoading;
@@ -1029,6 +1059,7 @@
       document.addEventListener('keydown', keydown);
       document.addEventListener('pointerdown', outside, true);
       document.addEventListener('click', mailboxClicked, true);
+      document.addEventListener('click', clearSearch, true);
       // Bounded initial shell discovery; ongoing watches only cover chrome and
       // shallow ancestor/section replacement. During a pending mailbox switch,
       // temporarily observe native list readiness without inspecting email HTML.

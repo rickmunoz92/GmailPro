@@ -103,8 +103,12 @@
     const fakeBar = searchBar(); protectedContent.append(fakeBar); workspace.append(protectedContent);
     const authored = protectedContent.querySelector('.il'), before = [css(authored).color, css(authored).backgroundColor, css(fakeBar.querySelector('.H5')).color];
     try {
+      const palettes = { dark: new Set(), light: new Set() };
       for (const appearanceTheme of ['dark', 'light']) for (const accentColor of GmailPro.settings.choices.accentColor) {
         enable({appearanceTheme, accentColor});
+        const background = css(matches[0]).backgroundColor;
+        palettes[appearanceTheme].add(background);
+        assert(background === token('--gp-search-match-bg'), 'matches use the theme highlight token');
         for (const state of ['read', 'unread', 'open', 'checked']) {
           node.classList.toggle('zE', state !== 'read'); node.classList.toggle('aps', state === 'open');
           node.querySelector('[role="checkbox"]').setAttribute('aria-checked', String(state === 'checked'));
@@ -112,6 +116,8 @@
         }
         assert(JSON.stringify([css(authored).color, css(authored).backgroundColor, css(fakeBar.querySelector('.H5')).color]) === JSON.stringify(before), 'authored matches and search-control lookalikes stay unchanged');
       }
+      assert(Object.values(palettes).every(palette => palette.size === GmailPro.settings.choices.accentColor.length), 'every accent has its own search highlight in both appearances');
+      assert([...palettes.dark].every(background => !palettes.light.has(background)), 'Light and Dark use distinct highlight shades');
       feature.stop(); assert(matches.every((n, i) => JSON.stringify([css(n).color, css(n).backgroundColor]) === JSON.stringify(native[i])), 'mode OFF restores native match paint');
     } finally { protectedContent.remove(); }
   });

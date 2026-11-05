@@ -43,6 +43,7 @@
     headerShell: '.w-asV',
     headerSearch: 'form[role="search"]',
     headerSearchInput: 'input[name="q"]',
+    headerSearchClear: 'button[type="button"][aria-label="Clear search"]',
     headerToolbar: '[role="main"] [gh="tm"]',
     headerViewport: '.Tm',
     headerRightSplit: ':scope > .Nr.Nm',
