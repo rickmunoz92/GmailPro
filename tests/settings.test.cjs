@@ -18,6 +18,7 @@ function fixture(initial = {}) {
     GmailProBillingConfig: { required: false },
     crypto: require('node:crypto').webcrypto,
     TextEncoder,
+    document: { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} },
     chrome: { storage: {
       sync: {
         async get(keys) {
@@ -37,6 +38,7 @@ function fixture(initial = {}) {
   });
   const run = (file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context);
   run("shared/settings.js");
+  context.GmailPro.consent = { getStatus: async () => ({ accepted: true }), subscribe: () => () => {} };
   context.GmailPro.appearance = { start() {}, update() {}, stop() {} };
   context.GmailPro.headerLayout = { start() {}, update() {}, stop() {} };
   context.GmailPro.workspaceLayout = { start() {}, update() {}, stop() {} };
@@ -53,7 +55,7 @@ function fixture(initial = {}) {
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: false, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -64,6 +66,18 @@ test("malformed stored values normalize safely without destructive rewrites", as
   assert.deepEqual(plain(await f.settings.load()), plain(f.settings.defaults));
   assert.deepEqual(f.data, initial);
   assert.equal(f.writes, 0);
+});
+
+test('the first-run preset preserves explicit choices and carries no mailbox-specific data', async () => {
+  const names=['appleMailModeEnabled','newestEmailFirstEnabled','appleMailMessageListEnabled','autoPagingEnabled','messageZoomEnabled','customLabelOrderEnabled'];
+  const stored=Object.fromEntries(names.map(name=>[prefix+name,false]));
+  stored[prefix+'appearanceTheme']='light';
+  const f=fixture(stored), loaded=plain(await f.settings.load());
+  assert.ok(names.every(name=>loaded[name]===false));
+  assert.equal(loaded.appearanceTheme,'light');
+  assert.equal(loaded.autoBccEnabled,false);assert.equal(loaded.bccAddress,'');
+  assert.deepEqual(loaded.customLabelOrder,[]);assert.deepEqual(loaded.sidebarHiddenSublabels,[]);
+  assert.equal(f.writes,0);assert.deepEqual(f.data,stored);
 });
 
 test('workspace choices save independently and account initialization markers cannot overwrite one another', async () => {
@@ -84,7 +98,7 @@ test('workspace choices save independently and account initialization markers ca
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: false, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "dark", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: false, autoPagingEnabled: false, messageZoomEnabled: false, customLabelOrderEnabled: false, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -276,6 +290,7 @@ test("content startup merges concurrent settings, starts once, and cleans up aft
   f.context.GmailPro.debug = { log() {} };
   f.context.window = { addEventListener: (event, callback) => { assert.equal(event, "pagehide"); pagehide = callback; } };
   f.run("content/content.js"); f.run("content/content.js");
+  await new Promise(resolve => setImmediate(resolve));
   [...f.listeners][0]({ [prefix + "autoBccEnabled"]: { newValue: true } }, "sync");
   [...f.listeners][0]({ [prefix + "appleMailMessageListEnabled"]: { newValue: true } }, "sync");
   [...f.listeners][0]({ [prefix + "headerCollapsed"]: { newValue: true } }, "sync");
@@ -320,7 +335,7 @@ test("late initial read after navigation cannot activate Auto BCC", async () => 
   f.context.GmailPro.autoBcc = { start: () => starts++, stop() {} };
   f.context.GmailPro.debug = { log() {} };
   f.context.window = { addEventListener: (_event, callback) => { pagehide = callback; } };
-  f.run("content/content.js"); pagehide(); resolveLoad({ ...f.settings.defaults, autoBccEnabled: true });
+  f.run("content/content.js"); await new Promise(resolve => setImmediate(resolve)); pagehide(); resolveLoad({ ...f.settings.defaults, autoBccEnabled: true });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(starts, 0); assert.equal(f.listeners.size, 0);
 });
@@ -346,6 +361,7 @@ for (const idleFirst of [false, true]) test(`early settings owner handles ${idle
   f.context.GmailPro.debug = { log() {} };
   f.context.window = { addEventListener: (_event, fn) => { pagehide = fn; } };
   f.run("content/content.js");
+  await new Promise(resolve => setImmediate(resolve));
   const idle = () => {
     f.context.GmailPro.autoBcc = { start: settings => starts.push(plain(settings)), update() {}, stop() {} };
     f.run("content/autoBccStart.js"); f.run("content/autoBccStart.js");
@@ -370,14 +386,14 @@ test("message-list preference round-trips independently and resets on sync delet
   const f = fixture({ [prefix + "autoBccEnabled"]: true, [prefix + "newestEmailFirstEnabled"]: true });
   const patches = [];
   const stop = f.settings.subscribe(patch => patches.push(plain(patch)));
-  await f.settings.save({ appleMailMessageListEnabled: true });
+  await f.settings.save({ appleMailMessageListEnabled: false });
   const loaded = await f.settings.load();
-  assert.equal(loaded.appleMailMessageListEnabled, true);
+  assert.equal(loaded.appleMailMessageListEnabled, false);
   assert.equal(loaded.autoBccEnabled, true);
   assert.equal(loaded.newestEmailFirstEnabled, true);
   await assert.rejects(f.settings.save({ appleMailMessageListEnabled: "true" }));
   [...f.listeners][0]({ [prefix + "appleMailMessageListEnabled"]: {} }, "sync");
-  assert.deepEqual(patches, [{ appleMailMessageListEnabled: true }, { appleMailMessageListEnabled: false }]);
+  assert.deepEqual(patches, [{ appleMailMessageListEnabled: false }, { appleMailMessageListEnabled: true }]);
   stop();
 });
 
@@ -475,7 +491,7 @@ test("appearance settings validate, sync independently, and reset safely on dele
   const changes = [];
   const stop = f.settings.subscribe(patch => changes.push(plain(patch)));
   [...f.listeners][0]({ [prefix + "accentColor"]: {}, [prefix + "appearanceTheme"]: { newValue: "invalid" } }, "sync");
-  assert.deepEqual(changes, [{ appearanceTheme: "dark", accentColor: "blue" }]);
+  assert.deepEqual(changes, [{ appearanceTheme: "system", accentColor: "blue" }]);
   stop();
 });
 
@@ -499,7 +515,7 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   delete f.context.GmailPro.appearance;
   f.run("content/appearance.js");
   const feature = f.context.GmailPro.appearance;
-  feature.start(f.settings.defaults);
+  feature.start({...f.settings.defaults,appleMailModeEnabled:false});
   assert.equal(watches, 0);
   feature.update({ appleMailModeEnabled: true, appearanceTheme: "system", accentColor: "yellow" });
   feature.update({ autoBccEnabled: true });
@@ -550,12 +566,12 @@ test("keyboard shortcuts are inert on non-Mac platforms", () => {
 test("automatic paging preference saves independently and normalizes deletion", async () => {
   const f = fixture({ [prefix + "appleMailModeEnabled"]: true });
   const patches = []; const stop = f.settings.subscribe(patch => patches.push(plain(patch)));
-  await f.settings.save({ autoPagingEnabled: true });
-  assert.equal((await f.settings.load()).autoPagingEnabled, true);
+  await f.settings.save({ autoPagingEnabled: false });
+  assert.equal((await f.settings.load()).autoPagingEnabled, false);
   assert.equal((await f.settings.load()).appleMailModeEnabled, true);
   await assert.rejects(f.settings.save({ autoPagingEnabled: "true" }));
   [...f.listeners][0]({ [prefix + "autoPagingEnabled"]: {} }, "sync");
-  assert.deepEqual(patches, [{ autoPagingEnabled: true }, { autoPagingEnabled: false }]); stop();
+  assert.deepEqual(patches, [{ autoPagingEnabled: false }, { autoPagingEnabled: true }]); stop();
 });
 
 test("header preference defaults to collapsed, preserves saved choices, syncs, and surfaces save failures", async () => {
@@ -582,11 +598,13 @@ test("header preference defaults to collapsed, preserves saved choices, syncs, a
 });
 
 test('sidebar settings bridge validates sender and reuses popup with safe fallback', async () => {
-  let listener; const calls=[];
-  const chrome={runtime:{id:'extension-id',getURL:path=>'chrome-extension://extension-id/'+path,onMessage:{addListener:fn=>{listener=fn;}}},
+  let listener, installed; const calls=[];
+  const chrome={runtime:{onInstalled:{addListener:fn=>{installed=fn;}},id:'extension-id',getURL:path=>'chrome-extension://extension-id/'+path,onMessage:{addListener:fn=>{listener=fn;}}},
     action:{openPopup:async options=>{calls.push(['popup',options]);}},
     tabs:{create:async options=>{calls.push(['tab',options]);}}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'background/settings.js'),'utf8'),{chrome});
+  installed({reason:'update'}); assert.equal(calls.length,0);
+  installed({reason:'install'}); assert.deepEqual(plain(calls),[['tab',{url:'chrome-extension://extension-id/popup/popup.html'}]]); calls.length=0;
   const message={type:'gmail-pro-open-settings'}, sender={id:'extension-id',frameId:0,url:'https://mail.google.com/mail/u/0/',tab:{windowId:7}};
   for (const invalid of [{...sender,id:'other'},{...sender,frameId:1},{...sender,url:'https://example.com/'}]) {
     assert.equal(listener(message,invalid,()=>assert.fail('unexpected response')),undefined);

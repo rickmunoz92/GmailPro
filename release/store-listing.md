@@ -6,11 +6,11 @@ Gmail Pro
 
 ## Short description
 
-A cleaner Gmail with themes, Auto BCC, newest-first conversations, label organization, message-only zoom, and Mac shortcuts.
+A cleaner Gmail with themes, Auto BCC, newest-first conversations, label organization, message-only zoom, and keyboard shortcuts.
 
 ## Detailed description
 
-Give Gmail a calmer desktop feel and useful tools for everyday email.
+Add more control to the Gmail account you already use.
 
 Gmail Pro adds a macOS-inspired interface, newest-first conversations, Auto BCC,
 message-only zoom and flexible label organization to English desktop Gmail.
@@ -19,9 +19,10 @@ provider.
 
 MAKE GMAIL YOUR OWN
 Choose a light, dark or system theme and one of eight accent colors. Read
-conversations in a compact two-line list, collapse the header to make room for
-mail, and keep common message actions within reach. Gmail's own reading pane
-can be enabled for a three-pane layout.
+conversations in a compact two-line list, collapse the header and app rails, and keep common message actions in the main
+toolbar. The reading layout starts with a compact list on the left and Gmail's
+native reading pane on the right. Most features start enabled, with System
+appearance and a Blue accent. Existing saved preferences stay unchanged.
 
 START WITH THE LATEST REPLY
 Show the newest message first inside an opened conversation. This changes the
@@ -29,11 +30,12 @@ presentation of the thread; it does not change Gmail's stored message order.
 
 AUTOMATICALLY KEEP A COPY
 Optionally add one BCC address to new emails, replies and forwards. Auto BCC is
-off by default. Configure an address, enable the feature and save preferences;
-always review recipients before sending.
+off by default. Configure an address, enable the feature and save preferences.
+The saved address can sync across Gmail accounts and browsers. Use only an
+authorized recipient and always review recipients before sending.
 
 READ AT YOUR SIZE
-Zoom message content from 80% to 200% with Mac shortcuts while keeping Gmail's
+Zoom message content from 80% to 200% with keyboard shortcuts while keeping Gmail's
 controls the same size. Each new conversation starts at 100%.
 
 ORGANIZE YOUR SIDEBAR
@@ -43,26 +45,41 @@ click an existing custom-label badge in an Inbox conversation to mark it read
 and archive it while retaining all its labels. Gmail supplies Archive Undo.
 
 KEEP YOUR MOMENTUM
-Open replies and forwards in Gmail's native floating composer. Use Mac
+Open replies and forwards in Gmail's native floating composer. Use keyboard
 shortcuts for common actions. With Apple Mail Mode and Gmail's reading pane on
 the right, keep scrolling at the list edge to change Gmail pages automatically.
 
 7-DAY FREE TRIAL, THEN A SUBSCRIPTION
 Try all features free for seven days, then US$0.99/month or US$10/year. Payment
 details are required. Cancel before the trial ends to avoid the first charge.
-Subscriptions renew automatically afterward. Manage or cancel through the
-extension's Manage subscription button. Uninstalling does not cancel billing.
+Subscriptions renew automatically afterward. Start Checkout from the website
+or the installed extension popup. Both use the same license; website purchases
+provide a key to paste into the extension. Manage or cancel through the
+extension's Manage subscription button or the website's Subscription help page. Uninstalling does not cancel billing.
 Any tax collected is shown at Checkout. Payment is processed securely by Stripe.
 
-YOUR EMAIL STAYS WITH GMAIL
+LOCAL MAIL FEATURES, PRIVATE BILLING
 Mail features process Gmail page elements locally. Gmail message content,
 recipient/BCC preferences, label names and Gmail account addresses are not sent
 to the billing service. Preferences may sync through Google Chrome Sync.
 The extension contacts its dedicated service for activation and subscription
 verification. See the privacy policy for payment, support and storage details.
 
+TERMS, PRIVACY AND AGE REQUIREMENTS
+Gmail Pro is operated and sold by Rick Munoz, Colorado, USA. Before mail
+features run, an adult must review the in-extension data disclosure and
+affirmatively agree to the Terms of Service. Users must be at least 13; a parent
+or legal guardian must accept and authorize use for a minor. Installation alone
+does not replace that agreement step. Stripe Checkout separately requires
+agreement before a subscription is purchased.
+Terms: https://gmail-pro.netlify.app/terms
+Privacy: https://gmail-pro.netlify.app/privacy
+Shortcuts can send, archive or delete mail. Gmail label and layout changes may
+persist after uninstalling. Pausing features or withdrawing consent does not
+cancel billing; subscription management remains available.
+
 REQUIREMENTS
-English desktop Gmail in Chrome 118 or newer. Mac keyboard shortcuts require
+English desktop Gmail in Chrome 118 or newer. Keyboard shortcuts require
 macOS. Some features require Apple Mail Mode or Gmail's native right reading
 pane. Gmail updates can require compatibility fixes. Gmail keeps control of
 mail delivery, drafts, message actions, Undo and Undo Send.
@@ -85,7 +102,7 @@ endorsed by either. Gmail is a trademark of Google LLC.
 
 - **storage:** Save user-selected features, appearance, BCC and label preferences
   with Chrome Sync. Store private activation and temporary subscription status
-  locally with trusted-context access only.
+  and the accepted legal versions/time locally with trusted-context access only.
 - **mail.google.com content access:** Apply the requested Gmail interface and
   workflow features to the top-level Gmail page, using its native controls.
 - **gmail-pro.netlify.app host access:** Verify subscriptions and create Stripe
@@ -103,17 +120,23 @@ without a payment, has no customer portal and is limited by a server-side expiry
 
 1. Install the uploaded ZIP through the store review flow, then open English
    Gmail in Chrome. Use a review-owned inbox containing fictional messages.
-2. Open Gmail Pro, expand Already subscribed? Activate a license, and paste the
-   private reviewer license provided in the review field.
-3. Enable Apple Mail Mode, select Dark/Light and Blue, and observe the inbox.
+2. Open Gmail Pro. Read the first-use data disclosure and linked Terms/Privacy.
+   Confirm adult eligibility and agreement with both initially unchecked boxes,
+   then choose Agree and enable Gmail Pro. Until then no mail tools run.
+   Expand Already subscribed? Activate a license, and paste the private reviewer
+   license provided in the review field.
+3. Most features start enabled; appearance starts at System with Blue accents.
+   Switch Dark/Light and observe the inbox. Auto BCC remains off.
 4. Set Gmail's native reading pane to Right of inbox for the three-pane view.
-5. Turn on Newest email first and Message-only zoom under advanced settings;
-   save preferences. Open a multi-message conversation and verify ordering/zoom.
+5. Open a multi-message conversation and verify newest-first presentation and
+   message-only zoom. These start enabled and can be disabled independently.
 6. Auto BCC defaults off. Test only in a fictional draft addressed to a review
    account and inspect the BCC field before sending any test mail.
 7. Inspect label organization and the native floating reply controls. Actions
    use Gmail's own draft and message behavior.
-8. Paid users receive the seven-day trial and then the selected recurring price.
+8. Choose Pause Gmail Pro and withdraw consent. Mail features stop; existing
+   settings and billing management remain. Accept again to resume features.
+9. Paid users receive the seven-day trial and then the selected recurring price.
    The private review key is not a paid subscription or a customer license.
 
 Review every final privacy-practices checkbox against the live dashboard's

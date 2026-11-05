@@ -4,6 +4,9 @@
   if (location.hostname !== "127.0.0.1") throw new Error("Local fixture only");
   const listeners = new Set();
   const state = { values: {}, writes: 0, failRead: true, failWrite: false, listeners };
+  const runtimeListeners = new Set();
+  state.agreement = { accepted: false };
+  state.failConsentWrite = false;
   state.emit = patch => {
     const changes = Object.fromEntries(Object.entries(patch).map(([key, newValue]) =>
       [key, { oldValue: state.values[key], newValue }]));
@@ -25,6 +28,17 @@
       }
     },
     onChanged: { addListener: fn => listeners.add(fn), removeListener: fn => listeners.delete(fn) }
+  };
+  window.chrome.runtime = {
+    onMessage: { addListener: fn => runtimeListeners.add(fn), removeListener: fn => runtimeListeners.delete(fn) },
+    async sendMessage(message) {
+      if (message.type !== 'gmail-pro-consent') throw new Error('Unexpected synthetic message');
+      if (message.action === 'accept') {
+        if (state.failConsentWrite) return { ok: false, error: 'Synthetic agreement save failure' };
+        state.agreement = { accepted: true, acceptedAt: Date.now() };
+      } else if (message.action === 'withdraw') state.agreement = { accepted: false };
+      return { ok: true, status: { ...state.agreement, termsVersion: GmailProLegal.termsVersion, privacyVersion: GmailProLegal.privacyVersion } };
+    }
   };
   window.GmailProPopupTest = state;
 })();

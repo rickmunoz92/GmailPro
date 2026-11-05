@@ -4,7 +4,7 @@
   const feature = {
     start(patch) { GmailPro.messageList.start(patch); GmailPro.appearance.start(patch); },
     update(patch) { GmailPro.messageList.update(patch); GmailPro.appearance.update(patch); },
-    stop() { GmailPro.messageList.update({appleMailModeEnabled:false}); GmailPro.appearance.stop(); }
+    stop() { GmailPro.messageList.update({appleMailModeEnabled:false,appleMailMessageListEnabled:false}); GmailPro.appearance.stop(); }
   }, row = GmailProTestRow, result = document.getElementById("results");
   const root = document.documentElement, workspace = document.getElementById("workspace"), reports = [];
   const css = node => getComputedStyle(node), rect = node => node.getBoundingClientRect();
@@ -245,7 +245,7 @@
   });
   await test("off has no styles or DOM changes; on includes existing two-line list", () => {
     const node = row(), html = workspace.innerHTML, baseline = css(node).backgroundColor;
-    feature.start(GmailPro.settings.defaults);
+    feature.start({...GmailPro.settings.defaults,appleMailModeEnabled:false,appleMailMessageListEnabled:false});
     assert(css(node).display === "flex" && css(node).backgroundColor === baseline, "native layout");
     enable(); assert(css(node).display === "grid", "existing grid reused");
     feature.stop(); assert(css(node).display === "flex" && css(node).backgroundColor === baseline && workspace.innerHTML === html, "exact restoration");
@@ -786,7 +786,8 @@
     root.removeAttribute("data-darkreader-mode");
   });
   await test("legacy list preference remains independent of master mode", () => {
-    const node = row(); GmailPro.messageList.start({appleMailMessageListEnabled:true}); enable(); feature.stop();
+    const node = row(); GmailPro.messageList.start({appleMailMessageListEnabled:true}); enable();
+    feature.update({appleMailModeEnabled:false,appleMailMessageListEnabled:true}); GmailPro.appearance.stop();
     assert(css(node).display === "grid", "standalone list preference retained");
     GmailPro.messageList.stop(); assert(css(node).display === "flex", "all visual overrides removed");
   });

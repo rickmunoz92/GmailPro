@@ -43,9 +43,11 @@ verifies subscriptions through a small Netlify service backed by Stripe.
 - **Organize labels:** reorder AI Inbox, Inbox, and top-level labels visually, move sublabels to new
   Gmail parents, and hide individual sublabel branches from this sidebar.
 
-Floating Reply, Reply All, Forward, and Mac keyboard shortcuts default on.
-Other features default off.
-Open the extension popup to enable **Apple Mail Mode**. Appearance settings save
+The first-run preset enables Apple Mail Mode, newest-first conversations, message-only
+zoom, custom label order, the two-line list, automatic paging, floating composition
+and keyboard shortcuts. Appearance follows **System** with a Blue accent. Auto BCC
+starts off with no address. Existing saved choices remain unchanged.
+Open the extension popup to customize **Apple Mail Mode**. Appearance settings save
 and apply immediately. Compose preferences and **Mail tools & advanced appearance**
 use **Save preferences**.
 
@@ -148,8 +150,8 @@ permission, network access, mailbox cache, or persistent mail state. See
 Provides a cleaner macOS-inspired Gmail interface while retaining Gmail as the
 underlying mail engine. This is a presentation layer, not a separate mail client.
 
-Under **APPEARANCE**, turn on **Apple Mail Mode**. Choose **Dark** (default),
-**Light**, or **Follow system**, independently of **Accent color**: Blue (default),
+Under **APPEARANCE**, Apple Mail Mode starts on. Choose **System** (default),
+**Dark**, or **Light**, independently of **Accent color**: Blue (default),
 Purple, Pink, Red, Orange, Yellow, Green, or Graphite. Changes persist through the
 existing `chrome.storage.sync` adapter and reach open Gmail tabs without a reload.
 No Gmail permissions, API calls, data stores, analytics, or dependencies are added.
@@ -395,7 +397,7 @@ creates a new composition instance; existing recipients still prevent duplicates
 Auto BCC does not intercept or trigger **Send**. The optional keyboard shortcut below
 clicks Gmail’s normal Send button with the draft’s current recipients.
 
-### Mac keyboard shortcuts
+### Keyboard shortcuts
 
 All eight shortcuts default **ON** and can be switched independently in **Keyboard shortcuts**
 in the extension popup. Use **Save preferences** to apply changes.
@@ -707,6 +709,12 @@ trial** on either plan. Checkout collects payment details. Cancel before the
 trial ends to avoid the first charge; later cancellation stops renewal at the
 end of the current period. Uninstalling does not cancel a subscription.
 
+Checkout can start from the website or the installed extension popup. Both use
+Stripe and the same subscription license. Website purchases preserve recovery
+details in tab session storage and provide a license to paste into the extension;
+keep that tab open and save the license privately. Subscription help also opens
+the Stripe portal from a pasted license without requiring tab storage.
+
 The canonical unpacked checkout uses `shared/billing-config.js` with
 `required:false` for development. `npm run package:store` always writes
 `required:true` into the store ZIP and includes only production extension files.
@@ -782,7 +790,7 @@ and work in both directions, with larger click targets and loading feedback;
 manual clicks take priority over automatic paging.
 Inbox, labels, search, Spam, and Trash use the same native paging mechanism.
 
-The feature defaults off. It pauses while conversations are selected, a composer
+The feature defaults on. It pauses while conversations are selected, a composer
 is open, a menu/dialog is open, or the tab is hidden. Scrolling the reading pane,
 startup, and layout changes never load a page. Only one page can load at a time;
 unknown layouts or a failed load leave Gmail’s native controls available. There

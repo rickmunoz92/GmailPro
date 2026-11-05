@@ -41,6 +41,8 @@
   let loadingChanges = {};
   let loaded = false;
   let saving = false;
+  let accepted = false;
+  let loadGeneration = 0;
   const dirty = new Set();
 
   function values() {
@@ -96,7 +98,7 @@
     for (const [name, value] of Object.entries(values())) {
       if (value !== saved[name]) dirty.add(name);
     }
-    saveButton.disabled = !loaded || saving || dirty.size === 0;
+    saveButton.disabled = !accepted || !loaded || saving || dirty.size === 0;
   }
 
   function clearError() {
@@ -120,6 +122,7 @@
   // Keep local edits when Chrome Sync changes another preference. Merge any
   // events received during the initial read, so an older read cannot win.
   const unsubscribe = app.settings.subscribe((patch) => {
+    if (!accepted) return;
     if (!loaded) {
       Object.assign(loadingChanges, patch);
       return;
@@ -131,18 +134,23 @@
   });
 
   async function load() {
+    if (!accepted) return;
+    const generation = ++loadGeneration;
     retryButton.hidden = true;
     saveButton.hidden = false;
     setStatus("Loading preferences…");
     try {
-      saved = { ...await app.settings.load(), ...loadingChanges };
+      const settings = await app.settings.load();
+      if (!accepted || generation !== loadGeneration) return;
+      saved = { ...settings, ...loadingChanges };
       loadingChanges = {};
       render();
       loaded = true;
-      fields.disabled = false;
+      fields.disabled = !accepted;
       updateDirty();
       setStatus("Preferences ready");
     } catch {
+      if (!accepted || generation !== loadGeneration) return;
       app.debug.log("settings-load-failed");
       setStatus("Couldn’t load preferences.", "error");
       saveButton.hidden = true;
@@ -160,7 +168,7 @@
   // Immediate writes use the existing adapter, one setting at a time. Unrelated
   // unsaved tools (including an invalid BCC edit) never block appearance changes.
   for (const name of appearanceNames) controls[name].addEventListener("change", async () => {
-    if (!loaded || saving) return;
+    if (!accepted || !loaded || saving) return;
     const patch = { [name]: values()[name] };
     saving = true;
     fields.disabled = true;
@@ -175,14 +183,14 @@
       setStatus("Couldn’t save appearance. Please try again.", "error");
     } finally {
       saving = false;
-      fields.disabled = false;
+      fields.disabled = !accepted;
       updateDirty();
     }
   });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!loaded || saving || dirty.size === 0) return;
+    if (!accepted || !loaded || saving || dirty.size === 0) return;
     clearError();
     if (!validate()) return;
     const current = values();
@@ -202,14 +210,14 @@
       setStatus("Couldn’t save. Please try again.", "error");
     } finally {
       saving = false;
-      fields.disabled = false;
+      fields.disabled = !accepted;
       saveButton.textContent = "Save preferences";
       updateDirty();
     }
   });
 
   document.getElementById("edit-label-order").addEventListener("click", async () => {
-    if (!loaded || saving) return;
+    if (!accepted || !loaded || saving) return;
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const response = await chrome.tabs.sendMessage(tab.id, { type: "gmail-pro-edit-label-order" });
@@ -220,7 +228,7 @@
     }
   });
   document.getElementById("reset-label-order").addEventListener("click", async () => {
-    if (!loaded || saving) return;
+    if (!accepted || !loaded || saving) return;
     saving = true;
     fields.disabled = true;
     updateDirty();
@@ -232,7 +240,7 @@
       setStatus("Couldn’t reset label order. Please try again.", "error");
     } finally {
       saving = false;
-      fields.disabled = false;
+      fields.disabled = !accepted;
       updateDirty();
     }
   });
@@ -242,5 +250,13 @@
     unsubscribe();
     systemTheme.removeEventListener("change", renderAppearance);
   }, { once: true });
-  void load();
+  document.addEventListener('gmail-pro-consent-status', event => {
+    const previous = accepted;
+    accepted = event.detail?.accepted === true;
+    form.hidden = !accepted;
+    fields.disabled = !accepted || saving || !loaded;
+    if (!accepted) { loadGeneration++; loaded = false; }
+    else if (!previous) void load();
+    updateDirty();
+  });
 })();

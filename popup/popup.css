@@ -7,6 +7,10 @@ main { padding: 20px; }
 h1, h2, p { margin: 0; }
 button, input, select { font: inherit; }
 [hidden] { display: none !important; }
+.consent-choice { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0; font-size: 13px; line-height: 1.5; }
+.consent-choice input { width: 16px; height: 16px; margin: 2px 0 0; flex: 0 0 16px; accent-color: var(--gp-accent, #0a84ff); }
+.consent-card a { text-decoration: underline; }
+.consent-card button { white-space: normal; }
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .brand-mark { width: 32px; height: 32px; border-radius: 7px; }
 .brand-heading { display: flex; align-items: center; gap: 12px; }

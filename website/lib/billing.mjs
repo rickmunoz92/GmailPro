@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import legal from '../../shared/legal-config.js';
 
 export const WEBHOOK_EVENTS = Object.freeze([
   'checkout.session.completed', 'checkout.session.async_payment_succeeded',
@@ -52,15 +53,20 @@ export function createBillingService({ stripe, config, now = () => Date.now() })
     const checkedAt = now();
     const trialEndsAt = sub.status === 'trialing' ? sub.trial_end * 1000 : null;
     const periodEnd = sub.status === 'trialing' ? trialEndsAt : sub.items.data[0].current_period_end * 1000;
+    // Stripe's portal can schedule an explicit cancel_at (including trial-end
+    // cancellation) while cancel_at_period_end stays false.
+    const cancellationEnd = Number.isFinite(sub.cancel_at) && sub.cancel_at > 0 ? sub.cancel_at * 1000 : null;
+    const accessEnd = cancellationEnd === null ? periodEnd : Math.min(periodEnd, cancellationEnd);
     const refunded = sub.metadata.gmailpro_refunded_invoice &&
       sub.metadata.gmailpro_refunded_invoice === idOf(sub.latest_invoice);
     const suspended = sub.metadata.gmailpro_risk_hold === 'true';
     const active = ['active', 'trialing'].includes(sub.status) && sub.metadata.gmailpro_fulfilled === 'true' &&
-      !refunded && !suspended && Number.isFinite(periodEnd) && periodEnd > checkedAt;
+      !refunded && !suspended && Number.isFinite(accessEnd) && accessEnd > checkedAt;
     return { active, status: suspended ? 'review_required' : refunded ? 'refunded' : sub.status,
-      checkedAt, validUntil: active ? Math.min(periodEnd, checkedAt + 24 * 60 * 60 * 1000) : checkedAt,
-      renewsAt: Number.isFinite(periodEnd) ? periodEnd : null, trialEndsAt: Number.isFinite(trialEndsAt) ? trialEndsAt : null,
-      cancelAtPeriodEnd: !!sub.cancel_at_period_end };
+      checkedAt, validUntil: active ? Math.min(accessEnd, checkedAt + 24 * 60 * 60 * 1000) : checkedAt,
+      renewsAt: Number.isFinite(accessEnd) ? accessEnd : null,
+      trialEndsAt: Number.isFinite(trialEndsAt) ? Math.min(trialEndsAt, accessEnd) : null,
+      cancelAtPeriodEnd: !!sub.cancel_at_period_end || cancellationEnd !== null };
   }
   async function status(key) {
     const review = reviewStatus(key);
@@ -77,44 +83,82 @@ export function createBillingService({ stripe, config, now = () => Date.now() })
       price.recurring.interval_count !== 1 || idOf(price.product) !== config.product) {
       throw new BillingError('Subscription pricing needs attention. Please contact support.', 503);
     }
-    const session = await stripe.checkout.sessions.create({
+    let session;
+    try { session = await stripe.checkout.sessions.create({
       mode: 'subscription', line_items: [{ price: price.id, quantity: 1 }],
       client_reference_id: digest(purchaseToken),
-      metadata: { application: 'gmail-pro' },
-      subscription_data: { metadata: { application: 'gmail-pro' }, billing_mode: { type: 'flexible' },
+      metadata: { application: 'gmail-pro', terms_version: legal.termsVersion, privacy_version: legal.privacyVersion },
+      consent_collection: { terms_of_service: 'required' },
+      subscription_data: { metadata: { application: 'gmail-pro', terms_version: legal.termsVersion,
+        privacy_version: legal.privacyVersion }, billing_mode: { type: 'flexible' },
         trial_period_days: 7, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } },
       payment_method_collection: 'always',
       success_url: `${config.siteURL}/checkout-complete`, cancel_url: `${config.siteURL}/#pricing`,
-      // Every parameter is stable for this random purchase token, including on
-      // timeout recovery. Stripe's default expiry avoids a moving expires_at.
+      // Retries within this offer use identical parameters. Keep the token's
+      // original key across deployments too: rotating it could duplicate a paid
+      // Checkout whose response was lost. Stripe's expiry avoids a moving date.
       integration_identifier: 'gmailpro_' + digest(purchaseToken).slice(-8).replace(/[0-9]/g, digit => 'abcdefghij'[Number(digit)]),
-      custom_text: { submit: { message: '7 days free, then your selected monthly or annual price. Cancel before the trial ends to avoid the first charge. Manage or cancel in Gmail Pro. Independent of Google.' } }
-    }, { idempotencyKey: 'gmailpro-checkout-' + digest(purchaseToken) });
+      custom_text: {
+        terms_of_service_acceptance: { message: `I am an adult purchasing for myself or permitting use by my child age 13+. I agree to the [Terms of Service](${legal.termsURL}) and acknowledge the [Privacy Policy](${legal.privacyURL}).` },
+        submit: { message: `7 days free, then ${plan === 'month' ? 'US$0.99/month' : 'US$10/year'} plus any applicable tax, automatically renewed until canceled. Cancel before the trial ends to avoid the first charge. Manage or cancel at ${config.siteURL}/subscription-help. Seller: Rick Munoz, independent of Google.` }
+      }
+    }, { idempotencyKey: 'gmailpro-checkout-' + digest(purchaseToken) }); }
+    catch (error) {
+      if (error.type === 'StripeIdempotencyError' || error.rawType === 'idempotency_error') {
+        throw new BillingError('This saved checkout needs recovery after a service update. Contact support with your Checkout email before starting another subscription.', 409);
+      }
+      throw error;
+    }
     return { url: session.url, sessionId: session.id, expiresAt: session.expires_at * 1000 };
   }
-  async function complete({ sessionId, purchaseToken }) {
+  async function ownedCheckout({ sessionId, purchaseToken }) {
     if (!/^cs_(?:live|test)_[a-zA-Z0-9]+$/.test(sessionId || '') || !/^[a-f0-9]{64}$/.test(purchaseToken || '')) {
       throw new BillingError('No matching purchase was found.', 401);
     }
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    let session;
+    try { session = await stripe.checkout.sessions.retrieve(sessionId); }
+    catch (error) {
+      if (error.code === 'resource_missing') throw new BillingError('No matching purchase was found.', 401);
+      throw error;
+    }
     if (session.livemode !== config.livemode || session.mode !== 'subscription' ||
       session.metadata?.application !== 'gmail-pro' || !equal(session.client_reference_id, digest(purchaseToken))) {
       throw new BillingError('No matching purchase was found.', 401);
     }
+    return session;
+  }
+  async function complete(input) {
+    const session = await ownedCheckout(input);
     if (session.status === 'expired') throw new BillingError('Checkout expired. Start a new subscription.', 410);
     if (session.status !== 'complete' || !['paid', 'no_payment_required'].includes(session.payment_status) || !session.subscription) {
       throw new BillingError('Payment is not complete yet. Finish Checkout, then try again.', 409);
     }
-    const sub = await retrieve(idOf(session.subscription));
-    if (session.payment_status === 'no_payment_required' && sub.status !== 'trialing') {
-      throw new BillingError('This subscription is not in its free trial.', 409);
+    if (session.metadata?.terms_version && session.consent?.terms_of_service !== 'accepted') {
+      throw new BillingError('Checkout agreement was not recorded. Please contact support.', 409);
     }
+    const sub = await retrieve(idOf(session.subscription));
+    // A trial Checkout keeps no_payment_required after the trial ends. Verify
+    // ownership/fulfillment here; current canonical status controls access below.
     const state = statusOf(sub);
     // A signed webhook must fulfill the purchase. Redirects never grant access.
     if (sub.metadata.gmailpro_fulfilled !== 'true') {
       throw new BillingError('Payment received. Activation is still processing; try again shortly.', 409);
     }
     return { licenseKey: keyFor(sub.id), status: state };
+  }
+  async function cancelCheckout(input) {
+    let session = await ownedCheckout(input);
+    if (session.status === 'open') {
+      try { session = await stripe.checkout.sessions.expire(session.id); }
+      catch (error) {
+        // Completion may win a concurrent request. Never cancel a subscription.
+        session = await ownedCheckout(input);
+        if (!['complete','expired'].includes(session.status)) throw error;
+      }
+    }
+    if (session.status === 'complete') throw new BillingError('Checkout is complete. Finish activation instead.',409);
+    if (session.status !== 'expired') throw new BillingError('Checkout could not be canceled. Please try again.',409);
+    return { canceled: true };
   }
   async function portal(key) {
     if (reviewStatus(key)) throw new BillingError('Review access has no paid subscription.');
@@ -149,6 +193,9 @@ export function createBillingService({ stripe, config, now = () => Date.now() })
       // Re-read because an old event can arrive after the payment's state changed.
       const session = await stripe.checkout.sessions.retrieve(object.id);
       if (session.metadata?.application !== 'gmail-pro' || session.mode !== 'subscription') return;
+      if (session.metadata.terms_version && session.consent?.terms_of_service !== 'accepted') {
+        throw new BillingError('Checkout agreement was not recorded.', 409);
+      }
       id = idOf(session.subscription);
       fulfilled = session.status === 'complete' && ['paid', 'no_payment_required'].includes(session.payment_status);
     } else if (event.type.startsWith('customer.subscription.')) id = object.id;
@@ -178,5 +225,5 @@ export function createBillingService({ stripe, config, now = () => Date.now() })
     // read during verification, and risk flags only add restrictions. Duplicates
     // are harmless; transient Stripe errors propagate so Stripe retries delivery.
   }
-  return Object.freeze({ checkout, complete, status, portal, webhook });
+  return Object.freeze({ checkout, complete, cancelCheckout, status, portal, webhook });
 }

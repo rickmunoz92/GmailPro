@@ -28,6 +28,18 @@
     result.textContent = reports.join("\n");
   }
   await settle();
+  await test("first use requires explicit adult and terms agreement before showing settings", async () => {
+    assert(!byId('consent-form').hidden && form.hidden && byId('settings-fields').disabled, 'features paused');
+    assert(!byId('consent-adult').checked && !byId('consent-agree').checked && byId('accept-terms').disabled, 'no preselected agreement');
+    byId('consent-adult').checked = true; byId('consent-adult').dispatchEvent(new Event('change', {bubbles:true}));
+    assert(byId('accept-terms').disabled, 'adult confirmation alone cannot enable features');
+    byId('consent-agree').checked = true; byId('consent-agree').dispatchEvent(new Event('change', {bubbles:true}));
+    store.failConsentWrite = true; byId('consent-form').requestSubmit(); await settle();
+    assert(form.hidden && byId('consent-status').textContent.includes('Could not save'), 'failed save stays paused');
+    store.failConsentWrite = false; byId('consent-form').requestSubmit(); await settle();
+    assert(byId('consent-form').hidden && !form.hidden && !byId('withdraw-consent').hidden, 'agreement saved before settings shown');
+    assert(byId('consent-form').querySelector('[data-legal-link="termsURL"]').href === GmailProLegal.termsURL, 'versioned terms linked');
+  });
   await test("initial storage error offers retry without enabling settings", async () => {
     assert(byId("settings-fields").disabled && !byId("retry-button").hidden, "retry state visible");
     assert(byId("save-status").dataset.state === "error", "error announced");
@@ -35,7 +47,7 @@
   await test("retry loads safe defaults without writing preferences", async () => {
     store.failRead = false; byId("retry-button").click(); await settle();
     assert(!byId("settings-fields").disabled && save.disabled, "loaded and unchanged");
-    assert(!bcc.checked && !reverse.checked && !messageList.checked && address.value === "" && store.writes === 0, "safe defaults");
+    assert(!bcc.checked && reverse.checked && messageList.checked && byId("apple-mail-mode").checked && byId("appearance-theme").value === "system" && address.value === "" && store.writes === 0, "safe defaults");
     assert(store.listeners.size === 1, "one settings listener");
   });
   await test("floating compose settings default on and save independently", async () => {
@@ -75,10 +87,10 @@
     store.emit({[key("readShortcutEnabled")]:true});assert(toggle.checked&&save.disabled,"sync applied");
     store.writes=0;
   });
-  await test("automatic paging defaults off, saves independently, and follows sync", async () => {
-    const toggle = byId("auto-paging"); assert(!toggle.checked, "default off");
-    edit(toggle, true); await submit(); assert((await GmailPro.settings.load()).autoPagingEnabled, "saved");
-    store.emit({ [key("autoPagingEnabled")]: false }); assert(!toggle.checked && save.disabled, "sync applied");
+  await test("automatic paging defaults on, saves independently, and follows sync", async () => {
+    const toggle = byId("auto-paging"); assert(toggle.checked, "default on");
+    edit(toggle, false); await submit(); assert(!(await GmailPro.settings.load()).autoPagingEnabled, "saved");
+    store.emit({ [key("autoPagingEnabled")]: true }); assert(toggle.checked && save.disabled, "sync applied");
     assert(byId("auto-paging-description").textContent.includes("replaces"), "page replacement explained"); store.writes = 0;
   });
   await test("expand shortcut defaults on, saves independently, and follows sync", async () => {
@@ -137,6 +149,7 @@
     assert(messageList.checked && save.disabled, "sync renders new preference");
   });
   await test("label-order switch and reset are independent and sync-safe", async () => {
+    edit(byId("custom-label-order"), false); await submit();
     edit(byId("custom-label-order"), true); await submit();
     assert(store.values[key("customLabelOrderEnabled")] === true, "label feature enabled");
     store.emit({ [key("customLabelOrder")]: ["label/B", "label/A"] });
@@ -168,6 +181,7 @@
     } finally { window.close = previousClose; delete window.chrome.tabs; }
   });
   await test("message zoom toggle saves independently", async () => {
+    edit(byId("message-zoom"), false); await submit();
     edit(byId("message-zoom"), true); await submit();
     assert(store.values[key("messageZoomEnabled")] === true, "zoom enabled");
     edit(byId("message-zoom"), false); await submit();
@@ -188,6 +202,14 @@
     edit(address, "");
     store.emit({ [key("appearanceTheme")]: "system", [key("accentColor")]: "pink" });
     assert(theme.value === "system" && accent.value === "pink", "incoming sync updates appearance");
+  });
+  await test("withdrawing consent hides settings while keeping support and subscription help available", async () => {
+    byId('withdraw-consent').click(); await settle();
+    assert(form.hidden && byId('settings-fields').disabled && !byId('consent-form').hidden, 'paused and disabled');
+    assert(!byId('consent-adult').checked && !byId('consent-agree').checked, 'renewed acceptance is explicit');
+    assert(byId('consent-status').textContent.includes('Billing continues'), 'billing distinction explained');
+    assert(document.querySelector('footer a[href$="/support"]'), 'support remains accessible');
+    assert(document.querySelector('.subscription-card'), 'billing remains accessible');
   });
   await test("popup exit releases its storage subscription", async () => {
     window.dispatchEvent(new Event("pagehide"));

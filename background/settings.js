@@ -1,8 +1,13 @@
 "use strict";
 
 if (typeof importScripts === "function") {
-  importScripts("../shared/billing-config.js", "billing.js");
+  importScripts("../shared/billing-config.js", "../shared/legal-config.js", "consent.js", "billing.js");
 }
+
+// First use shows the disclosure in an extension page, without reading Gmail.
+chrome.runtime.onInstalled.addListener(details => {
+  if (details.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('popup/popup.html') });
+});
 
 // Only our top-level Gmail content script may request the existing settings UI.
 // This bridge accepts no destination URL, settings changes, or message content.

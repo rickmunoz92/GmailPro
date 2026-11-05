@@ -5,11 +5,11 @@
   if (app.settings) return;
 
   const defaults = Object.freeze({
-    appleMailModeEnabled: false,
+    appleMailModeEnabled: true,
     headerCollapsed: true,
     leftRailCollapsed: true,
     rightRailCollapsed: true,
-    appearanceTheme: "dark",
+    appearanceTheme: "system",
     accentColor: "blue",
     floatingReplyEnabled: true,
     floatingReplyAllEnabled: true,
@@ -24,11 +24,11 @@
     forwardShortcutEnabled: true,
     autoBccEnabled: false,
     bccAddress: "",
-    newestEmailFirstEnabled: false,
-    appleMailMessageListEnabled: false,
-    autoPagingEnabled: false,
-    messageZoomEnabled: false,
-    customLabelOrderEnabled: false,
+    newestEmailFirstEnabled: true,
+    appleMailMessageListEnabled: true,
+    autoPagingEnabled: true,
+    messageZoomEnabled: true,
+    customLabelOrderEnabled: true,
     customLabelOrder: Object.freeze([]),
     sidebarHiddenSublabels: Object.freeze([])
   });

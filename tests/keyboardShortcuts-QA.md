@@ -1,4 +1,4 @@
-# Mac keyboard shortcuts — 2026-09-21
+# Keyboard shortcuts — 2026-09-21
 
 ## Plain Z and missing Undo notifications — 2026-10-01
 

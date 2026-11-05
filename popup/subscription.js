@@ -3,6 +3,7 @@
   const $ = id => document.getElementById(id);
   const section = document.querySelector('.subscription-card');
   let busy = false;
+  let accepted = false;
   const message = text => { $('billing-message').textContent = text; };
   async function send(action, values = {}) {
     const result = await chrome.runtime.sendMessage({ type: 'gmail-pro-billing', action, ...values });
@@ -37,6 +38,7 @@
   }
   async function run(action, values) {
     if (busy) return;
+    if (action === 'checkout' && !accepted) { message('Review the disclosure and agree above before starting a new checkout. Subscription management stays available.'); return; }
     busy = true; message('Working…');
     section.querySelectorAll('button').forEach(button => { button.disabled = true; });
     try {
@@ -47,7 +49,7 @@
         action === 'forget' ? 'This browser is deactivated. Your subscription has not been canceled.' :
         action === 'portal' ? 'Manage your plan in the Stripe tab. Return here and refresh status afterward.' : 'Subscription updated.');
     } catch (error) { message(error.message); }
-    finally { busy = false; section.querySelectorAll('button').forEach(button => { button.disabled = false; }); }
+    finally { busy = false; section.querySelectorAll('button').forEach(button => { button.disabled = button.hasAttribute('data-plan') && !accepted; }); }
   }
   section.querySelectorAll('[data-plan]').forEach(button => button.addEventListener('click', () => run('checkout', { plan: button.dataset.plan })));
   $('finish-purchase').addEventListener('click', () => run('complete'));
@@ -61,5 +63,10 @@
     $('reveal-license').textContent = field.type === 'password' ? 'Show license key' : 'Hide license key';
     if (field.type === 'text') { field.focus(); field.select(); }
   });
+  document.addEventListener('gmail-pro-consent-status', event => {
+    accepted = event.detail?.accepted === true;
+    section.querySelectorAll('[data-plan]').forEach(button => { button.disabled = busy || !accepted; });
+  });
+  section.querySelectorAll('[data-plan]').forEach(button => { button.disabled = true; });
   render().catch(error => { $('subscription-status').textContent = 'Could not load subscription.'; message(error.message); });
 })();

@@ -32,7 +32,7 @@ assert.equal(manifest.content_scripts[1].run_at, "document_idle");
 assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
 assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/gmail-pro\.netlify\.app;/);
 
-const references = [manifest.background.service_worker, 'background/billing.js', manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
+const references = [manifest.background.service_worker, 'background/billing.js', 'background/consent.js', manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
   ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)];
 const html = fs.readFileSync(path.join(root, manifest.action.default_popup), "utf8");
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
@@ -41,7 +41,7 @@ for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
 }
 assert.ok(!/\son\w+\s*=/i.test(html), "No inline event handlers");
 for (const match of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
-  if (/^https:\/\/gmail-pro\.netlify\.app\/(?:support|privacy|terms)$/.test(match[1])) continue;
+  if (/^https:\/\/gmail-pro\.netlify\.app\/(?:support|privacy|terms|subscription-help)$/.test(match[1])) continue;
   assert.ok(!/^(?:[a-z]+:|\/\/)/i.test(match[1]), "Popup resources must be local");
   references.push(path.join("popup", match[1]));
 }

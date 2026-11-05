@@ -21,7 +21,7 @@ function fixture() {
     in_old: { id: 'in_old', status: 'paid', parent: { subscription_details: { subscription: sub.id } } } };
   const charges = { ch_current: { id: 'ch_current', refunded: true, payment_intent: 'pi_current' },
     ch_old: { id: 'ch_old', refunded: true, payment_intent: 'pi_old' } };
-  const updates = [], carts = [], portals = [], mappings = [];
+  const updates = [], carts = [], portals = [], mappings = [], expirations = [];
   const stripe = {
     prices: { retrieve: async id => ({ id, active: true, livemode: false, currency: 'usd',
       unit_amount: id === config.monthlyPrice ? 99 : 1000, recurring: { interval: id === config.monthlyPrice ? 'month' : 'year', interval_count: 1 }, product: config.product }) },
@@ -30,7 +30,7 @@ function fixture() {
     } },
     checkout: { sessions: { retrieve: async () => structuredClone(session), create: async (data, options) => {
       carts.push({ data, options }); return { id: session.id, url: 'https://checkout.stripe.com/c/pay/demo', expires_at: epoch / 1000 + 86400 };
-    } } },
+    }, expire: async id => { expirations.push(id); session.status = 'expired'; return structuredClone(session); } } },
     invoices: { retrieve: async id => structuredClone(invoices[id]) }, charges: { retrieve: async id => structuredClone(charges[id]) },
     invoicePayments: { list: async parameters => { mappings.push(parameters); return { has_more: false,
       data: [{ invoice: parameters.payment.payment_intent === 'pi_current' ? 'in_current' : 'in_old' }] }; } },
@@ -42,7 +42,7 @@ function fixture() {
     await service.webhook(event('checkout.session.completed', session.id));
     return (await service.complete({ sessionId: session.id, purchaseToken: token })).licenseKey;
   }
-  return { service, config, stripe, sub, session, invoices, charges, updates, carts, portals, mappings, token, event, license,
+  return { service, config, stripe, sub, session, invoices, charges, updates, carts, portals, mappings, expirations, token, event, license,
     advance(ms) { clock += ms; } };
 }
 
@@ -56,6 +56,11 @@ test('Checkout validates server prices and retries with exactly identical parame
   assert.equal(f.carts[0].data.subscription_data.trial_period_days, 7);
   assert.equal(f.carts[0].data.payment_method_collection, 'always');
   assert.equal(f.carts[0].data.subscription_data.trial_settings.end_behavior.missing_payment_method, 'cancel');
+  assert.equal(f.carts[0].data.consent_collection.terms_of_service, 'required');
+  assert.equal(f.carts[0].data.metadata.terms_version, '2026-11-04.2');
+  assert.equal(f.carts[0].data.subscription_data.metadata.privacy_version, '2026-11-04.1');
+  assert.match(f.carts[0].data.custom_text.terms_of_service_acceptance.message, /legal\/terms-2026-11-04-2/);
+  assert.match(f.carts[0].data.custom_text.submit.message, /US\$0\.99\/month.*automatically renewed/);
   assert.match(f.carts[0].data.integration_identifier, /^gmailpro_[a-z]{8}$/);
   assert.equal('payment_method_types' in f.carts[0].data, false);
   assert.equal('automatic_tax' in f.carts[0].data, false);
@@ -64,6 +69,32 @@ test('Checkout validates server prices and retries with exactly identical parame
   await assert.rejects(f.service.checkout({ plan: 'year', purchaseToken: f.token }), /pricing needs attention/);
   f.config.launchEnabled = false;
   await assert.rejects(f.service.checkout({ plan: 'month', purchaseToken: f.token }), /being prepared/);
+});
+
+test('new Checkout cannot activate or fulfill without recorded terms acceptance; billing management remains available', async () => {
+  const f = fixture();
+  f.session.metadata.terms_version = '2026-11-04.1';
+  await assert.rejects(f.service.webhook(f.event('checkout.session.completed', f.session.id)), /agreement was not recorded/);
+  await assert.rejects(f.service.complete({ sessionId: f.session.id, purchaseToken: f.token }), /agreement was not recorded/);
+  assert.equal(f.sub.metadata.gmailpro_fulfilled, undefined);
+  f.session.consent = { terms_of_service: 'accepted' };
+  const key = await f.license();
+  assert.equal((await f.service.status(key)).active, true);
+  f.session.consent = null;
+  assert.match((await f.service.portal(key)).url, /^https:\/\/billing\.stripe\.com\//);
+});
+
+test('a pre-update Checkout parameter mismatch preserves its idempotency key and requires safe recovery', async () => {
+  const f = fixture(), keys = [];
+  f.stripe.checkout.sessions.create = async (_data, options) => {
+    keys.push(options.idempotencyKey);
+    throw Object.assign(new Error('Parameters differ'), { type: 'StripeIdempotencyError' });
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await assert.rejects(f.service.checkout({ plan: 'month', purchaseToken: f.token }),
+      error => error.status === 409 && /recovery.*Contact support/.test(error.message));
+  }
+  assert.deepEqual(keys, ['gmailpro-checkout-' + digest(f.token), 'gmailpro-checkout-' + digest(f.token)]);
 });
 
 test('success URL and pending payment cannot fulfill; a verified webhook can', async () => {
@@ -82,6 +113,38 @@ test('success URL and pending payment cannot fulfill; a verified webhook can', a
   assert.equal(f.updates.length, writes, 'duplicate fulfillment is idempotent');
   f.session.status = 'expired';
   await assert.rejects(f.service.complete(input), error => error.status === 410);
+});
+
+test('canceling an unfinished checkout requires ownership and never cancels a completed subscription', async () => {
+  const f = fixture(), input = { sessionId: f.session.id, purchaseToken: f.token };
+  f.session.status = 'open';
+  await assert.rejects(f.service.cancelCheckout({ ...input, purchaseToken: 'b'.repeat(64) }), error => error.status === 401);
+  assert.equal(f.expirations.length, 0);
+  assert.deepEqual(await f.service.cancelCheckout(input), { canceled: true });
+  assert.equal(f.expirations.length, 1);
+  await f.service.cancelCheckout(input);
+  assert.equal(f.expirations.length, 1, 'already expired is idempotent');
+  f.session.status = 'complete';
+  await assert.rejects(f.service.cancelCheckout(input), error => error.status === 409);
+  assert.equal(f.expirations.length, 1);
+  assert.equal(f.updates.length, 0);
+  f.session.status = 'open';
+  f.stripe.checkout.sessions.expire = async () => { f.session.status = 'complete'; throw new Error('Completion won'); };
+  await assert.rejects(f.service.cancelCheckout(input), /Finish activation/);
+  assert.equal(f.sub.status, 'active');
+  f.session.status = 'open';
+  f.stripe.checkout.sessions.expire = async () => { throw new Error('Network failed'); };
+  await assert.rejects(f.service.cancelCheckout(input), /Network failed/);
+  assert.equal(f.session.status, 'open');
+});
+
+test('a nonexistent checkout is an unauthorized purchase, while Stripe outages remain retryable', async () => {
+  const f = fixture(), input = { sessionId: 'cs_test_missing', purchaseToken: f.token };
+  f.stripe.checkout.sessions.retrieve = async () => { const error = new Error('No session'); error.code = 'resource_missing'; throw error; };
+  await assert.rejects(f.service.complete(input), error => error.status === 401 && /matching purchase/.test(error.message));
+  await assert.rejects(f.service.cancelCheckout(input), error => error.status === 401);
+  f.stripe.checkout.sessions.retrieve = async () => { throw new Error('Stripe unavailable'); };
+  await assert.rejects(f.service.complete(input), /Stripe unavailable/);
 });
 
 test('forged licenses, different environments and other products cannot authorize', async () => {
@@ -120,10 +183,51 @@ test('a seven-day free trial requires webhook fulfillment and expires without a 
   assert.equal((await f.service.status(key)).active, false);
 });
 
+test('portal cancel_at schedules show cancellation and bound trial and paid access', async () => {
+  for (const state of ['active', 'trialing']) {
+    const f = fixture(), key = await f.license();
+    f.sub.status = state; f.sub.trial_end = epoch / 1000 + 7 * 86400;
+    f.sub.cancel_at_period_end = false; f.sub.cancel_at = epoch / 1000 + 3600;
+    const result = await f.service.status(key);
+    assert.equal(result.active, true);
+    assert.equal(result.cancelAtPeriodEnd, true);
+    assert.equal(result.renewsAt, epoch + 3600000);
+    assert.equal(result.validUntil, epoch + 3600000);
+    if (state === 'trialing') assert.equal(result.trialEndsAt, epoch + 3600000);
+    f.advance(3600000);
+    assert.equal((await f.service.status(key)).active, false, 'never lease past a scheduled cancellation');
+  }
+});
+
+test('a completed trial can be activated later without granting access to inactive subscriptions', async () => {
+  for (const current of ['active', 'past_due', 'canceled']) {
+    const f = fixture(); f.sub.status = 'trialing'; f.sub.trial_end = epoch / 1000 + 7 * 86400;
+    f.session.payment_status = 'no_payment_required';
+    await f.service.webhook(f.event('checkout.session.completed', f.session.id));
+    f.advance(8 * 86400000); f.sub.status = current;
+    await f.service.webhook(f.event(current === 'active' ? 'invoice.paid' : 'customer.subscription.updated',
+      current === 'active' ? 'in_current' : f.sub.id));
+    const input = { sessionId: f.session.id, purchaseToken: f.token };
+    await assert.rejects(f.service.complete({ ...input, purchaseToken: 'b'.repeat(64) }), /matching purchase/);
+    const result = await f.service.complete(input);
+    assert.equal(result.status.active, current === 'active');
+    assert.equal(result.status.status, current);
+    await f.service.portal(result.licenseKey);
+    assert.equal(f.portals[0].customer, f.sub.customer);
+    delete f.sub.metadata.gmailpro_fulfilled;
+    await assert.rejects(f.service.complete(input), /still processing/);
+  }
+});
+
 test('out-of-order lifecycle events read canonical state, not old event snapshots', async () => {
   const f = fixture(), key = await f.license();
   f.sub.status = 'canceled';
   const stale = f.event('customer.subscription.updated', f.sub.id); stale.data.object.status = 'active';
+  const update = f.stripe.subscriptions.update;
+  f.stripe.subscriptions.update = async () => { throw new Error('Temporary Stripe write lock'); };
+  await assert.rejects(f.service.webhook(stale), /Temporary Stripe write lock/, 'temporary failures propagate for delivery retry');
+  assert.equal((await f.service.status(key)).active, false, 'canonical cancellation denies access even before metadata retry');
+  f.stripe.subscriptions.update = update;
   await f.service.webhook(stale);
   assert.equal(f.sub.metadata.gmailpro_status, 'canceled');
   assert.equal((await f.service.status(key)).active, false);
@@ -186,6 +290,8 @@ test('HTTP handler rejects forged/old signatures and wrong origins without conta
   const signature = StripeClient.webhooks.generateTestHeaderString({ payload, secret: values.STRIPE_WEBHOOK_SECRET });
   assert.equal((await invoke('webhook', { 'stripe-signature': signature }, payload)).status, 200);
   assert.equal((await invoke('status', { origin: 'https://evil.example', 'content-type': 'application/json' })).status, 403);
+  assert.equal((await invoke('cancel-checkout', { origin: 'https://evil.example', 'content-type': 'application/json' })).status, 403);
+  assert.equal((await invoke('cancel-checkout', { origin: values.GMAIL_PRO_SITE_URL, 'content-type': 'application/json' })).status, 401);
   assert.equal((await invoke('status', { 'content-type': 'text/plain' })).status, 415);
   delete globalThis.Netlify;
   const result = await handler(new Request('https://example.netlify.app/api/billing/public-config'));

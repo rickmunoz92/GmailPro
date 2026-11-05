@@ -13,7 +13,7 @@ function configuration() {
   };
   if (!result.siteURL || !/^https:\/\/[^/]+$/.test(result.siteURL) || !result.account || !result.product ||
     !result.monthlyPrice || !result.annualPrice || (result.licenseSecret?.length ?? 0) < 43 ||
-    !env('STRIPE_RESTRICTED_KEY') || !env('STRIPE_WEBHOOK_SECRET')) {
+    !new RegExp('^rk_' + (result.livemode ? 'live' : 'test') + '_[A-Za-z0-9]+$').test(env('STRIPE_RESTRICTED_KEY') || '') || !env('STRIPE_WEBHOOK_SECRET')) {
     throw new BillingError('Subscriptions are being prepared. Please check back soon.', 503);
   }
   return result;
@@ -58,6 +58,7 @@ export default async function handler(request) {
     let response;
     if (path === 'checkout') response = await service.checkout(input);
     else if (path === 'complete') response = await service.complete(input);
+    else if (path === 'cancel-checkout') response = await service.cancelCheckout(input);
     else if (path === 'status' || path === 'portal') {
       const key = request.headers.get('authorization')?.replace(/^Bearer /, '');
       response = path === 'status' ? await service.status(key) : await service.portal(key);

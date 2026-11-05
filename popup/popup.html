@@ -8,11 +8,14 @@
     <link rel="stylesheet" href="../shared/theme.css">
     <link rel="stylesheet" href="popup.css">
     <script src="../shared/debug.js" defer></script>
+    <script src="../shared/legal-config.js" defer></script>
+    <script src="../shared/consent.js" defer></script>
     <script src="../shared/billing-config.js" defer></script>
     <script src="../shared/entitlement.js" defer></script>
     <script src="../shared/settings.js" defer></script>
     <script src="popup.js" defer></script>
     <script src="subscription.js" defer></script>
+    <script src="consent.js" defer></script>
   </head>
   <body>
     <main>
@@ -23,6 +26,22 @@
           <p class="tagline">Power-user enhancements for Gmail</p>
         </div>
       </header>
+
+      <section class="feature-card consent-card" aria-labelledby="consent-title">
+        <span class="eyebrow">BEFORE YOU ENABLE GMAIL PRO</span>
+        <h2 id="consent-title">Your mail. Your choice.</h2>
+        <form id="consent-form">
+          <p class="feature-description">Gmail Pro reads Gmail page content locally, including messages, senders, recipients, account addresses, labels and read status, to run the tools you enable. It does not send that mail data to our billing service.</p>
+          <p class="field-hint">Settings include your BCC address, label names and Gmail account addresses. They can sync through Google Chrome Sync. Billing sends a private license or random purchase token to our service and Stripe. <a data-legal-link="privacyURL" href="https://gmail-pro.netlify.app/privacy" target="_blank" rel="noopener noreferrer">Read the Privacy Policy</a>.</p>
+          <p class="field-hint">Shortcuts can send, archive or delete mail. Label and reading-layout changes can persist in Gmail. Auto BCC starts off; if enabled, its one synced address applies across Gmail accounts. Verify recipients and permissions before sending.</p>
+          <label class="consent-choice"><input id="consent-adult" type="checkbox" required><span>I am an adult accepting for myself, or the parent/legal guardian accepting and permitting use for a child age 13 or older.</span></label>
+          <label class="consent-choice"><input id="consent-agree" type="checkbox" required><span>I agree to the <a data-legal-link="termsURL" href="https://gmail-pro.netlify.app/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>, acknowledge the Privacy Policy, and authorize the data handling described above.</span></label>
+          <button id="accept-terms" type="submit" disabled>Agree and enable Gmail Pro</button>
+          <p class="field-hint">Rick Munoz, Colorado, USA, operates this independent extension. Agreement does not start a subscription. If you decline, leave features paused or uninstall.</p>
+        </form>
+        <p id="consent-status" class="field-hint" role="status">Checking your agreement…</p>
+        <button id="withdraw-consent" type="button" class="quiet-button" hidden>Pause Gmail Pro and withdraw consent</button>
+      </section>
 
       <section class="feature-card subscription-card" aria-labelledby="subscription-title">
         <span class="eyebrow">YOUR SUBSCRIPTION</span>
@@ -39,9 +58,10 @@
         <details id="license-restore"><summary>Already subscribed? Activate a license</summary><label for="license-key">License key</label><input id="license-key" type="password" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Paste your Gmail Pro license key"><button id="activate-license" type="button">Activate this browser</button></details>
         <details id="saved-license" hidden><summary>Your license key</summary><p class="field-hint">Treat this key like a password. Save it privately to restore another browser. Anyone with it can use and manage your subscription.</p><input id="saved-license-key" type="password" readonly aria-label="Your saved Gmail Pro license key"><button id="reveal-license" class="quiet-button" type="button">Show license key</button><button id="forget-license" class="quiet-button" type="button">Deactivate this browser</button><p class="field-hint">Deactivating this browser does not cancel billing. Cancel through Manage subscription.</p></details>
         <p id="billing-message" role="status" class="field-hint"></p>
+        <p class="field-hint"><a href="https://gmail-pro.netlify.app/subscription-help" target="_blank" rel="noopener noreferrer">Subscription help and cancellation</a> stays available while mail features are paused.</p>
       </section>
 
-      <form id="settings-form" novalidate>
+      <form id="settings-form" novalidate hidden>
         <fieldset id="settings-fields" disabled>
           <legend class="sr-only">Gmail Pro preferences</legend>
 
@@ -54,7 +74,7 @@
               </label>
             </div>
             <p class="feature-description" id="appearance-description">A cleaner macOS-inspired Gmail. Appearance changes save and apply immediately.</p>
-            <div class="appearance-setting"><label for="appearance-theme">Theme</label><select id="appearance-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow system</option></select></div>
+            <div class="appearance-setting"><label for="appearance-theme">Theme</label><select id="appearance-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></div>
             <div class="appearance-setting"><label for="accent-color">Accent color</label><select id="accent-color"><option value="blue">Blue</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="red">Red</option><option value="orange">Orange</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="graphite">Graphite</option></select></div>
             <p class="field-hint">Starts with a right-hand reading pane and about 25% of the mail area for the conversation list. Drag Gmail’s divider to resize. Both app rails start collapsed; edge arrows reopen them.</p>
           </section>
@@ -75,7 +95,7 @@
             <p class="field-hint">Save preferences to apply. If unavailable, Gmail’s inline editor stays usable. New Compose uses Gmail’s default.</p>
           </section>
           <section class="feature-card" aria-labelledby="keyboard-shortcuts-title">
-            <div class="feature-copy"><span class="eyebrow">MAC KEYBOARD</span><h2 id="keyboard-shortcuts-title">Keyboard shortcuts</h2></div>
+            <div class="feature-copy"><span class="eyebrow">KEYBOARD</span><h2 id="keyboard-shortcuts-title">Keyboard shortcuts</h2></div>
             <div class="appearance-setting"><label for="archive-shortcut">⌘⇧A — Archive</label><label class="switch"><input id="archive-shortcut" type="checkbox" role="switch" aria-label="Command Shift A to archive"><span class="switch-track" aria-hidden="true"></span></label></div>
             <p class="field-hint">Archives the selected conversations or the open conversation, just like Gmail’s Archive button.</p>
             <div class="appearance-setting"><label for="delete-shortcut">Delete — Move to Trash</label><label class="switch"><input id="delete-shortcut" type="checkbox" role="switch" aria-label="Delete key to move conversations to Trash" aria-describedby="delete-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
@@ -103,7 +123,7 @@
                 <span class="switch-track" aria-hidden="true"></span>
               </label>
             </div>
-            <p class="feature-description" id="bcc-description">Automatically add your address when composing.</p>
+            <p class="feature-description" id="bcc-description">Add one authorized BCC address to outgoing mail. This setting can sync across your Gmail accounts.</p>
             <div class="address-field">
               <label for="bcc-address">BCC address</label>
               <input id="bcc-address" name="bccAddress" type="email" placeholder="you@example.com" maxlength="254" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="address-hint address-error">

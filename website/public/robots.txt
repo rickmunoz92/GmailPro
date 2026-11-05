@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /checkout-complete
+Sitemap: https://gmail-pro.netlify.app/sitemap.xml
