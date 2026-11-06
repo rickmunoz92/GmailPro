@@ -674,6 +674,28 @@ folders are distinct, so production files were copied explicitly.
   passed**. No fixture browser errors/warnings; `git diff --check` passed.
   Live activation awaits user extension Reload and Gmail refresh.
 
+## Refresh and bulk selection — November 6, 2026
+
+- Gmail hides its native Refresh group while the reading pane or bulk actions
+  are active. The header now reveals that dedicated group and places it directly
+  after the Select group, before Compose. Native groups remain siblings so Gmail
+  can change their visibility independently. Native handlers and disabled state
+  remain owned by Gmail; mode OFF restores the original position and visibility.
+- Focused Refresh fixtures cover placement, pointer hits, keyboard handlers,
+  disabled state, cleanup, native toolbar clones, missing/ambiguous sources and
+  idle stability. Conversation integration covers partial → all → none selection
+  and bulk Mark as read while the reading pane and Refresh are present.
+- Live work Gmail: reloaded the canonical unpacked extension, refreshed Gmail,
+  opened an already-read conversation, and verified Refresh stays visible next
+  to Select. Refresh activated without closing the reading pane. Select all
+  checked all 10 current conversations; Mark as read left all 10 read. Cleared
+  the test selection afterward. The earlier reported bulk-read failure was not
+  reproduced; selection continues to use Gmail's native controls.
+- Validation: Refresh **3/3**, Compose **8/8**, conversation integration **6/6**;
+  no browser warnings/errors in those fixtures. `node scripts/validate.cjs`
+  passed all **44** settings checks plus manifest/resource/syntax checks;
+  `git diff --check` passed. The full header suite was not completed.
+
 ## Compatibility limits
 
 This targets the inspected English desktop Gmail DOM. Native-only fallback is

@@ -91,6 +91,13 @@
     f.actions.prepend(group);
     return {...f, source:nav.querySelector('[gh=cm]'), composeShell:nav.querySelector('.aic'), mailboxes:nav.querySelector('.mailboxes'), select:group.firstElementChild};
   }
+  function refreshFixture() {
+    const f = composeFixture(), group = document.createElement('div');
+    group.className = 'G-Ni'; group.style.display = 'none';
+    group.innerHTML = '<div role="button" act="20" aria-label="Refresh" tabindex="0">Refresh</div>';
+    f.actions.append(group);
+    return { ...f, refreshGroup: group, refresh: group.firstElementChild };
+  }
   function mailboxRow(name, hash = '#label/' + name, depth = 0) {
     const row = document.createElement('div'); row.className = 'aim';
     row.innerHTML = '<div class="TO"><div class="TN"><div class="KCRnif"><svg viewBox="0 0 24 24"><path d="M3 6h12l6 6-6 6H3z"/></svg></div><div class="aio"><span class="nU"><a class="n0" draggable="false"></a></span><div class="bsU">6</div></div></div></div>';
@@ -254,6 +261,43 @@
     await start(defaultSettings.headerCollapsed); results.hidden=true; return;
   }
   results.textContent = '';
+  await test('native Refresh stays beside Select all with original pointer and keyboard handlers', async () => {
+    const f = refreshFixture(), nativeParent = f.refreshGroup.parentElement;
+    let calls = 0;
+    f.refresh.addEventListener('click', () => calls++);
+    f.refresh.addEventListener('keydown', event => { if (event.key === 'Enter') calls++; });
+    feature.start({ ...defaultSettings, appleMailModeEnabled: true }); await settle();
+    assert(f.select.parentElement.nextElementSibling === f.refreshGroup, 'Refresh immediately follows Select all');
+    assert(f.refreshGroup.parentElement === nativeParent, 'native action groups remain siblings');
+    assert(f.refreshGroup.nextElementSibling?.classList.contains('gmail-pro-toolbar-compose'), 'Compose follows Refresh');
+    assert(f.refresh.checkVisibility(), 'native hidden wrapper is revealed');
+    const bounds = rect(f.refresh);
+    assert(f.refresh.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2)), 'Refresh receives pointer hits');
+    f.refresh.click(); f.refresh.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    assert(calls === 2, 'native handlers retained without duplicate dispatch');
+    f.refreshGroup.style.display = 'none'; f.refresh.setAttribute('aria-disabled', 'true'); await settle();
+    assert(f.refresh.checkVisibility() && f.refresh.getAttribute('aria-disabled') === 'true', 'Gmail still owns disabled state');
+    feature.stop();
+    assert(f.refreshGroup.parentElement === nativeParent && !f.refresh.checkVisibility(), 'native position and visibility restored');
+    assert(!workspace.querySelector('[data-gp-toolbar-refresh]'), 'presentation marker removed');
+  });
+  await test('Refresh recovers native toolbar clones and remains idle', async () => {
+    const f = refreshFixture(); feature.start({ ...defaultSettings, appleMailModeEnabled: true }); await settle();
+    const replacement = f.actions.cloneNode(true); f.actions.replaceWith(replacement); await settle();
+    const source = replacement.querySelector('[act="20"]'), group = source.closest('.G-Ni');
+    assert(source.checkVisibility() && replacement.querySelector('.G-as3').parentElement.nextElementSibling === group, 'rebuilt toolbar uses one live native Refresh');
+    assert(replacement.querySelectorAll('[data-gp-toolbar-refresh]').length === 1, 'single presentation owner');
+    let writes = 0; const observer = new MutationObserver(records => writes += records.length);
+    observer.observe(workspace, { attributes: true, childList: true, subtree: true }); await settle(); observer.disconnect();
+    assert(writes === 0, 'unchanged toolbar is idle');
+    source.remove(); await settle();
+    assert(!workspace.querySelector('[data-gp-toolbar-refresh]'), 'missing native source releases presentation');
+  });
+  await test('ambiguous Refresh controls retain native behavior', async () => {
+    const f = refreshFixture(); f.actions.append(f.refreshGroup.cloneNode(true));
+    feature.start({ ...defaultSettings, appleMailModeEnabled: true }); await settle();
+    assert(!workspace.querySelector('[data-gp-toolbar-refresh]'), 'ambiguous sources are not moved or revealed');
+  });
   await test('mailbox scroll edge stays seamless beneath the logo in both themes and restores on mode OFF', async () => {
     const f = composeFixture(), nav = workspace.querySelector('nav'), pane = document.createElement('div');
     pane.className = 'V3';

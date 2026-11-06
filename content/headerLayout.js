@@ -8,7 +8,7 @@
   const MESSAGE_OVERFLOW = 'data-gp-message-actions-overflow';
   let enabled = false, collapsed = false, open = false, saving = false;
   let current, lastContext, controls, searchButton, toggleButton, closeButton, status, layoutTransition, toolbarProbe;
-  let compose, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
+  let compose, mailRefresh, mailboxCaption, captionList, countSnapshot, sidebar, mailboxLoading, searchSort, sortSlot;
   let aiChrome;
   let searchMailbox;
   let observer, resizeObserver, bootstrap, bootstrapTimer, frame = 0, generation = 0;
@@ -659,10 +659,49 @@
     window.dispatchEvent(new Event('resize'));
   }
 
+  function restoreRefresh() {
+    if (!mailRefresh) return;
+    const { group, home } = mailRefresh;
+    group.removeAttribute('data-gp-toolbar-refresh');
+    // Never resurrect controls Gmail has removed during a toolbar rebuild.
+    if (group.isConnected && home.isConnected) home.replaceWith(group);
+    else home.remove();
+    mailRefresh = undefined;
+  }
+
+  function placeRefresh(ctx) {
+    const selects = [...ctx.actions.querySelectorAll('.G-as3[role="button"]:has([role="checkbox"])')].filter(visible);
+    const sources = [...ctx.actions.querySelectorAll('[role="button"][act="20"][aria-label="Refresh"]')];
+    const select = selects.length === 1 ? selects[0] : null;
+    const selectGroup = select?.closest('.G-Ni');
+    const source = sources.length === 1 ? sources[0] : null;
+    const group = source?.closest('.G-Ni');
+    // Use Gmail's actual control, including its event handlers, busy/disabled
+    // state and keyboard behavior. Only its dedicated wrapper may be revealed.
+    const safe = !ctx.aiInbox && selectGroup && group && group.parentElement === selectGroup.parentElement &&
+      !group.contains(select) &&
+      group.querySelectorAll('[role="button"]').length === 1;
+    if (mailRefresh && (!safe || mailRefresh.source !== source || mailRefresh.select !== select || !mailRefresh.home.isConnected)) restoreRefresh();
+    ctx.actions.querySelectorAll('[data-gp-toolbar-refresh]').forEach(node => {
+      if (node !== mailRefresh?.group) node.removeAttribute('data-gp-toolbar-refresh');
+    });
+    if (!safe) return;
+    if (!mailRefresh) {
+      const home = document.createComment('Gmail Refresh position');
+      group.before(home);
+      mailRefresh = { source, group, home, select };
+      group.setAttribute('data-gp-toolbar-refresh', '');
+    }
+    // Keep native action groups as siblings. Nesting Refresh inside Select's
+    // group lets Gmail hide both when it changes Refresh availability.
+    if (selectGroup.nextElementSibling !== group) selectGroup.after(group);
+  }
+
   function placeCompose(ctx, layout) {
     const selects = [...ctx.actions.querySelectorAll('.G-as3[role="button"]:has([role="checkbox"])')].filter(visible);
     const source = nativeComposeSource();
-    const select = ctx.aiInbox ? ctx.anchor : selects.length === 1 ? selects[0] : null;
+    const nativeSelect = selects.length === 1 ? selects[0] : null;
+    const select = ctx.aiInbox ? ctx.anchor : mailRefresh?.select === nativeSelect ? mailRefresh.group : nativeSelect;
     const shell = source?.closest('.aic');
     shell?.querySelectorAll('.gmail-pro-sidebar-brand').forEach(node => { if (node !== compose?.brand) node.remove(); });
     // Hide only the dedicated native Compose row, never other sidebar content.
@@ -857,6 +896,7 @@
     const next = discover();
     if (!next) {
       if (retainLayout()) { placeSidebar(); return; }
+      restoreRefresh();
       const previous = lastContext || current;
       const sameAccount = previous?.pathname === location.pathname;
       restore(sameAccount);
@@ -864,8 +904,9 @@
       watch(previous); return;
     }
     if (current && (current.form !== next.form || current.shell !== next.shell || current.pathname !== next.pathname)) {
-      restore(); open = false;
+      restoreRefresh(); restore(); open = false;
     }
+    placeRefresh(next);
     placeSidebar();
     // A failed layout is remembered after native restoration. In particular,
     // don't reapply search-sort/padding overrides just because Gmail reacted
@@ -1027,7 +1068,7 @@
     document.removeEventListener('pointerdown', outside, true);
     document.removeEventListener('click', mailboxClicked, true);
     document.removeEventListener('click', clearSearch, true);
-    restore(); controls?.remove(); controls = undefined; sortSlot = undefined;
+    restoreRefresh(); restore(); controls?.remove(); controls = undefined; sortSlot = undefined;
   }
 
   function update(patch = {}) {

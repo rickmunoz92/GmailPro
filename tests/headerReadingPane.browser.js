@@ -11,7 +11,7 @@
   function stop() {
     app.readingPane.stop(); app.headerLayout.stop(); app.appearance.stop(); app.messageList.stop(); app.reverseThreads.stop();
   }
-  async function fixture({ width = 940, collapsed = true, theme = 'dark', footer = false } = {}) {
+  async function fixture({ width = 940, collapsed = true, theme = 'dark', footer = false, refresh = false } = {}) {
     stop(); settingsWrites = 0;
     document.documentElement.className = '';
     history.replaceState(null, '', '#inbox');
@@ -24,6 +24,11 @@
     });
     const f = { rows, list, pane, shell: workspace.querySelector('.w-asV'), toolbar: workspace.querySelector('[gh=tm]'),
       actions: workspace.querySelector('[gh=mtb]'), form: workspace.querySelector('form'), calls: [], collapsed, index: 0 };
+    if (refresh) {
+      const group = document.createElement('div'); group.className = 'G-Ni'; group.style.display = 'none';
+      group.innerHTML = '<div role="button" act="20" aria-label="Refresh" tabindex="0">↻</div>';
+      f.actions.querySelector('.G-tF').append(group); f.refreshGroup = group;
+    }
     f.footer = (reaction = true) => {
       const owner = document.createElement('div'); owner.className = 'btDi4d';
       owner.innerHTML = '<div class="amn"><span class="ams bkI" role="link" tabindex="0">Reply all</span><span class="ams bkH" role="link" tabindex="0">Reply</span><span class="ams bkG" role="link" tabindex="0">Forward</span><button aria-label="Add reaction">Reaction</button></div>';
@@ -43,7 +48,10 @@
         event.preventDefault(); f.select(Math.max(0, Math.min(2, f.index + (event.key === 'ArrowDown' ? 1 : -1))));
       }
     });
-    workspace.querySelector('[aria-label="Mark as read"]').addEventListener('click', () => rows[f.index].classList.remove('zE'));
+    workspace.querySelector('[aria-label="Mark as read"]').addEventListener('click', () => {
+      const selected = rows.filter(row => row.querySelector('[role="checkbox"]').getAttribute('aria-checked') === 'true');
+      for (const row of selected.length ? selected : [rows[f.index]]) row.classList.remove('zE');
+    });
     f.select(0, { footer });
     const settings = { ...app.settings.defaults, appleMailModeEnabled: true, appearanceTheme: theme, accentColor: 'blue', headerCollapsed: collapsed };
     app.appearance.start(settings); app.messageList.start(settings); app.headerLayout.start(settings); app.readingPane.start(settings);
@@ -108,6 +116,38 @@
     f.select(1); await frames(); results.hidden = true; return;
   }
   results.textContent = '';
+  await test('Select all marks every checked conversation read with the reading pane open', async () => {
+    const f = await fixture({ width: 1400, refresh: true }), select = f.actions.querySelector('.G-as3 [role="checkbox"]');
+    assert(f.refreshGroup.checkVisibility() && select.checkVisibility(), 'Refresh and Select remain visible with an open conversation');
+    const boxes = f.rows.map(row => row.querySelector(':scope > td > [role="checkbox"]'));
+    const sync = () => {
+      const count = boxes.filter(box => box.getAttribute('aria-checked') === 'true').length;
+      select.setAttribute('aria-checked', count === boxes.length ? 'true' : count ? 'mixed' : 'false');
+    };
+    boxes.forEach(box => box.addEventListener('click', event => {
+      event.stopPropagation(); box.setAttribute('aria-checked', String(box.getAttribute('aria-checked') !== 'true')); sync();
+    }));
+    select.addEventListener('click', () => {
+      const checked = select.getAttribute('aria-checked') !== 'true';
+      boxes.forEach(box => box.setAttribute('aria-checked', String(checked))); sync();
+    });
+    // Model Gmail's native selection state; extension handlers must leave it
+    // intact even though the individual row checkboxes are visually hidden.
+    boxes[0].click(); assert(select.getAttribute('aria-checked') === 'mixed', 'partial selection');
+    select.click(); await frames();
+    assert(boxes.every(box => box.getAttribute('aria-checked') === 'true'), 'partial selection becomes all');
+    f.refreshGroup.style.display = 'none'; await frames();
+    assert(f.refreshGroup.checkVisibility() && select.checkVisibility(), 'native Refresh hiding never hides Select all');
+    select.click(); await frames();
+    assert(boxes.every(box => box.getAttribute('aria-checked') === 'false'), 'all toggles to none');
+    select.click();
+    f.rows.forEach(row => row.classList.add('zE')); await frames();
+    f.actions.querySelector('[aria-label="Mark as read"]').click(); await frames();
+    assert(f.rows.every(row => !row.classList.contains('zE')), 'every selected conversation becomes read');
+    assert(boxes.every(box => box.getAttribute('aria-checked') === 'true'), 'bulk read preserves selection');
+    assert(f.rows[0].classList.contains('aps'), 'open conversation stays open');
+    await idle(f);
+  });
   await test('lower-row message actions never expand the header or reset the sidebar', async () => {
     for (const width of [940, 1000]) {
       const f = await fixture({ width }), watch = stableSelection(f);

@@ -897,6 +897,12 @@ html.gmail-pro-apple-mail-mode .gmail-pro-mailbox-caption {
   background: var(--gp-bg-primary); text-align: start; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
+/* Gmail hides Refresh while the reading pane or bulk actions are active.
+   Reveal only the validated native wrapper relocated next to Select all. */
+html.gmail-pro-apple-mail-mode [gh="mtb"] .G-Ni[data-gp-toolbar-refresh] {
+  display: inline-flex !important; align-items: center; vertical-align: middle;
+}
+
 html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
   align-self: center;
