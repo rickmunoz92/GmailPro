@@ -259,7 +259,9 @@
   :scope .aim .TN > .qj:not([style*="background"]) { background-color: currentColor !important; color: inherit; }
   :scope .aim .TN > .KCRnif > svg {
     background-color: currentColor;
-    color: inherit;
+    color: inherit !important;
+    opacity: 1 !important;
+    filter: none !important;
     clip-path: polygon(12.5% 25%, 62.5% 25%, 87.5% 50%, 62.5% 75%, 12.5% 75%);
   }
   :scope .aim .TN > .KCRnif > svg > * { visibility: hidden !important; }
@@ -675,7 +677,25 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   .gE .gH { vertical-align: top; }
   .gE button:has(svg) { width: 30px !important; height: 30px !important; }
   .gE :is(button, [role="button"]) { color: var(--gp-text-secondary) !important; }
-  .gE button svg { filter: var(--gp-icon-filter); }
+  /* Current Gmail puts Print/pop-out outside .gE and paints importance with
+     its own foreground/opacity. Theme only neutral controls; colored important
+     and starred states keep Gmail's paint. Use SVG fills directly so they match
+     text exactly, and reserve the bitmap filter for actual bitmap artwork. */
+  :is(.bHJ .bHI, .ha .FqWqLc.ncplXc):not(:disabled, [aria-disabled="true"]) {
+    color: var(--gp-text-secondary) !important;
+    opacity: 1 !important;
+  }
+  :is(.bHJ .bHI, .ha .FqWqLc.ncplXc, .gE button):not(:disabled, [aria-disabled="true"]) svg {
+    color: var(--gp-text-secondary) !important;
+    fill: currentColor !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+  .gE img.gW,
+  .gE .zd[aria-checked="false"] .T-KT::before {
+    filter: var(--gp-icon-filter) !important;
+    opacity: 1 !important;
+  }
   .Bk, .G3 { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
   [role="listitem"][aria-expanded="true"] > .Bk { margin-block: 0 8px !important; }
   /* Suggested one-click replies are optional chrome, never message content. */
@@ -844,6 +864,7 @@ html.gmail-pro-apple-mail-mode [data-gp-ai-inbox] > .CK { color: inherit !import
 html.gmail-pro-apple-mail-mode [data-gp-ai-inbox] > .KCRnif { display: contents !important; }
 html.gmail-pro-apple-mail-mode [data-gp-ai-inbox] > .KCRnif svg {
   flex: 0 0 20px; width: 20px; height: 20px; margin: 0 !important; fill: currentColor;
+  color: inherit !important; opacity: 1 !important; filter: none !important;
   background-color: currentColor;
   clip-path: polygon(12.5% 25%, 62.5% 25%, 87.5% 50%, 62.5% 75%, 12.5% 75%);
 }

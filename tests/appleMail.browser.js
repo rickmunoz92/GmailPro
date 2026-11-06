@@ -190,6 +190,32 @@
     feature.stop();assert(summary.innerHTML===nativeSummary&&css(summary.lastElementChild).color===color('#1f1f1f')&&css(image).filter==='none','OFF restores native summary text and icon styles');
   });
   function appAccents(){return GmailPro.settings.choices.accentColor;}
+  await test('reading chrome icons share the palette while colored states, disabled controls and authored content retain their paint', () => {
+    workspace.innerHTML = `<style>
+      .native-icon-paint .bHI, .native-icon-paint .FqWqLc { color:#444746; fill:currentColor; }
+      .native-icon-paint .ncplXc { opacity:.7; }
+      .native-icon-paint button:disabled { opacity:.38; }
+      .native-icon-paint img.gW { opacity:.54; }
+      .native-icon-paint .T-KT::before { content:""; display:block; width:20px; height:20px; background:linear-gradient(black,black); opacity:.71; }
+    </style><div class="iY native-icon-paint"><div class="V8djrc"><div class="bHJ"><button class="bHI" aria-label="Print all"><svg width="20" height="20"><path d="M2 2h16v16H2z"/></svg></button><button class="bHI" disabled><svg width="20" height="20"><path d="M2 2h16v16H2z"/></svg></button></div><div class="ha"><h2 data-thread-perm-id="synthetic" data-legacy-thread-id="synthetic">Synthetic subject</h2><button class="FqWqLc ncplXc"><svg width="20" height="20"><path d="M2 2h16v16H2z"/></svg></button><button class="FqWqLc bns important" style="color:#f4b400"><svg width="20" height="20"><path d="M2 2h16v16H2z"/></svg></button></div></div><div class="gE"><button><svg width="20" height="20"><path d="M2 2h16v16H2z"/></svg></button><img class="gW" alt="Attachments"><div class="zd" role="checkbox" aria-checked="false"><span class="T-KT"></span></div><div class="zd" role="checkbox" aria-checked="true"><span class="T-KT"></span></div></div><div class="ii"><div class="a3s"><div class="bHJ"><button class="bHI"><svg width="20" height="20"><path d="M2 2h16v16H2z"/></svg></button></div></div></div><div role="menu"><button class="bHI">Native menu</button></div></div>`;
+    const shell=workspace.querySelector('.iY'), neutral=[shell.querySelector('.bHI svg'),shell.querySelector('.ncplXc svg'),shell.querySelector('.gE button svg')];
+    const attachment=shell.querySelector('img.gW'), star=shell.querySelector('[aria-checked="false"] .T-KT'), coloredStar=shell.querySelector('[aria-checked="true"] .T-KT');
+    const protectedNodes=[shell.querySelector('.important'),shell.querySelector('.important svg'),shell.querySelector('.a3s .bHI svg'),shell.querySelector('[role="menu"] button'),shell.querySelector('button:disabled')];
+    const snapshot=()=>JSON.stringify(protectedNodes.map(n=>[css(n).color,css(n).fill,css(n).opacity,css(n).filter]).concat([[getComputedStyle(coloredStar,'::before').filter,getComputedStyle(coloredStar,'::before').opacity]]));
+    const native=snapshot(), html=shell.innerHTML, original=neutral.map(n=>[css(n).fill,css(n).filter]);
+    const probe=document.createElement('span');probe.style.filter='var(--gp-icon-filter)';workspace.append(probe);
+    for (const appearanceTheme of ['dark','light','dark']) {
+      enable({appearanceTheme});
+      assert(neutral.every(n=>css(n).fill===token('--gp-text-secondary')&&css(n).filter==='none'), 'print, importance and header SVGs share the exact theme foreground without double filtering');
+      assert(css(shell.querySelector('.ncplXc')).opacity==='1','available importance control is not dimmed');
+      assert(css(attachment).filter===css(probe).filter&&css(attachment).opacity==='1','attachment bitmap follows the shared icon palette at full opacity');
+      assert(getComputedStyle(star,'::before').filter===css(probe).filter&&getComputedStyle(star,'::before').opacity==='1','unselected star artwork follows the theme');
+      assert(snapshot()===native,'important/starred colors, disabled opacity, authored content and menus keep native paint');
+      assert(shell.innerHTML===html,'native nodes and attributes stay intact');
+    }
+    feature.stop();
+    assert(neutral.every((n,i)=>JSON.stringify([css(n).fill,css(n).filter])===JSON.stringify(original[i]))&&css(attachment).opacity==='0.54'&&css(attachment).filter==='none','OFF restores native icon paint');
+  });
   await test('system folders and custom labels share the Inbox tag silhouette without changing disclosure arrows or label text', () => {
     workspace.innerHTML='<nav role="navigation" class="aeN WR"><div class="aim" data-gp-inbox><div class="TO nZ"><div class="TN"><div class="KCRnif"><svg width="20" height="20"><path d="M1 1h18v18H1z"/></svg></div><div class="aio"><a class="n0" href="#inbox">Inbox</a></div></div></div></div><div class="aim"><div class="TO"><div class="TN"><div class="KCRnif"><svg width="20" height="20"><path d="M10 1l3 5 6 1-4 5 1 7-6-3-6 3 1-7-4-5 6-1z"/></svg></div><div class="aio"><a class="n0" href="#starred">Starred</a></div></div></div></div><div class="aim"><div class="TO"><div class="TN"><div class="TH" role="link" aria-label="Expand label: Example"><svg width="12" height="12"><path d="M3 1l5 5-5 5"/></svg></div><div class="qj aEe" style="width:20px;height:20px"></div><div class="aio"><a class="n0" href="#label/Example">Example</a></div></div></div></div></nav>';
     const nav=workspace.querySelector('nav'), svg=nav.querySelector('a[href="#starred"]').closest('.TN').querySelector('svg');
@@ -197,6 +223,7 @@
     // Classic Gmail's system symbols use PNG background images, unlike masked
     // custom-label icons. Clearing only the mask leaves white artwork in a tag.
     marker.style.backgroundImage='linear-gradient(white,black)';
+    svg.style.color='#c4c7c5'; svg.style.opacity='.7';
     const native=nav.innerHTML, nativeImage=css(marker).backgroundImage;
     for(const appearanceTheme of ['dark','light']) {
       enable({appearanceTheme});
@@ -205,12 +232,12 @@
       assert(css(marker).backgroundImage==='none','native bitmap artwork cannot remain inside the filled tag');
       assert(css(svg.firstElementChild).visibility==='hidden'&&css(arrow.firstElementChild).visibility==='visible','replace only the decorative mailbox symbol');
       assert(rect(svg).width===box.width&&rect(svg).height===box.height,'native symbol slot and hierarchy stay stable');
-      assert(css(svg).backgroundColor===token('--gp-text-secondary'),'neutral tag follows the readable theme color');
+      assert(css(svg).backgroundColor===token('--gp-text-secondary')&&css(svg).opacity==='1','neutral tag follows the readable theme color at full opacity');
       svg.closest('.TO').classList.add('nZ');
       assert(css(svg).backgroundColor===token('--gp-label-accent'),'selected tag follows the chosen accent');svg.closest('.TO').classList.remove('nZ');
     }
     feature.stop();assert(css(marker).backgroundImage===nativeImage,'OFF restores native bitmap artwork');
-    assert(nav.innerHTML===native&&css(svg.firstElementChild).visibility==='visible'&&css(svg).clipPath==='none','OFF restores each native icon and every label');
+    assert(nav.innerHTML===native&&css(svg.firstElementChild).visibility==='visible'&&css(svg).clipPath==='none'&&css(svg).opacity==='0.7','OFF restores each native icon and every label');
   });
   await test('integrated app rail icons and labels remain readable in both themes without resizing or recoloring badges', () => {
     const rail = document.createElement('nav'); rail.className = 'WR'; rail.setAttribute('role','navigation');

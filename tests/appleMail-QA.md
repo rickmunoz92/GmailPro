@@ -1,5 +1,26 @@
 # Apple Mail Mode — implementation and QA
 
+## Mailbox and reading-pane icon consistency — November 6, 2026
+
+Live Gmail inspection confirmed that AI Inbox SVGs kept a native foreground
+and 70% opacity, while Print/pop-out, neutral importance, attachment and empty
+star artwork did not consistently receive the selected theme. Mailbox tags now
+inherit their row color at full opacity. Reading-header SVGs use the shared
+foreground directly; attachment and empty-star bitmaps use the shared icon
+filter at full opacity. Gmail retains important/starred colors and disabled
+control treatment. Rules remain scoped away from authored content and menus.
+
+Validation: `node scripts/validate.cjs` passed (44 Node checks); real-Chrome
+fixtures passed 79/79 appearance, 123/123 header-layout and 41/41 reading-pane
+checks. Added regressions reproduced the original failures before the fix.
+Both themes were visually inspected with a temporary synthetic preview using
+production styles. After reloading the installed extension, an independently
+updated agreement paused all features until the owner accepted it. Ten focused
+consent/startup checks passed. After acceptance, live Gmail restored Apple Mail
+Mode, the sidebar brand and Mailboxes layout. Live Dark inspection confirmed
+the AI tag matches its label at full opacity, and Print and message-header SVGs
+use the shared foreground without filtering. Live Light remains fixture-only.
+
 ## Personal Gmail search controls and matches — October 30, 2026
 
 Personal Gmail now places its `.biW` search switcher and refinement toolbar

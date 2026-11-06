@@ -299,6 +299,8 @@
     for (const theme of ['dark','light']) for (const selected of [false,true]) {
       document.documentElement.dataset.gpTheme = theme; f.ai.classList.toggle('VDSZAf',selected); await settle();
       if (selected) assert(getComputedStyle(f.ai).backgroundColor === getComputedStyle(f.inbox.firstElementChild).backgroundColor, 'AI and Inbox share selected mailbox skin');
+      const glyph = f.ai.querySelector(selected ? '.ai-native-filled' : '.ai-native-outline');
+      assert(getComputedStyle(glyph).backgroundColor === getComputedStyle(f.ai.querySelector('a')).color && getComputedStyle(glyph).opacity === '1', 'AI tag matches its label at full opacity in both themes and selection states');
       assert(Math.abs(rect(f.ai.querySelector('a')).left-rect(f.inbox.querySelector('a')).left)<1, 'AI label aligns with Inbox despite native hidden icon wrapper');
     }
   });
