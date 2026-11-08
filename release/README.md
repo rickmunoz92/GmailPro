@@ -1,4 +1,33 @@
-# Gmail Pro 1.0 release
+# Gmail Pro release
+
+## November 8, 2026 — 1.0.6 layout and listing update
+
+The owner authorized committing/pushing the layout fixes and submitting the
+updated extension, overview and feature-card screenshots to Chrome Web Store.
+
+- Package: `dist/Gmail-Pro-1.0.6.zip`, 43 production files.
+- SHA-256: `8cccc452d7d7e4ca7588924ca77d5e4e843f0580d32c9c3a90d77a73231e15e4`.
+- Compared byte-for-byte with the published 1.0.5 ZIP: only `manifest.json` and
+  the three layout files (`appearance.js`, `appleMail.css`, `workspaceLayout.js`)
+  changed. Free access, consent versions, permissions and billing code match.
+- First-run setup now defers ordinary input, ignores hidden cached controls and
+  respects active editing and explicit layout choices. Right-panel collapse
+  retries are bounded, and its native edge arrow is themed and visible. The
+  unsplit inbox shares themed scrollbar tracks/corners with the reading panes.
+- The Store overview leads with the cleaner workspace and practical benefits.
+  `node scripts/build-store-slides.cjs` prepares five 1280×800 feature slides from
+  the website's 18 feature cards and approved, fictional-content screenshots.
+  Rendered JPEGs stay under ignored `artifacts/store/1.0.6/`.
+- Privacy categories retain accurate local-processing declarations. Google's
+  [User Data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq)
+  explicitly includes local processing and email addresses; listing copy
+  distinguishes those uses from Gmail content being uploaded to our service.
+- Validation: 44 repository/settings checks; 44 consent/billing checks; the prior
+  completed layout/appearance pass (16/16 and 80/80) plus three trusted-input
+  fixtures. All five slides were visually reviewed at 1280×800 and checked for
+  card/page overflow. This does not establish a live Store-installed fix.
+- Submission status: package and listing assets prepared; dashboard submission
+  receipt is recorded below once Google accepts the replacement revision.
 
 The public site is https://gmail-pro.netlify.app. The Chrome Web Store release
 has not been published. Production sales remain closed until acceptance below
