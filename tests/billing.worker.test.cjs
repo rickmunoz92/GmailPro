@@ -4,7 +4,7 @@ const vm = require('node:vm'), fs = require('node:fs'), path = require('node:pat
 const { webcrypto } = require('node:crypto');
 const root = path.resolve(__dirname, '..'), storageKey = 'gmailPro.billing.v1';
 const epoch = Date.UTC(2026, 9, 29, 18), key = 'GP1.sub_demo.private';
-function fixture(initial = {}) {
+function fixture(initial = {}, config = { required: true }) {
   let listener, clock = epoch, access;
   const data = { [storageKey]: structuredClone(initial) }, requests = [], opened = [];
   const status = () => ({ active: true, status: 'active', checkedAt: clock, validUntil: clock + 86400000, renewsAt: clock + 86400000 });
@@ -20,7 +20,7 @@ function fixture(initial = {}) {
       requests.push({ route, options, body }); const result = await respond(route, body);
       return new Response(JSON.stringify(result.body ?? result), { status: result.httpStatus || 200 }); } });
   vm.runInContext(fs.readFileSync(path.join(root, 'background/billing.js'), 'utf8'), vm.createContext({ ...context,
-    GmailProBillingConfig: { required: true, apiOrigin: 'https://billing.example' } }));
+    GmailProBillingConfig: { ...config, apiOrigin: 'https://billing.example' } }));
   const popup = { id: 'extension', url: chrome.runtime.getURL('popup/popup.html') };
   const gmail = { id: 'extension', frameId: 0, tab: { id: 1 }, url: 'https://mail.google.com/mail/u/0/' };
   const send = (action, values = {}, sender = popup) => new Promise(resolve => {
@@ -94,4 +94,21 @@ test('active subscriptions cannot duplicate Checkout; terminal ones can resubscr
     { sessionId: 'cs_test_new', url: 'https://checkout.stripe.com/c/pay/new', expiresAt: epoch + 86400000 });
   assert.equal((await f.send('checkout', { plan: 'year' })).ok, true);
   assert.equal(f.state.licenseKey, key, 'old history access remains until new activation');
+});
+
+test('public free access never checks billing or opens Checkout, but earlier licenses retain real management', async () => {
+  const config = { required: false, free: true };
+  const f = fixture({}, config);
+  const access = await f.send('status', {}, f.gmail);
+  assert.equal(access.status.active, true); assert.equal(access.status.free, true);
+  const details = await f.send('details');
+  assert.equal(details.salesEnabled, false); assert.equal(details.licenseKey, '');
+  assert.equal((await f.send('checkout', { plan: 'month' })).ok, false);
+  assert.equal(f.requests.length, 0); assert.equal(f.opened.length, 0);
+  const legacy = fixture({ licenseKey: key }, config);
+  legacy.respond(async route => route === 'portal' ? { url: 'https://billing.stripe.com/p/session/demo' } : legacy.status());
+  assert.equal((await legacy.send('details')).status.status, 'active');
+  assert.equal((await legacy.send('portal')).ok, true);
+  assert.deepEqual(legacy.requests.map(value => value.route), ['status', 'portal']);
+  assert.equal(legacy.opened.length, 1);
 });

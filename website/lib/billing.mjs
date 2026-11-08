@@ -77,21 +77,30 @@ export function createBillingService({ stripe, config, now = () => Date.now() })
     if (!['month', 'year'].includes(plan) || !/^[a-f0-9]{64}$/.test(purchaseToken || '')) {
       throw new BillingError('Choose a valid subscription.');
     }
-    const price = await stripe.prices.retrieve(plan === 'month' ? config.monthlyPrice : config.annualPrice);
+    const price = await stripe.prices.retrieve(plan === 'month' ? config.monthlyPrice : config.annualPrice,
+      config.automaticTaxEnabled ? { expand: ['product'] } : undefined);
     if (price.livemode !== config.livemode || !price.active || price.currency !== 'usd' ||
       price.unit_amount !== (plan === 'month' ? 99 : 1000) || price.recurring?.interval !== plan ||
       price.recurring.interval_count !== 1 || idOf(price.product) !== config.product) {
       throw new BillingError('Subscription pricing needs attention. Please contact support.', 503);
     }
+    // Enable only after the operator confirms registrations, classification and
+    // Stripe Tax fees. Refuse an ambiguous price/product setup instead of
+    // silently relying on an unconfigured account default.
+    if (config.automaticTaxEnabled && (!['exclusive', 'inclusive'].includes(price.tax_behavior) ||
+      !price.product?.tax_code)) {
+      throw new BillingError('Subscription tax setup needs attention. Please contact support.', 503);
+    }
     let session;
     try { session = await stripe.checkout.sessions.create({
       mode: 'subscription', line_items: [{ price: price.id, quantity: 1 }],
+      ...(config.automaticTaxEnabled ? { automatic_tax: { enabled: true } } : {}),
       client_reference_id: digest(purchaseToken),
       metadata: { application: 'gmail-pro', terms_version: legal.termsVersion, privacy_version: legal.privacyVersion },
       consent_collection: { terms_of_service: 'required' },
       subscription_data: { metadata: { application: 'gmail-pro', terms_version: legal.termsVersion,
         privacy_version: legal.privacyVersion }, billing_mode: { type: 'flexible' },
-        trial_period_days: 7, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } },
+        trial_period_days: 30, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } },
       payment_method_collection: 'always',
       success_url: `${config.siteURL}/checkout-complete`, cancel_url: `${config.siteURL}/#pricing`,
       // Retries within this offer use identical parameters. Keep the token's
@@ -100,7 +109,7 @@ export function createBillingService({ stripe, config, now = () => Date.now() })
       integration_identifier: 'gmailpro_' + digest(purchaseToken).slice(-8).replace(/[0-9]/g, digit => 'abcdefghij'[Number(digit)]),
       custom_text: {
         terms_of_service_acceptance: { message: `I am an adult purchasing for myself or permitting use by my child age 13+. I agree to the [Terms of Service](${legal.termsURL}) and acknowledge the [Privacy Policy](${legal.privacyURL}).` },
-        submit: { message: `7 days free, then ${plan === 'month' ? 'US$0.99/month' : 'US$10/year'} plus any applicable tax, automatically renewed until canceled. Cancel before the trial ends to avoid the first charge. Manage or cancel at ${config.siteURL}/subscription-help. Seller: Rick Munoz, independent of Google.` }
+        submit: { message: `30 days free, then ${plan === 'month' ? 'US$0.99/month' : 'US$10/year'} plus any applicable tax, automatically renewed until canceled. Cancel before the trial ends to avoid the first charge. Manage or cancel at ${config.siteURL}/subscription-help. Seller: Rick Munoz, independent of Google.` }
       }
     }, { idempotencyKey: 'gmailpro-checkout-' + digest(purchaseToken) }); }
     catch (error) {

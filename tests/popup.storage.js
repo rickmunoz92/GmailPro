@@ -32,6 +32,7 @@
   window.chrome.runtime = {
     onMessage: { addListener: fn => runtimeListeners.add(fn), removeListener: fn => runtimeListeners.delete(fn) },
     async sendMessage(message) {
+      if (message.type === 'gmail-pro-billing' && message.action === 'details') return { ok: true, status: { active: false }, licenseKey: '', pending: false, salesEnabled: false };
       if (message.type !== 'gmail-pro-consent') throw new Error('Unexpected synthetic message');
       if (message.action === 'accept') {
         if (state.failConsentWrite) return { ok: false, error: 'Synthetic agreement save failure' };

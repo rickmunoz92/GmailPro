@@ -28,6 +28,11 @@
     result.textContent = reports.join("\n");
   }
   await settle();
+  await test("public free popup has no payment or license prompt before or after consent", async () => {
+    assert(GmailProBillingConfig.free && !GmailProBillingConfig.required, 'public free configuration');
+    assert(byId('subscription-status').textContent.includes('free for now'), 'free status');
+    for (const id of ['subscription-purchase', 'subscription-pending', 'license-restore', 'subscription-manage', 'saved-license']) assert(byId(id).hidden, id + ' hidden without legacy purchase');
+  });
   await test("first use requires explicit adult and terms agreement before showing settings", async () => {
     assert(!byId('consent-form').hidden && form.hidden && byId('settings-fields').disabled, 'features paused');
     assert(!byId('consent-adult').checked && !byId('consent-agree').checked && byId('accept-terms').disabled, 'no preselected agreement');
@@ -207,7 +212,7 @@
     byId('withdraw-consent').click(); await settle();
     assert(form.hidden && byId('settings-fields').disabled && !byId('consent-form').hidden, 'paused and disabled');
     assert(!byId('consent-adult').checked && !byId('consent-agree').checked, 'renewed acceptance is explicit');
-    assert(byId('consent-status').textContent.includes('Billing continues'), 'billing distinction explained');
+    assert(byId('consent-status').textContent.includes('Free access requires no payment'), 'billing distinction explained');
     assert(document.querySelector('footer a[href$="/support"]'), 'support remains accessible');
     assert(document.querySelector('.subscription-card'), 'billing remains accessible');
   });

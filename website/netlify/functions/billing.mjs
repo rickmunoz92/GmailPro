@@ -1,4 +1,5 @@
 import StripeClient from 'stripe';
+import access from '../../../shared/billing-config.js';
 import { BillingError, createBillingService } from '../../lib/billing.mjs';
 
 const env = key => globalThis.Netlify?.env?.get(key) ?? process.env[key];
@@ -7,7 +8,8 @@ function configuration() {
     siteURL: env('GMAIL_PRO_SITE_URL'), account: env('GMAIL_PRO_STRIPE_ACCOUNT'),
     product: env('GMAIL_PRO_STRIPE_PRODUCT'), monthlyPrice: env('GMAIL_PRO_MONTHLY_PRICE'),
     annualPrice: env('GMAIL_PRO_ANNUAL_PRICE'), licenseSecret: env('GMAIL_PRO_LICENSE_SECRET'),
-    livemode: env('GMAIL_PRO_LIVEMODE') === 'true', launchEnabled: env('GMAIL_PRO_LAUNCH_ENABLED') === 'true',
+    livemode: env('GMAIL_PRO_LIVEMODE') === 'true', launchEnabled: !access.free && env('GMAIL_PRO_LAUNCH_ENABLED') === 'true',
+    automaticTaxEnabled: env('GMAIL_PRO_AUTOMATIC_TAX_ENABLED') === 'true',
     portalConfiguration: env('GMAIL_PRO_PORTAL_CONFIGURATION'),
     reviewKeyHash: env('GMAIL_PRO_REVIEW_KEY_HASH'), reviewExpiresAt: env('GMAIL_PRO_REVIEW_EXPIRES_AT')
   };
@@ -25,10 +27,11 @@ export default async function handler(request) {
     const path = new URL(request.url).pathname.split('/').at(-1);
     if (path === 'public-config' && request.method === 'GET') {
       let ready = false;
-      try { ready = configuration().launchEnabled; } catch { /* do not expose configuration */ }
-      return Response.json({ salesEnabled: ready, monthly: 99, annual: 1000, currency: 'usd' }, { headers });
+      try { ready = !access.free && configuration().launchEnabled; } catch { /* do not expose configuration */ }
+      return Response.json({ salesEnabled: ready, free: access.free === true, monthly: 99, annual: 1000, currency: 'usd' }, { headers });
     }
     if (request.method !== 'POST') throw new BillingError('Method not allowed.', 405);
+    if (path === 'checkout' && access.free) throw new BillingError('Gmail Pro is free for now. No payment or subscription is required.', 503);
     const settings = configuration();
     const stripe = new StripeClient(env('STRIPE_RESTRICTED_KEY'), { apiVersion: '2026-09-30.endive',
       timeout: 8000, maxNetworkRetries: 1 });

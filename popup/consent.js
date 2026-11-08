@@ -36,7 +36,7 @@
     try {
       const next = await app.consent.withdraw();
       $('consent-adult').checked = false; $('consent-agree').checked = false; render(next);
-      status.textContent = 'Gmail Pro is paused. Billing continues until you cancel through Manage subscription or Subscription help.';
+      status.textContent = globalThis.GmailProBillingConfig?.free ? 'Gmail Pro is paused. Free access requires no payment. Earlier-purchase management and support remain available.' : 'Gmail Pro is paused. Billing continues until you cancel through Manage subscription or Subscription help.';
     } catch { status.textContent = 'Could not pause Gmail Pro. Try again, or disable the extension in Chrome.'; }
     finally { busy = false; $('withdraw-consent').disabled = false; updateButton(); }
   });

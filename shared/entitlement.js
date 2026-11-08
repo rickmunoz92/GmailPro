@@ -11,7 +11,7 @@
   app.entitlement = Object.freeze({
     required,
     async getStatus() {
-      if (!required) return { active: true, development: true };
+      if (!required) return globalThis.GmailProBillingConfig?.free ? { active: true, free: true } : { active: true, development: true };
       const result = await chrome.runtime.sendMessage({ type: "gmail-pro-billing", action: "status" });
       if (!result?.ok) throw new Error("Subscription check unavailable.");
       return result.status;

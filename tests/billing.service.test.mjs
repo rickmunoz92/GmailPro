@@ -53,17 +53,22 @@ test('Checkout validates server prices and retries with exactly identical parame
   assert.deepEqual(f.carts[0], f.carts[1]);
   assert.equal(f.carts[0].data.line_items[0].price, 'price_month');
   assert.equal(f.carts[0].data.mode, 'subscription');
-  assert.equal(f.carts[0].data.subscription_data.trial_period_days, 7);
+  assert.equal(f.carts[0].data.subscription_data.trial_period_days, 30);
   assert.equal(f.carts[0].data.payment_method_collection, 'always');
   assert.equal(f.carts[0].data.subscription_data.trial_settings.end_behavior.missing_payment_method, 'cancel');
   assert.equal(f.carts[0].data.consent_collection.terms_of_service, 'required');
-  assert.equal(f.carts[0].data.metadata.terms_version, '2026-11-04.2');
-  assert.equal(f.carts[0].data.subscription_data.metadata.privacy_version, '2026-11-04.1');
-  assert.match(f.carts[0].data.custom_text.terms_of_service_acceptance.message, /legal\/terms-2026-11-04-2/);
+  assert.equal(f.carts[0].data.metadata.terms_version, '2026-11-07.1');
+  assert.equal(f.carts[0].data.subscription_data.metadata.privacy_version, '2026-11-07.1');
+  assert.match(f.carts[0].data.custom_text.terms_of_service_acceptance.message, /legal\/terms-2026-11-07-1/);
   assert.match(f.carts[0].data.custom_text.submit.message, /US\$0\.99\/month.*automatically renewed/);
   assert.match(f.carts[0].data.integration_identifier, /^gmailpro_[a-z]{8}$/);
   assert.equal('payment_method_types' in f.carts[0].data, false);
   assert.equal('automatic_tax' in f.carts[0].data, false);
+  assert.match(f.carts[0].data.custom_text.submit.message, /^30 days free/);
+  await f.service.checkout({ plan: 'year', purchaseToken: 'b'.repeat(64) });
+  assert.equal(f.carts.at(-1).data.subscription_data.trial_period_days, 30);
+  assert.equal(f.carts.at(-1).data.line_items[0].price, 'price_year');
+  assert.match(f.carts.at(-1).data.custom_text.submit.message, /^30 days free, then US\$10\/year/);
   await assert.rejects(f.service.checkout({ plan: 'free', purchaseToken: f.token }));
   f.stripe.prices.retrieve = async () => ({ active: true, livemode: false, currency: 'usd', unit_amount: 1 });
   await assert.rejects(f.service.checkout({ plan: 'year', purchaseToken: f.token }), /pricing needs attention/);
@@ -71,9 +76,33 @@ test('Checkout validates server prices and retries with exactly identical parame
   await assert.rejects(f.service.checkout({ plan: 'month', purchaseToken: f.token }), /being prepared/);
 });
 
+test('automatic tax is opt-in, requires explicit product/price setup, and preserves both 30-day plans', async () => {
+  const f = fixture(); f.config.automaticTaxEnabled = true;
+  const retrieve = f.stripe.prices.retrieve;
+  for (const plan of ['month', 'year']) {
+    const price = await retrieve(plan === 'month' ? f.config.monthlyPrice : f.config.annualPrice);
+    for (const patch of [{}, { tax_behavior: 'exclusive' }, { product: { id: f.config.product, tax_code: 'txcd_fixture' } }]) {
+      f.stripe.prices.retrieve = async () => ({ ...price, ...patch });
+      await assert.rejects(f.service.checkout({ plan, purchaseToken: f.token }), /tax setup needs attention/);
+    }
+    for (const behavior of ['exclusive', 'inclusive']) {
+      f.stripe.prices.retrieve = async (_id, options) => {
+        assert.deepEqual(options, { expand: ['product'] });
+        return { ...price, tax_behavior: behavior, product: { id: f.config.product, tax_code: 'txcd_fixture' } };
+      };
+      await f.service.checkout({ plan, purchaseToken: f.token });
+      const data = f.carts.at(-1).data;
+      assert.deepEqual(data.automatic_tax, { enabled: true });
+      assert.equal(data.subscription_data.trial_period_days, 30);
+      assert.equal(data.payment_method_collection, 'always');
+      assert.equal('default_tax_rates' in data.subscription_data, false);
+    }
+  }
+});
+
 test('new Checkout cannot activate or fulfill without recorded terms acceptance; billing management remains available', async () => {
   const f = fixture();
-  f.session.metadata.terms_version = '2026-11-04.1';
+  f.session.metadata.terms_version = '2026-11-07.1';
   await assert.rejects(f.service.webhook(f.event('checkout.session.completed', f.session.id)), /agreement was not recorded/);
   await assert.rejects(f.service.complete({ sessionId: f.session.id, purchaseToken: f.token }), /agreement was not recorded/);
   assert.equal(f.sub.metadata.gmailpro_fulfilled, undefined);
@@ -169,14 +198,16 @@ test('period-end cancellation retains access; terminal, failed and expired state
   assert.equal((await f.service.status(key)).active, false);
 });
 
-test('a seven-day free trial requires webhook fulfillment and expires without a successful renewal', async () => {
-  const f = fixture(); f.sub.status = 'trialing'; f.sub.trial_end = epoch / 1000 + 7 * 86400;
+test('a 30-day free trial requires webhook fulfillment and expires without a successful renewal', async () => {
+  const f = fixture(); f.sub.status = 'trialing'; f.sub.trial_end = epoch / 1000 + 30 * 86400;
   f.session.payment_status = 'no_payment_required';
   await assert.rejects(f.service.complete({ sessionId: f.session.id, purchaseToken: f.token }), /still processing/);
   const key = await f.license(), state = await f.service.status(key);
   assert.equal(state.active, true); assert.equal(state.status, 'trialing');
-  assert.equal(state.trialEndsAt, epoch + 7 * 86400000);
-  f.advance(7 * 86400000); assert.equal((await f.service.status(key)).active, false);
+  assert.equal(state.trialEndsAt, epoch + 30 * 86400000);
+  f.advance(7 * 86400000); assert.equal((await f.service.status(key)).active, true);
+  f.advance(23 * 86400000); assert.equal((await f.service.status(key)).active, false);
+  f.sub.items.data[0].current_period_end = epoch / 1000 + 60 * 86400;
   f.sub.status = 'active'; await f.service.webhook(f.event('invoice.paid', 'in_current'));
   assert.equal((await f.service.status(key)).active, true);
   f.sub.status = 'past_due'; await f.service.webhook(f.event('invoice.payment_failed', 'in_current'));
@@ -186,7 +217,7 @@ test('a seven-day free trial requires webhook fulfillment and expires without a 
 test('portal cancel_at schedules show cancellation and bound trial and paid access', async () => {
   for (const state of ['active', 'trialing']) {
     const f = fixture(), key = await f.license();
-    f.sub.status = state; f.sub.trial_end = epoch / 1000 + 7 * 86400;
+    f.sub.status = state; f.sub.trial_end = epoch / 1000 + 30 * 86400;
     f.sub.cancel_at_period_end = false; f.sub.cancel_at = epoch / 1000 + 3600;
     const result = await f.service.status(key);
     assert.equal(result.active, true);
@@ -201,10 +232,11 @@ test('portal cancel_at schedules show cancellation and bound trial and paid acce
 
 test('a completed trial can be activated later without granting access to inactive subscriptions', async () => {
   for (const current of ['active', 'past_due', 'canceled']) {
-    const f = fixture(); f.sub.status = 'trialing'; f.sub.trial_end = epoch / 1000 + 7 * 86400;
+    const f = fixture(); f.sub.status = 'trialing'; f.sub.trial_end = epoch / 1000 + 30 * 86400;
     f.session.payment_status = 'no_payment_required';
     await f.service.webhook(f.event('checkout.session.completed', f.session.id));
-    f.advance(8 * 86400000); f.sub.status = current;
+    f.advance(31 * 86400000); f.sub.status = current;
+    if (current === 'active') f.sub.items.data[0].current_period_end = epoch / 1000 + 60 * 86400;
     await f.service.webhook(f.event(current === 'active' ? 'invoice.paid' : 'customer.subscription.updated',
       current === 'active' ? 'in_current' : f.sub.id));
     const input = { sessionId: f.session.id, purchaseToken: f.token };
@@ -296,4 +328,17 @@ test('HTTP handler rejects forged/old signatures and wrong origins without conta
   delete globalThis.Netlify;
   const result = await handler(new Request('https://example.netlify.app/api/billing/public-config'));
   assert.equal((await result.json()).salesEnabled, false);
+});
+
+test('free HTTP deployment refuses Checkout even if the paid launch flag is accidentally enabled', async () => {
+  globalThis.Netlify = { env: { get: key => key === 'GMAIL_PRO_LAUNCH_ENABLED' ? 'true' : undefined } };
+  try {
+    const config = await handler(new Request('https://example.netlify.app/api/billing/public-config'));
+    const offer = await config.json();
+    assert.equal(offer.free, true); assert.equal(offer.salesEnabled, false);
+    const result = await handler(new Request('https://example.netlify.app/api/billing/checkout', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({plan:'month',purchaseToken:'a'.repeat(64)})
+    }));
+    assert.equal(result.status, 503); assert.match((await result.json()).error, /free for now/);
+  } finally { delete globalThis.Netlify; }
 });

@@ -32,7 +32,7 @@
         <h2 id="consent-title">Your mail. Your choice.</h2>
         <form id="consent-form">
           <p class="feature-description">Gmail Pro reads Gmail page content locally, including messages, senders, recipients, account addresses, labels and read status, to run the tools you enable. It does not send that mail data to our billing service.</p>
-          <p class="field-hint">Settings include your BCC address, label names and Gmail account addresses. They can sync through Google Chrome Sync. Billing sends a private license or random purchase token to our service and Stripe. <a data-legal-link="privacyURL" href="https://gmail-pro.netlify.app/privacy" target="_blank" rel="noopener noreferrer">Read the Privacy Policy</a>.</p>
+          <p class="field-hint">Settings include your BCC address, label names and Gmail account addresses. They can sync through Google Chrome Sync. The free release does not make automatic subscription checks. Optional management of an existing purchase sends its license to our service and Stripe. <a data-legal-link="privacyURL" href="https://gmail-pro.netlify.app/privacy" target="_blank" rel="noopener noreferrer">Read the Privacy Policy</a>.</p>
           <p class="field-hint">Shortcuts can send, archive or delete mail. Label and reading-layout changes can persist in Gmail. Auto BCC starts off; if enabled, its one synced address applies across Gmail accounts. Verify recipients and permissions before sending.</p>
           <label class="consent-choice"><input id="consent-adult" type="checkbox" required><span>I am an adult accepting for myself, or the parent/legal guardian accepting and permitting use for a child age 13 or older.</span></label>
           <label class="consent-choice"><input id="consent-agree" type="checkbox" required><span>I agree to the <a data-legal-link="termsURL" href="https://gmail-pro.netlify.app/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>, acknowledge the Privacy Policy, and authorize the data handling described above.</span></label>
@@ -44,19 +44,20 @@
       </section>
 
       <section class="feature-card subscription-card" aria-labelledby="subscription-title">
-        <span class="eyebrow">YOUR SUBSCRIPTION</span>
-        <h2 id="subscription-title">One plan. Every feature.</h2>
-        <p id="subscription-status" class="feature-description" role="status">Checking subscription…</p>
+        <span class="eyebrow">FREE ACCESS</span>
+        <h2 id="subscription-title">Free for now. Every feature.</h2>
+        <p id="subscription-status" class="feature-description" role="status">No payment details, subscription or license required.</p>
         <div id="subscription-purchase" hidden>
-          <p class="field-hint">Start with 7 days free, then US$0.99/month or US$10/year. Payment details required. Cancel before the trial ends to avoid the first charge. Automatically renews afterward.</p>
-          <div class="subscription-buttons"><button type="button" data-plan="month">7 days free · $0.99/mo</button><button type="button" data-plan="year">7 days free · $10/yr</button></div>
+          <p class="field-hint">Start with 30 days free, then US$0.99/month or US$10/year. Payment details required. Cancel before the trial ends to avoid the first charge. Automatically renews afterward.</p>
+          <div class="subscription-buttons"><button type="button" data-plan="month">30 days free · $0.99/mo</button><button type="button" data-plan="year">30 days free · $10/yr</button></div>
           <p id="sales-readiness" class="field-hint" hidden>New subscriptions will open after setup is complete. Existing license activation remains available.</p>
           <p class="field-hint">Checkout opens on Stripe. The billing service receives a random purchase token and subscription status; your email messages, BCC address, and labels are never sent to it.</p>
         </div>
         <div id="subscription-pending" hidden><p id="pending-plan" class="field-hint"></p><p class="field-hint">After completing Stripe Checkout, return here to finish activation.</p><button id="continue-purchase" type="button" data-plan="month">Continue Checkout</button><button id="finish-purchase" type="button">Finish activation</button></div>
         <div id="subscription-manage" hidden><button id="manage-subscription" type="button">Manage subscription</button><button id="refresh-subscription" class="quiet-button" type="button">Refresh status</button></div>
-        <details id="license-restore"><summary>Already subscribed? Activate a license</summary><label for="license-key">License key</label><input id="license-key" type="password" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Paste your Gmail Pro license key"><button id="activate-license" type="button">Activate this browser</button></details>
+        <details id="license-restore" hidden><summary>Already subscribed? Activate a license</summary><label for="license-key">License key</label><input id="license-key" type="password" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Paste your Gmail Pro license key"><button id="activate-license" type="button">Activate this browser</button></details>
         <details id="saved-license" hidden><summary>Your license key</summary><p class="field-hint">Treat this key like a password. Save it privately to restore another browser. Anyone with it can use and manage your subscription.</p><input id="saved-license-key" type="password" readonly aria-label="Your saved Gmail Pro license key"><button id="reveal-license" class="quiet-button" type="button">Show license key</button><button id="forget-license" class="quiet-button" type="button">Deactivate this browser</button><p class="field-hint">Deactivating this browser does not cancel billing. Cancel through Manage subscription.</p></details>
+        <p class="field-hint">If paid plans return, you can choose whether to subscribe. Installing or using Gmail Pro does not authorize future charges.</p>
         <p id="billing-message" role="status" class="field-hint"></p>
         <p class="field-hint"><a href="https://gmail-pro.netlify.app/subscription-help" target="_blank" rel="noopener noreferrer">Subscription help and cancellation</a> stays available while mail features are paused.</p>
       </section>

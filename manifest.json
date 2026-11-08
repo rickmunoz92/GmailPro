@@ -1,12 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "1.0.2",
-  "background": { "service_worker": "background/settings.js" },
+  "version": "1.0.5",
+  "background": {
+    "service_worker": "background/settings.js"
+  },
   "description": "A cleaner Gmail with themes, Auto BCC, newest-first conversations, label organization, message-only zoom, and keyboard shortcuts.",
   "minimum_chrome_version": "118",
   "homepage_url": "https://gmail-pro.netlify.app",
-  "host_permissions": ["https://gmail-pro.netlify.app/*"],
+  "host_permissions": [
+    "https://gmail-pro.netlify.app/*"
+  ],
   "permissions": [
     "storage"
   ],

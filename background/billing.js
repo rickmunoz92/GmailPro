@@ -39,7 +39,7 @@
     await Promise.allSettled(tabs.map(tab => chrome.tabs.sendMessage(tab.id, { type: 'gmail-pro-entitlement-changed' })));
   }
   async function status(force = false) {
-    if (config?.required === false) return { active: true, development: true };
+    if (config?.required === false && !config.free) return { active: true, development: true };
     const state = await load(), now = Date.now();
     if (!state.licenseKey) return inactive();
     const lease = state.lease;
@@ -68,16 +68,17 @@
   }
   async function handle(message, sender) {
     if (!popup(sender) && !(gmail(sender) && message.action === 'status')) return { ok: false, error: 'Unauthorized request.' };
-    if (message.action === 'status') return { ok: true, status: await status() };
+    if (message.action === 'status') return { ok: true, status: config?.free ? { active: true, free: true } : await status() };
     if (message.action === 'refresh') { const next = await status(true); await notify(); return { ok: true, status: next }; }
     let state = await load();
     if (message.action === 'details') {
       let salesEnabled = false;
-      try { salesEnabled = (await request('public-config')).salesEnabled === true; } catch { /* show setup state */ }
+      try { if (!config?.free) salesEnabled = (await request('public-config')).salesEnabled === true; } catch { /* show setup state */ }
       return { ok: true, status: await status(), licenseKey: state.licenseKey || '', pending: !!state.pending,
         pendingPlan: state.pending?.plan || null, salesEnabled };
     }
     if (message.action === 'checkout') {
+      if (config?.free) throw new Error('Gmail Pro is free for now. No checkout is required.');
       if (!['month', 'year'].includes(message.plan)) throw new Error('Choose a subscription.');
       if (state.licenseKey) {
         const verified = await status(true);

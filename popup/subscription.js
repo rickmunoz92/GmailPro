@@ -11,6 +11,17 @@
     return result;
   }
   async function render() {
+    if (globalThis.GmailProBillingConfig?.free) {
+      $('subscription-status').textContent = 'All features are free for now. No payment details, subscription or license required.';
+      for (const id of ['subscription-purchase', 'subscription-pending', 'license-restore']) $(id).hidden = true;
+      // Only saved legacy billing records need management; free users make no
+      // service request, and a billing failure never blocks free access.
+      const result = await send('details');
+      $('subscription-manage').hidden = !result.licenseKey || result.status.review;
+      $('saved-license').hidden = !result.licenseKey;
+      $('saved-license-key').value = result.licenseKey;
+      return;
+    }
     if (globalThis.GmailProBillingConfig?.required === false) {
       $('subscription-status').textContent = 'Owner / development copy. Subscription checks are enabled in the Chrome Web Store release.';
       $('license-restore').hidden = true;
@@ -31,13 +42,14 @@
     if (status.active) {
       const date = status.renewsAt ? new Date(status.renewsAt).toLocaleDateString() : '';
       $('subscription-status').textContent = status.review ? 'Temporary review access is active.' : status.status === 'trialing' ?
-        `Your 7-day free trial is active.${date ? (status.cancelAtPeriodEnd ? ' Access ends ' : ' First payment scheduled ') + date + '.' : ''} Cancel before the trial ends to avoid the first charge.` :
+        `Your free trial is active.${date ? (status.cancelAtPeriodEnd ? ' Access ends ' : ' First payment scheduled ') + date + '.' : ''} Cancel before the trial ends to avoid the first charge.` :
         `Gmail Pro is active.${date ? (status.cancelAtPeriodEnd ? ' Access ends ' : ' Renews ') + date + '.' : ''}${status.offline ? ' Using your last verified status while offline.' : ''}`;
     } else if (status.unavailable) $('subscription-status').textContent = 'Could not verify your subscription. Check your connection, then refresh status.';
     else $('subscription-status').textContent = result.licenseKey ? 'Your subscription needs attention. Use Manage subscription or contact support.' : result.salesEnabled ? 'Choose a plan to activate Gmail Pro.' : 'Subscriptions are being prepared. Please check back soon.';
   }
   async function run(action, values) {
     if (busy) return;
+    if (action === 'checkout' && globalThis.GmailProBillingConfig?.free) return;
     if (action === 'checkout' && !accepted) { message('Review the disclosure and agree above before starting a new checkout. Subscription management stays available.'); return; }
     busy = true; message('Working…');
     section.querySelectorAll('button').forEach(button => { button.disabled = true; });
@@ -68,5 +80,5 @@
     section.querySelectorAll('[data-plan]').forEach(button => { button.disabled = busy || !accepted; });
   });
   section.querySelectorAll('[data-plan]').forEach(button => { button.disabled = true; });
-  render().catch(error => { $('subscription-status').textContent = 'Could not load subscription.'; message(error.message); });
+  render().catch(error => { if (!globalThis.GmailProBillingConfig?.free) $('subscription-status').textContent = 'Could not load subscription.'; message(error.message); });
 })();

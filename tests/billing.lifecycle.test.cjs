@@ -86,3 +86,13 @@ test('late settings and agreement reads cannot restart features after withdrawal
   f.setConsent(() => new Promise(done => { consentDone = done; })); const late = f.consent();
   f.hide(); consentDone({ accepted: true }); await late; assert.equal(f.starts.length, 0);
 });
+
+test('free features start only after agreement, without license reads, leases or polling', async () => {
+  const f = fixture({ accepted: false, required: false }); await f.settle();
+  assert.equal(f.starts.length, 0); assert.equal(f.licenseReads, 0);
+  f.setConsent({ accepted: true }); await f.consent(); await f.settle();
+  assert.equal(f.starts.length, 12); assert.equal(f.licenseReads, 0); assert.equal(f.timers.size, 0);
+  await f.focus(); assert.equal(f.licenseReads, 0);
+  f.setConsent({ accepted: false }); await f.consent();
+  assert.equal(f.stops.length, 12); assert.equal(f.licenseReads, 0);
+});
