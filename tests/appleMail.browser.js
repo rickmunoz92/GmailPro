@@ -360,6 +360,21 @@
     }
     feature.stop(); assert(css(shell).borderRadius==='16px','native corner restored');
   });
+  await test("unsplit inbox viewport themes its scrollbar track and corner in both themes", () => {
+    const viewport=document.createElement('div');viewport.className='Tm';
+    viewport.style.cssText='width:180px;height:100px;overflow:scroll;border-radius:16px;background:white';
+    viewport.innerHTML='<main role="main" style="width:500px;height:500px"></main>';workspace.append(viewport);
+    for(const appearanceTheme of ['dark','light']){
+      enable({appearanceTheme});
+      assert(css(viewport).borderRadius==='0px'&&css(viewport).backgroundColor===token('--gp-bg-primary'),'outer viewport has a square theme-colored canvas');
+      assert(getComputedStyle(viewport,'::-webkit-scrollbar').width==='8px','unsplit native viewport gets the scrollbar rules');
+      assert(getComputedStyle(viewport,'::-webkit-scrollbar-track').backgroundColor==='rgba(0, 0, 0, 0)','track does not paint a white strip');
+      assert(getComputedStyle(viewport,'::-webkit-scrollbar-corner').backgroundColor===token('--gp-bg-primary'),'corner matches the theme');
+      viewport.scrollTop+=20;viewport.dispatchEvent(new Event('scroll'));
+      assert(viewport.hasAttribute('data-gp-scroll-y'),'unsplit viewport tracks real vertical movement');
+    }
+    feature.stop();assert(css(viewport).borderRadius==='16px'&&!viewport.hasAttribute('data-gp-scroll-y'),'OFF restores native viewport and clears activity');
+  });
   await test("native unread class changes only the dot, not text or background", () => {
     const node = row(); enable(); const bg = css(node).backgroundColor;
     const textStyle = () => [".sender", ".bqe", ".xW span"].map(selector => { const style = css(node.querySelector(selector)); return [style.color, style.fontWeight]; });

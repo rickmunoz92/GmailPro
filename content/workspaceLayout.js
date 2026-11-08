@@ -8,7 +8,7 @@
   let options = { ...app.settings.defaults }, running = false, generation = 0, frame = 0;
   let observer, bootstrap, deadline, left, right, status, setup, setupAllowed = true;
   let leftSaving = false, rightSaving = false, programmaticRight = false, lifecycle;
-  let rightAttempts = new WeakMap();
+  let rightAttempts = new WeakMap(), rightRetry, inputPause;
   let readingOwner, readingHandled, readingLookup, readingMarked=false, readingMarker;
   let presetActive=false, presetHost, presetList, presetReading, drag;
   const presetStyles=new Map();
@@ -93,9 +93,17 @@
     if (changed) window.dispatchEvent(new Event('resize'));
   }
   function applyRight() {
-    if (!right || rightSaving || rightState(right) === options.rightRailCollapsed ||
-        rightAttempts.get(right) === options.rightRailCollapsed) return;
-    rightAttempts.set(right,options.rightRailCollapsed);
+    if (!right || rightSaving || document.visibilityState !== 'visible') return;
+    if (rightState(right) === options.rightRailCollapsed) {
+      clearTimeout(rightRetry); rightRetry=undefined; return;
+    }
+    const previous=rightAttempts.get(right);
+    const count=previous?.desired===options.rightRailCollapsed ? previous.count : 0;
+    if (rightRetry || count >= 3) return;
+    rightAttempts.set(right,{desired:options.rightRailCollapsed,count:count+1});
+    // Gmail can expose the arrow before attaching its native handler. Verify
+    // the resulting state, with at most three spaced attempts per preference.
+    rightRetry=setTimeout(()=>{rightRetry=undefined;schedule();},500);
     programmaticRight = true;
     try { right.click(); } finally { programmaticRight = false; }
   }
@@ -135,6 +143,7 @@
     if (!running || !right || target !== right || programmaticRight || event.button !== 0) return;
     if (rightSaving) { event.preventDefault(); event.stopImmediatePropagation(); return; }
     const token = generation, node = right, previous = options.rightRailCollapsed;
+    clearTimeout(rightRetry); rightRetry=undefined; rightAttempts.delete(node);
     const desired = !rightState(node); options.rightRailCollapsed = desired; rightSaving = true;
     feedback();
     try {
@@ -163,6 +172,10 @@
   function canInitialize(owner, token, signal) {
     return running && generation === token && !signal.aborted && setupAllowed && account() === owner &&
       document.visibilityState === 'visible';
+  }
+  function readingBusy() {
+    return document.activeElement?.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])') ||
+      [...document.querySelectorAll('[role="menu"], [role="dialog"], form:has(input[name="composeid"])')].some(shown);
   }
   function readingTarget(current) {
     const available=current.list.getBoundingClientRect().width+current.reading.getBoundingClientRect().width;
@@ -194,7 +207,7 @@
       if (!current) {
         // Open only the verified native split menu, never another Gmail menu.
         const button = one([...document.querySelectorAll(S.splitMenuButton)].filter(visible));
-        if (!button || [...document.querySelectorAll('[role="menu"], [role="dialog"], form:has(input[name="composeid"])')].some(shown)) return;
+        if (!button || readingBusy()) return;
         button.click();
         const item=await waitForChrome(()=>{
           const menus=[...document.querySelectorAll('[role="menu"]')].filter(node=>visible(node)&&
@@ -221,17 +234,28 @@
       }
     } finally {
       if (setup?.controller === controller) {
-        setup = undefined; setupAllowed = false;
+        setup = undefined;
+        if (!signal.aborted) setupAllowed = false;
         if(!readingHandled&&!presetActive){releasePreset();readingStage('native-fallback');}schedule();
       }
     }
   }
   function userInteracted(event) {
     if (!event.isTrusted) return;
-    setupAllowed = false; setup?.controller.abort();
-    if(!readingHandled&&!presetActive)readingStage('paused-after-input');
     const target=event.target instanceof Element&&event.target;
     const handle=target?.closest(splitSelector+' > .Nt');
+    const layoutInput=safe(target)&&(handle||target.closest(S.splitMenuButton)||
+      target.closest('[aria-label="Toggle split pane mode"]')||target.closest('[role="menu"].apL'));
+    if (layoutInput) {
+      setupAllowed=false; clearTimeout(inputPause); inputPause=undefined; setup?.controller.abort();
+    } else if (setupAllowed&&!readingHandled&&!presetActive) {
+      // Ordinary clicks/typing while Gmail loads defer the preset. They are
+      // not a reading-layout preference and must not cancel it for this visit.
+      clearTimeout(inputPause);
+      inputPause=setTimeout(()=>{inputPause=undefined;schedule();},500);
+      setup?.controller.abort();
+    }
+    if(!readingHandled&&!presetActive&&(layoutInput||inputPause))readingStage('paused-after-input');
     const current=handle&&split(), owner=current&&account();
     if(event.type==='pointerdown'&&event.button===0&&owner){
       drag={owner,token:generation,id:event.pointerId,start:event.clientX,moved:false,preset:presetActive,
@@ -310,19 +334,22 @@
     const rails = [...document.querySelectorAll(S.appRail)].filter(safe);
     placeLeft(one(rails));
     const controls = [...document.querySelectorAll(S.sidePanelToggle)].filter(visible);
-    right = one(controls); applyRight();
+    const nextRight=one(controls);
+    if (right!==nextRight) {clearTimeout(rightRetry);rightRetry=undefined;}
+    right = nextRight; applyRight();
     const owner = account(), current = split();
     if(setup&&setup.owner!==owner)setup.controller.abort();
     readAccount(owner);
     if(presetActive&&!readingHandled&&current&&(presetHost!==current.host||presetList!==current.list||presetReading!==current.reading))applyPreset(current);
-    const splitButtons = [...document.querySelectorAll(S.splitMenuButton)].filter(safe);
-    watch([left?.node,right,current?.host,...splitButtons,...document.querySelectorAll(S.labelAccount)]);
+    const allSplitButtons = [...document.querySelectorAll(S.splitMenuButton)].filter(safe);
+    const splitButtons = allSplitButtons.filter(visible);
+    watch([left?.node,right,current?.host,...allSplitButtons,...document.querySelectorAll(S.labelAccount)]);
     const classicMailbox=document.querySelector('[role="navigation"]:has(> .aic > .z0 > [gh="cm"][role="button"])');
     if ((left || classicMailbox) && right && owner && (current || splitButtons.length === 1 || readingHandled)) {
       bootstrap?.disconnect(); bootstrap=undefined; clearTimeout(deadline);
     }
-    if (!setup && setupAllowed && owner && readingHandled===false &&
-        document.visibilityState === 'visible' && (current || splitButtons.length===1)) {
+    if (!setup && setupAllowed && !inputPause && owner && readingHandled===false &&
+        document.visibilityState === 'visible' && !readingBusy() && (current || splitButtons.length===1)) {
       const controller = new AbortController(); setup = {controller,owner};
       const token=generation;
       initializeReading(owner,token,controller).catch(()=>{
@@ -333,12 +360,14 @@
   function stop() {
     running = false; generation++; cancelAnimationFrame(frame); frame=0;
     setup?.controller.abort(); setup=undefined; lifecycle?.abort();
+    clearTimeout(rightRetry);rightRetry=undefined;clearTimeout(inputPause);inputPause=undefined;
     observer?.disconnect(); bootstrap?.disconnect(); clearTimeout(deadline); spine.clear();
     document.removeEventListener('click',nativeRightClicked,true);
     document.removeEventListener('click',nativeReadingChoiceClicked,true);
     document.removeEventListener('pointerup',dragEnded,true);document.removeEventListener('pointercancel',dragEnded,true);
     document.removeEventListener('pointermove',dragMoved,true);drag=undefined;
     document.removeEventListener('pointerdown',userInteracted,true); document.removeEventListener('keydown',userInteracted,true);
+    document.removeEventListener('focusout',schedule);
     document.removeEventListener('visibilitychange',schedule); window.removeEventListener('resize',schedule);
     window.removeEventListener('hashchange',schedule); window.removeEventListener('popstate',schedule);
     releaseLeft(); right=undefined; leftSaving=false; rightSaving=false; feedback();
@@ -360,6 +389,7 @@
       document.addEventListener('click',nativeReadingChoiceClicked,true);
       document.addEventListener('pointerup',dragEnded,true);document.addEventListener('pointercancel',dragEnded,true);
       document.addEventListener('pointerdown',userInteracted,true); document.addEventListener('keydown',userInteracted,true);
+      document.addEventListener('focusout',schedule);
       document.addEventListener('visibilitychange',schedule); window.addEventListener('resize',schedule);
       window.addEventListener('hashchange',schedule); window.addEventListener('popstate',schedule);
     }

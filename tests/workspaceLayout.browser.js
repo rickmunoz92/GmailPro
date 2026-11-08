@@ -11,7 +11,7 @@
   },readingLayoutHandled:async owner=>handled.has(owner),markReadingLayoutHandled:async owner=>{
     if(failure)throw Error('storage unavailable');handled.add(owner);writes.push({layoutHandled:owner});
   }};
-  function fixture({split=true,closed=false,initial={},size=1400,minList=200,minReading=240,ignoreRight=false,menuDelay=0,splitDelay=0}={}) {
+  function fixture({split=true,closed=false,initial={},size=1400,minList=200,minReading=240,ignoreRight=false,ignoreRightClicks=0,menuDelay=0,splitDelay=0}={}) {
     feature.stop(); saved=structuredClone(initial); writes=[]; failure=false; handled=new Set();
     document.documentElement.className='gmail-pro-apple-mail-mode';
     document.documentElement.dataset.gpTheme='dark'; document.documentElement.dataset.gpAccent='blue';
@@ -21,7 +21,7 @@
       nativeRightClicks:0,menuClicks:0,splitSelections:0,drags:0,appClicks:0,ratio:80};
     function attachRight(node) {
       node.addEventListener('click',()=>{
-        f.nativeRightClicks++; if(ignoreRight)return;
+        f.nativeRightClicks++; if(ignoreRight||f.nativeRightClicks<=ignoreRightClicks)return;
         const close=node.getAttribute('aria-label')==='Hide side panel';
         node.setAttribute('aria-label',close?'Show side panel':'Hide side panel');
         workspace.querySelector('.bAw').toggleAttribute('data-closed',close);
@@ -30,6 +30,7 @@
       node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
     }
     f.right=workspace.querySelector('.brC-dA-I'); f.right.setAttribute('aria-label',closed?'Show side panel':'Hide side panel');
+    f.right.innerHTML='<div class="aT5-aOt-I-JX-atM"></div><div class="aT5-aOt-I-JX-Jw"><svg width="20" height="20" viewBox="0 0 24 24" fill="#5F6368"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>';
     workspace.querySelector('.bAw').toggleAttribute('data-closed',closed); workspace.querySelector('aside').style.display=closed?'none':''; attachRight(f.right);
     f.replaceRight=()=>{const n=f.right.cloneNode(true);f.right.replaceWith(n);f.right=n;attachRight(n);return n;};
     for(const node of f.rail.querySelectorAll('[role=link]'))node.addEventListener('click',()=>f.appClicks++);
@@ -101,6 +102,21 @@
     results.textContent='Choose native Split options → No split, release the delayed read, then restart layout.';
     await f.start();return;
   }
+  if(new URLSearchParams(location.search).has('startup')){
+    const f=fixture({split:false}), realRead=app.settings.readingLayoutHandled;
+    let release;
+    app.settings.readingLayoutHandled=()=>new Promise(resolve=>release=resolve);
+    const button=document.createElement('button');button.textContent='Continue normal startup';workspace.append(button);
+    button.addEventListener('click',async()=>{
+      app.settings.readingLayoutHandled=realRead;release(false);
+      await new Promise(resolve=>setTimeout(resolve,800));await frames();
+      const pass=f.splitSelections===1&&Math.abs(width(f.list)/(width(f.list)+width(f.reading))-.25)<.01&&!handled.size;
+      results.textContent=pass?'PASS ordinary early input defers setup, then initializes 25/75 without recording a native choice.':'FAIL early input canceled the initial layout.';
+      results.dataset.done='true';results.dataset.failures=pass?'0':'1';
+    });
+    results.textContent='Click Continue normal startup while the account preference is still loading.';
+    await f.start();return;
+  }
   async function test(name,run){try{await run();passes++;results.textContent+='PASS '+name+'\n';}catch(error){failures++;results.textContent+='FAIL '+name+': '+error.message+'\n';}finally{feature.stop();}}
   results.textContent='';
   await test('both rails default collapsed, native right split is enabled once and the list gets a quarter of usable space',async()=>{
@@ -118,6 +134,19 @@
     const f=fixture({split:false,menuDelay:150,splitDelay:150});await f.start();await frames(50);
     assert(f.splitSelections===1&&f.drags===0,'async native readiness completes once');
     assert(Math.abs(width(f.list)/(width(f.list)+width(f.reading))-.25)<.01,'delayed view reaches quarter width');
+  });
+  await test('hidden cached split controls do not block the visible inbox default',async()=>{
+    const f=fixture({split:false}), cached=f.main.querySelector('[gh=tm]').cloneNode(true);
+    cached.style.display='none';f.main.prepend(cached);await f.start();
+    assert(f.menuClicks===1&&f.splitSelections===1,'only the visible native menu is opened');
+    assert(Math.abs(width(f.list)/(width(f.list)+width(f.reading))-.25)<.01,'visible inbox gets the preset');
+  });
+  await test('typing in an active field defers setup until focus leaves it',async()=>{
+    const f=fixture({split:false}), input=document.createElement('input');
+    workspace.querySelector('header').append(input);input.focus();await f.start();
+    assert(f.menuClicks===0,'initialization does not take focus from typing');
+    input.blur();await frames();
+    assert(f.splitSelections===1&&Math.abs(width(f.list)/(width(f.list)+width(f.reading))-.25)<.01,'focus leaving resumes the default');
   });
   await test('native resizing remains free and later starts preserve its saved ratio',async()=>{
     const f=fixture();await f.start();await f.drag(.4);const count=f.drags;
@@ -142,6 +171,25 @@
     assert(saved.rightRailCollapsed===false&&f.right.getAttribute('aria-label')==='Hide side panel','native expansion saved');
     assert(width(f.rail)===0,'right expansion leaves left collapsed');
     const clicks=f.nativeRightClicks;feature.stop();await f.start();assert(f.nativeRightClicks===clicks,'explicit right choice retained');
+  });
+  await test('right collapse retries a not-yet-ready handler and stops after success',async()=>{
+    const f=fixture({ignoreRightClicks:1});await f.start();
+    await new Promise(resolve=>setTimeout(resolve,600));await frames();
+    assert(f.nativeRightClicks===2&&f.right.getAttribute('aria-label')==='Show side panel','startup collapse recovers');
+    assert(!writes.some(p=>'rightRailCollapsed'in p),'default recovery does not save a user preference');
+    await new Promise(resolve=>setTimeout(resolve,550));await frames();assert(f.nativeRightClicks===2,'no retries after success');
+  });
+  await test('native right edge control stays visible and clickable in both themes',async()=>{
+    const f=fixture();await f.start();
+    for(const theme of ['light','dark']){
+      document.documentElement.dataset.gpTheme=theme;
+      const box=f.right.getBoundingClientRect(), style=getComputedStyle(f.right);
+      assert(box.width===32&&box.height===56&&box.right===innerWidth&&box.bottom===innerHeight,'full edge target fits the viewport');
+      assert(f.right.contains(document.elementFromPoint(box.left+16,box.top+28)),'native button receives pointer hits');
+      assert(getComputedStyle(f.right.querySelector('svg')).fill===style.color,'native arrow follows theme contrast');
+    }
+    feature.stop();document.documentElement.classList.remove('gmail-pro-apple-mail-mode');
+    assert(getComputedStyle(f.right).position!=='fixed','mode OFF restores native position');
   });
   await test('failed rail saves restore the prior view with actionable feedback',async()=>{
     const f=fixture();await f.start();failure=true;
@@ -168,8 +216,12 @@
     assert(Math.abs(width(f.list)-300)<2&&width(f.reading)>=240,'native minimum wins over quarter');
     assert(!f.list.style.width&&!f.reading.style.width&&!f.list.style.flexBasis,'no permanent sizing override');
   });
-  await test('unknown account and duplicate controls fail closed; an ignored native toggle is never retried',async()=>{
-    let f=fixture({ignoreRight:true});await f.start();await frames(30);assert(f.nativeRightClicks===1,'ignored native click has no loop');
+  await test('unknown account and duplicate controls fail closed; ignored native toggles have bounded retries',async()=>{
+    let f=fixture({ignoreRight:true});await f.start();feature.stop();
+    await new Promise(resolve=>setTimeout(resolve,550));assert(f.nativeRightClicks===1,'OFF cancels a pending retry');
+    f=fixture({ignoreRight:true});await f.start();await new Promise(resolve=>setTimeout(resolve,1600));await frames();
+    assert(f.nativeRightClicks===3,'ignored native toggle stops after three attempts');
+    feature.stop();await new Promise(resolve=>setTimeout(resolve,550));assert(f.nativeRightClicks===3,'OFF cancels pending retry work');
     f=fixture();workspace.querySelector('header button').removeAttribute('aria-label');await f.start();
     assert(f.drags===0&&!handled.size,'unverified account gets no saved layout');
     f=fixture({split:false});workspace.querySelector('.fixture-stage').prepend(f.rail.cloneNode(true));

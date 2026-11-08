@@ -88,7 +88,7 @@
   }
 
   // Only Gmail-owned scroll containers; never authored message/editor nodes.
-  const scrollSelector = '[role="main"] :is(.Nu, .Nr, .ii:has(> .a3s)), .nH:has(> [role="main"]), .V3:has(.aim)';
+  const scrollSelector = '[role="main"] :is(.Nu, .Nr, .ii:has(> .a3s)), .Tm:has([role="main"]), .nH:has(> [role="main"]), .V3:has(.aim)';
   let scrollPositions = new WeakMap();
   const scrolling = new Map();
   const scrollOptions = { capture: true, passive: true };

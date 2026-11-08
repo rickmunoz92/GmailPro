@@ -10,7 +10,7 @@
 @scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
   body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
   .nH:has(> [role="main"]) { border-radius: 0 !important; background: var(--gp-bg-primary) !important; }
-  [role="banner"], [role="main"], :is(.AO, .aeF, .bkK):has([role="main"]), [gh="tm"], [gh="tl"],
+  [role="banner"], [role="main"], :is(.AO, .aeF, .bkK, .Tm):has([role="main"]), .bAw, [gh="tm"], [gh="tl"],
   [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY) {
     background: var(--gp-bg-primary) !important;
     border-radius: 0 !important;
@@ -774,6 +774,23 @@ html.gmail-pro-apple-mail-mode [role="navigation"].WR[data-gp-app-rail][data-gp-
 .gmail-pro-app-rail-toggle:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: -3px; }
 .gmail-pro-app-rail-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .gmail-pro-app-rail-toggle[data-collapsed="false"] svg { transform: rotate(180deg); }
+/* Keep Gmail's real side-panel button and handlers, with a visible edge target
+   even when the native collapsed rail is only 16px wide. */
+@scope (html.gmail-pro-apple-mail-mode .bAw) to (.ii, .a3s, [contenteditable], [role="dialog"], [role="region"]) {
+  .brC-dA-I-Jw { overflow: visible !important; background: var(--gp-bg-primary) !important; }
+  .brC-dA-I-Jw > [role="button"].brC-dA-I:is([aria-label="Show side panel"], [aria-label="Hide side panel"]) {
+    position: fixed !important; right: 0 !important; bottom: 0 !important; z-index: 102;
+    width: 32px !important; height: 56px !important; display: grid !important; place-items: center;
+    box-sizing: border-box; padding: 0 !important;
+    border: 1px solid var(--gp-border); border-right: 0; border-radius: 28px 0 0 28px;
+    background: var(--gp-bg-tertiary) !important; color: var(--gp-text-secondary) !important;
+    visibility: visible !important; opacity: 1 !important; cursor: pointer;
+  }
+  .brC-dA-I:is(:hover, :focus-visible) { background: var(--gp-hover) !important; }
+  .brC-dA-I:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: -3px; }
+  .brC-dA-I .aT5-aOt-I-JX-atM { display: none !important; }
+  .brC-dA-I svg { fill: currentColor !important; filter: none !important; }
+}
 .gmail-pro-layout-status {
   position: fixed; left: 40px; bottom: 12px; z-index: 120; max-width: 340px;
   padding: 10px 14px; border: 1px solid var(--gp-border); border-radius: 6px;
@@ -920,7 +937,7 @@ html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose svg {
 
 /* Fixed-size transparent tracks avoid layout jumps. Activity belongs to each
    pane and axis; hovering or scrolling another pane never reveals a thumb. */
-@scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *, [role="region"] *)) to (.a3s, [contenteditable], [role="dialog"], [role="region"]) {
+@scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .Tm:has([role="main"]), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *, [role="region"] *)) to (.a3s, [contenteditable], [role="dialog"], [role="region"]) {
   :scope {
     scrollbar-color: auto !important;
     scrollbar-width: auto !important;

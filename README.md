@@ -162,6 +162,9 @@ pane widths apply in narrow windows. Drag the native divider to resize; Gmail
 keeps control of saved pane widths. The initial 25/75 preset stays reversible;
 manual layout choices are remembered using a small hashed-account marker and
 take priority on later starts.
+Ordinary input during startup briefly defers initialization; it does not cancel
+the preset. Active typing, open menus and composers keep their focus until the
+workspace is available. Hidden cached Gmail controls do not block the visible view.
 Unknown account or layout structures keep Gmail's native behavior. The vertical
 divider paints a single 1px line inside Gmail's original
 resize handle, keeping its full drag area. The line is pale gray in Light and
@@ -171,7 +174,9 @@ windows and collapsed navigation retain Gmail's sizing. The collapsible header d
 pane to Gmail’s measured viewport.
 
 The left Mail/Chat/Meet rail and right Workspace side panel start collapsed.
-Use the left edge arrow or Gmail's native right edge arrow to reopen them.
+Use the left edge arrow or the theme-colored native right edge arrow to reopen them.
+The right control stays visible at the bottom edge in both themes. If Gmail's
+native handler is not ready, startup collapse makes at most three spaced attempts.
 Each explicit expansion/collapse saves independently. The mailbox sidebar and
 all original app links remain available; disabling Apple Mail Mode restores the
 native left rail and removes its extra arrow. See [workspace layout QA](tests/workspaceLayout-QA.md).
@@ -186,6 +191,7 @@ indicators use the current interface theme without changing message HTML.
 
 - **Scrollbars:** Gmail pane thumbs appear only on the axis that moves and hide
   after 700ms idle. Tracks keep a stable size, with a square, theme-colored corner.
+  This includes the unsplit inbox viewport as well as split reading panes.
   Message/editor content retains its native scrolling and formatting.
 - **Unread:** Gmail's `.zE` state displays an 8px accent dot aligned with the sender line and
   identical text styling for read and unread messages: bold senders with regular

@@ -1,5 +1,29 @@
 # Workspace layout and shared Gmail navigation — October 29, 2026
 
+## Fresh-install fixes — November 8, 2026
+
+- Ordinary early pointer/keyboard input defers the 25/75 preset for 500ms instead
+  of permanently canceling it. Active text fields, menus, dialogs and composers
+  defer setup; leaving a text field resumes discovery. Explicit split selections
+  and divider gestures retain priority, including before a delayed preference read.
+- Only visible split controls count toward the one-control initialization gate;
+  cached hidden toolbars remain observed for later view transitions.
+- Right-panel collapse verifies native state and retries an ignored startup click
+  at 500ms intervals, at most three attempts per control/preference. Success,
+  explicit clicks, replacement controls and mode OFF cancel pending retry work.
+- Gmail's existing right arrow retains its label, keyboard behavior and native
+  handler, with a 32×56px theme-colored target at the bottom-right edge.
+- The native unsplit `.Tm` viewport now shares pane scrollbar styling/activity
+  tracking. Its background/corner and the right rail follow the active theme.
+
+Focused checks: `node scripts/validate.cjs`, `workspaceLayout.html`,
+`appleMail.html`, and trusted-input workspace fixtures `?startup=1`, `?manual=1`,
+and `?cancel=1`. The fixtures contain synthetic mail only. Results and any live
+store-install limitations are reported with delivery; editing the canonical
+checkout does not update an already-installed Chrome Web Store package.
+
+## Original implementation
+
 `workspaceLayout.js` owns the initial right reading pane and the independent
 left Mail/Chat/Meet and right Workspace rail preferences. Both rails default to
 collapsed. The left control is an accessible native button; the right control
