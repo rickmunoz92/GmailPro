@@ -26,8 +26,15 @@ updated extension, overview and feature-card screenshots to Chrome Web Store.
   completed layout/appearance pass (16/16 and 80/80) plus three trusted-input
   fixtures. All five slides were visually reviewed at 1280×800 and checked for
   card/page overflow. This does not establish a live Store-installed fix.
-- Submission status: package and listing assets prepared; dashboard submission
-  receipt is recorded below once Google accepts the replacement revision.
+- Submission receipt: Google confirmed **Your extension was submitted for review**
+  on November 8. The draft package was verified as **1.0.6** while Published
+  remained **1.0.5**. All five feature screenshots and the 4,555-character
+  overview were saved; private reviewer notes were updated to 443 characters.
+- Existing automatic publication remained checked in the final confirmation.
+  Google approval/rollout is still pending. The public 1.0.5 installation is not
+  proof of the 1.0.6 fixes; a Store-installed smoke test follows availability.
+- Readiness and submission evidence are local-only under
+  `artifacts/store/1.0.6/`, including package/slide checksums and the receipt.
 
 The public site is https://gmail-pro.netlify.app. The Chrome Web Store release
 has not been published. Production sales remain closed until acceptance below
