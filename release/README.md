@@ -13,10 +13,19 @@ Validation: reading pane 47/47, automatic read 72/72, startup browser integratio
 read-status case was not reproduced live. Version-only packaging follows those
 checks; free access, consent versions and extension permissions are unchanged.
 
-Candidate: `dist/Gmail-Pro-1.0.7.zip`. Chrome Web Store upload/submission remains
-manual because the browser tool blocks Store automation. This is not a review
-submission, approval or public publication receipt. Preserve the current Store
-listing, promo video, screenshots and automatic-publication preference.
+Submitted: `dist/Gmail-Pro-1.0.7.zip` (43 production files), SHA-256
+`54d547ac9a54ca9fb4bf7201fb76b2290f362826dd7916bd306698e165b0f788`.
+
+On November 9, the native Chrome interface successfully handled the upload
+after the browser scripting interface could not attach to the Store dashboard.
+A stale dashboard initially showed 1.0.6 pending review; after account-session
+refresh, the Package page and public listing both showed 1.0.6 published.
+The uploaded draft was verified as 1.0.7 before submission. Existing listing
+copy, screenshots and promo video were preserved. The final dialog had
+automatic publication checked, and Google confirmed **Your extension was
+submitted for review**. This is a submission receipt; 1.0.7 approval and public
+availability remain pending Google review. Version 1.0.6 was the public release
+at submission time.
 
 
 ## November 8, 2026 — 1.0.6 layout and listing update
