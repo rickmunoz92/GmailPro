@@ -53,6 +53,47 @@ function fixture(initial = {}) {
     get writes() { return writes; }, fail(error) { failure = error; } };
 }
 
+for (const mode of ['idle-only', 'early-and-idle', 'unaccepted']) test(`manifest startup recovers ${mode} without duplicate owners or preference writes`, async () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+  const messages = new Set(), changes = new Set(), pagehide = new Set(), starts = [];
+  let accepted = mode !== 'unaccepted', reads = 0, writes = 0;
+  const stored = { [prefix+'appleMailModeEnabled']:false, [prefix+'autoBccEnabled']:true, [prefix+'bccAddress']:'archive@example.test' };
+  const context = vm.createContext({
+    navigator:{platform:'MacIntel'}, TextEncoder, setTimeout, clearTimeout,
+    document:{visibilityState:'visible',addEventListener(){},removeEventListener(){}},
+    window:{addEventListener(type,listener){if(type==='pagehide')pagehide.add(listener);},removeEventListener(){}},
+    chrome:{
+      runtime:{onMessage:{addListener:fn=>messages.add(fn),removeListener:fn=>messages.delete(fn)},
+        async sendMessage(message){assert.equal(message.type,'gmail-pro-consent');assert.equal(message.action,'status');return {ok:true,status:{accepted}};}},
+      storage:{sync:{async get(keys){reads++;return Object.fromEntries(keys.filter(key=>key in stored).map(key=>[key,stored[key]]));},async set(){writes++;}},
+        onChanged:{addListener:fn=>changes.add(fn),removeListener:fn=>changes.delete(fn)}}
+    }
+  });
+  const run = registration => registration.js.forEach(file=>vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file}));
+  let owners;
+  if(mode==='early-and-idle') {run(manifest.content_scripts[0]);owners={...context.GmailPro};}
+  run(manifest.content_scripts[1]);
+  const app=context.GmailPro;
+  if(owners) for(const [key,value] of Object.entries(owners)) assert.equal(app[key],value,`${key} owner survives the idle replay`);
+  assert.equal(typeof app.settings.load,'function');assert.equal(typeof app.startAutoBcc,'function');
+  const features=['autoBcc','reverseThreads','messageList','autoPaging','appearance','workspaceLayout','headerLayout','readingPane','floatingCompose','keyboardShortcuts','messageZoom','labelOrder'];
+  // Exercise the real manifest module constructors and lifecycle/gates. Feature
+  // rendering itself has browser fixtures; these spies isolate startup ownership.
+  for(const name of features) {assert.equal(typeof app[name]?.start,'function',`${name} initialized`);app[name]={...app[name],start:settings=>starts.push({name,settings}),stop(){}};}
+  await new Promise(resolve=>setImmediate(resolve));
+  if(!accepted) {
+    assert.equal(starts.length,0);assert.equal(reads,0);assert.equal(writes,0);
+    accepted=true;for(const listener of messages)listener({type:'gmail-pro-consent-changed'});
+    await new Promise(resolve=>setImmediate(resolve));
+  }
+  assert.deepEqual(starts.map(entry=>entry.name).sort(),[...features].sort());
+  assert.ok(starts.every(entry=>entry.settings.appleMailModeEnabled===false && entry.settings.autoBccEnabled===true && entry.settings.bccAddress==='archive@example.test'));
+  assert.equal(reads,1);assert.equal(writes,0);assert.equal(changes.size,1);assert.equal(messages.size,1);assert.equal(pagehide.size,1);
+  run(manifest.content_scripts[1]);await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(starts.length,features.length);assert.equal(reads,1);assert.equal(changes.size,1);assert.equal(messages.size,1);assert.equal(pagehide.size,1);
+  for(const listener of pagehide)listener();assert.equal(changes.size,0);assert.equal(messages.size,0);
+});
+
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
   assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });

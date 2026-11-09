@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const app = (globalThis.GmailPro ??= {}), legal = globalThis.GmailProLegal;
+  if (app.consent) return;
   async function send(action, values = {}) {
     const result = await chrome.runtime.sendMessage({ type: 'gmail-pro-consent', action, ...values });
     if (!result?.ok) throw new Error(result?.error || 'Could not load your agreement. Open Gmail Pro and try again.');

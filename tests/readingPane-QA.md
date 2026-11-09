@@ -1,5 +1,53 @@
 # Reading pane and persistent native actions — 0.9.0
 
+## Startup recovery after reload — November 9, 2026
+
+Live reload exposed an absent early initialization phase: the idle Auto BCC
+script threw while reading `app.settings.defaults`, followed by a missing
+`GmailPro.startAutoBcc` function. The idle manifest entry now includes the same
+ordered local JS/CSS prerequisites as early startup. Existing module guards
+retain one owner when both phases run; consent initialization now has the same
+guard. The cause of the missing early injection in Chrome was not established.
+
+The real manifest lists are checked for alignment. Repository validation passed
+**47/47**, including idle-only startup, early-plus-idle replay, preserved saved
+preferences, agreement gating, no writes and cleanup. Consent checks passed
+**4/4**. The existing recipient/read-status fixture results below still apply;
+their production logic was unchanged by this startup follow-up.
+Chrome's full-script startup fixture passed **3/3**, executing the actual
+manifest JS/CSS registrations with real feature controllers and synthetic
+storage. It covers missing early startup, replay without duplicate ownership,
+agreement gating and subscription cleanup. After the user reloaded the corrected
+manifest and refreshed Gmail, the live mode marker was still absent. The ordinary
+extension popup then confirmed that the current Terms/Privacy agreement was not
+accepted, intentionally pausing every feature. The user reviewed and enabled it,
+then confirmed Gmail Pro was restored and CC displayed correctly. The inactive
+service-worker badge alone was not evidence of a worker failure.
+
+## Correct To/CC membership — November 9, 2026
+
+Gmail's condensed header combines To and CC contacts under one `to` fragment;
+the previous formatter incorrectly labeled that whole list `To:`. The controller
+now reads the same message's native Details table and groups existing contact
+nodes into To, CC and BCC rows in native field order. It primes the lazy Details
+table once with a native open/close gesture and restores focus. Deferred popups
+have a bounded cleanup window; user input takes ownership immediately.
+
+Only complete, unique address membership is accepted. Unknown/truncated or
+ambiguous summaries retain their contacts with a `To/CC:` label. Quoted message
+HTML cannot provide field membership. Original contact nodes, handlers, wrappers
+and header markup restore when the mode is disabled. Message IDs bind retained
+table ownership; no recipient data is logged, persisted or sent elsewhere.
+
+Validation: `node scripts/validate.cjs` passed all 44 settings/lifecycle checks
+and manifest/resource/syntax/permission validation. The Chrome reading-pane
+fixture passed **47/47**, including merged headers, native field order, BCC,
+deferred Details, comments, restoration and invalid/incomplete membership.
+Live Gmail's Details table confirmed the reported To/CC assignments before the
+fix. After reloading and reviewing/enabling the current agreement, the user
+confirmed the corrected CC line in live Gmail. Browser policy blocked direct
+extension-management actions, so the user performed the reloads and acceptance.
+
 ## Recipient rows and email copying — November 4, 2026
 
 - To, CC and BCC use consecutive lines, omitting absent fields. Long lists wrap

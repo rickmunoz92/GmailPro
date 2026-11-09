@@ -1,0 +1,461 @@
+{
+  "ok": true,
+  "outputDir": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review",
+  "frames": [
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-01-at-0.3s.png",
+      "time": 0.3,
+      "role": "beat",
+      "label": "reveal"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-02-at-1.635s.png",
+      "time": 1.635,
+      "role": "beat",
+      "label": "reveal mid"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-03-at-3.57s.png",
+      "time": 3.57,
+      "role": "beat",
+      "label": "newest"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-04-at-5.73s.png",
+      "time": 5.73,
+      "role": "beat",
+      "label": "newest mid"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-05-at-8.49s.png",
+      "time": 8.49,
+      "role": "beat",
+      "label": "zoom"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-06-at-10.37s.png",
+      "time": 10.37,
+      "role": "beat",
+      "label": "zoom mid"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-07-at-12.85s.png",
+      "time": 12.85,
+      "role": "beat",
+      "label": "labels"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-08-at-13.92s.png",
+      "time": 13.92,
+      "role": "beat",
+      "label": "labels mid"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-09-at-15.59s.png",
+      "time": 15.59,
+      "role": "beat",
+      "label": "filing"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-10-at-17.475s.png",
+      "time": 17.475,
+      "role": "beat",
+      "label": "filing mid"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-11-at-19.96s.png",
+      "time": 19.96,
+      "role": "beat",
+      "label": "hero"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-12-at-21.83s.png",
+      "time": 21.83,
+      "role": "beat",
+      "label": "hero mid"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-1-at-3.07s.png",
+      "time": 3.07,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-2-at-3.17s.png",
+      "time": 3.17,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-3-at-3.27s.png",
+      "time": 3.27,
+      "role": "seam",
+      "label": "cut reveal -> newest"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-4-at-3.37s.png",
+      "time": 3.37,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-5-at-3.47s.png",
+      "time": 3.47,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-1-at-7.99s.png",
+      "time": 7.99,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-2-at-8.09s.png",
+      "time": 8.09,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-3-at-8.19s.png",
+      "time": 8.19,
+      "role": "seam",
+      "label": "cut newest -> zoom"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-4-at-8.29s.png",
+      "time": 8.29,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-5-at-8.39s.png",
+      "time": 8.39,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-1-at-12.35s.png",
+      "time": 12.35,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-2-at-12.45s.png",
+      "time": 12.45,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-3-at-12.55s.png",
+      "time": 12.55,
+      "role": "seam",
+      "label": "cut zoom -> labels"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-4-at-12.65s.png",
+      "time": 12.65,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-5-at-12.75s.png",
+      "time": 12.75,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-1-at-15.09s.png",
+      "time": 15.09,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-2-at-15.19s.png",
+      "time": 15.19,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-3-at-15.29s.png",
+      "time": 15.29,
+      "role": "seam",
+      "label": "cut labels -> filing"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-4-at-15.39s.png",
+      "time": 15.39,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-5-at-15.49s.png",
+      "time": 15.49,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-1-at-19.46s.png",
+      "time": 19.46,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-2-at-19.56s.png",
+      "time": 19.56,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-3-at-19.66s.png",
+      "time": 19.66,
+      "role": "seam",
+      "label": "cut filing -> hero"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-4-at-19.76s.png",
+      "time": 19.76,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-5-at-19.86s.png",
+      "time": 19.86,
+      "role": "seam",
+      "label": "+0.2"
+    }
+  ],
+  "contactSheets": [
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-beats.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-01.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-02.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-03.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-04.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-05.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-phone.jpg"
+  ],
+  "review": {
+    "window": [
+      0,
+      24
+    ],
+    "scenes": [
+      {
+        "id": "reveal",
+        "start": 0,
+        "end": 3.27
+      },
+      {
+        "id": "newest",
+        "start": 3.27,
+        "end": 8.19
+      },
+      {
+        "id": "zoom",
+        "start": 8.19,
+        "end": 12.55
+      },
+      {
+        "id": "labels",
+        "start": 12.55,
+        "end": 15.29
+      },
+      {
+        "id": "filing",
+        "start": 15.29,
+        "end": 19.66
+      },
+      {
+        "id": "hero",
+        "start": 19.66,
+        "end": 24
+      }
+    ],
+    "beats": [
+      {
+        "time": 0.3,
+        "label": "reveal",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-01-at-0.3s.png"
+      },
+      {
+        "time": 1.635,
+        "label": "reveal mid",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-02-at-1.635s.png"
+      },
+      {
+        "time": 3.57,
+        "label": "newest",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-03-at-3.57s.png"
+      },
+      {
+        "time": 5.73,
+        "label": "newest mid",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-04-at-5.73s.png"
+      },
+      {
+        "time": 8.49,
+        "label": "zoom",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-05-at-8.49s.png"
+      },
+      {
+        "time": 10.37,
+        "label": "zoom mid",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-06-at-10.37s.png"
+      },
+      {
+        "time": 12.85,
+        "label": "labels",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-07-at-12.85s.png"
+      },
+      {
+        "time": 13.92,
+        "label": "labels mid",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-08-at-13.92s.png"
+      },
+      {
+        "time": 15.59,
+        "label": "filing",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-09-at-15.59s.png"
+      },
+      {
+        "time": 17.475,
+        "label": "filing mid",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-10-at-17.475s.png"
+      },
+      {
+        "time": 19.96,
+        "label": "hero",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-11-at-19.96s.png"
+      },
+      {
+        "time": 21.83,
+        "label": "hero mid",
+        "path": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-12-at-21.83s.png"
+      }
+    ],
+    "seams": [
+      {
+        "time": 3.27,
+        "from": "reveal",
+        "to": "newest",
+        "times": [
+          3.07,
+          3.17,
+          3.27,
+          3.37,
+          3.47
+        ],
+        "paths": [
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-1-at-3.07s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-2-at-3.17s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-3-at-3.27s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-4-at-3.37s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-5-at-3.47s.png"
+        ],
+        "sheet": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-01.jpg"
+      },
+      {
+        "time": 8.19,
+        "from": "newest",
+        "to": "zoom",
+        "times": [
+          7.99,
+          8.09,
+          8.19,
+          8.29,
+          8.39
+        ],
+        "paths": [
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-1-at-7.99s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-2-at-8.09s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-3-at-8.19s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-4-at-8.29s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-5-at-8.39s.png"
+        ],
+        "sheet": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-02.jpg"
+      },
+      {
+        "time": 12.55,
+        "from": "zoom",
+        "to": "labels",
+        "times": [
+          12.35,
+          12.45,
+          12.55,
+          12.65,
+          12.75
+        ],
+        "paths": [
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-1-at-12.35s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-2-at-12.45s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-3-at-12.55s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-4-at-12.65s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-5-at-12.75s.png"
+        ],
+        "sheet": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-03.jpg"
+      },
+      {
+        "time": 15.29,
+        "from": "labels",
+        "to": "filing",
+        "times": [
+          15.09,
+          15.19,
+          15.29,
+          15.39,
+          15.49
+        ],
+        "paths": [
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-1-at-15.09s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-2-at-15.19s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-3-at-15.29s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-4-at-15.39s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-5-at-15.49s.png"
+        ],
+        "sheet": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-04.jpg"
+      },
+      {
+        "time": 19.66,
+        "from": "filing",
+        "to": "hero",
+        "times": [
+          19.46,
+          19.56,
+          19.66,
+          19.76,
+          19.86
+        ],
+        "paths": [
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-1-at-19.46s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-2-at-19.56s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-3-at-19.66s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-4-at-19.76s.png",
+          "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-5-at-19.86s.png"
+        ],
+        "sheet": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-05.jpg"
+      }
+    ],
+    "sheets": {
+      "beats": [
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-beats.jpg"
+      ],
+      "seams": [
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-01.jpg",
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-02.jpg",
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-03.jpg",
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-04.jpg",
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-seam-05.jpg"
+      ],
+      "phone": [
+        "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/review-phone.jpg"
+      ]
+    },
+    "notes": []
+  },
+  "_meta": {
+    "version": "0.9.25",
+    "latestVersion": "0.9.25",
+    "updateAvailable": false,
+    "checkedAt": "2026-11-08T20:42:00.839Z"
+  }
+}

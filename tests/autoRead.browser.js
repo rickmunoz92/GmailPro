@@ -132,6 +132,18 @@
     await wait(540); assert(f.reads.length===1 && f.attempts.length===3 && !f.rows[0].classList.contains('zE'),'third attempt confirms read');
     await wait(300); assert(f.attempts.length===3,'confirmation stops retries');
   });
+  await test('a temporary body rebuild after an ignored read resumes the same bounded visit', async () => {
+    const f=fixture({ignoreReads:1});f.click();await settle();
+    const body=f.pane.querySelector('.a3s'), parent=body.parentElement;body.remove();
+    await wait(320);assert(f.attempts.length===1 && !f.reads.length,'no read without a visible matching body');
+    parent.append(body);await wait(320);
+    assert(f.attempts.length===2 && f.reads.length===1 && f.rows[0].matches('.aps.yO'),'same conversation resumes and confirms read');
+  });
+  await test('a temporary body rebuild cannot redirect a pending read to a different conversation', async () => {
+    const f=fixture({ignoreReads:1});f.click();await settle();f.pane.querySelector('.a3s').remove();
+    await wait(120);const heading=f.pane.querySelector('h2');heading.setAttribute('data-thread-perm-id','thread-two');heading.setAttribute('data-legacy-thread-id','legacy-two');
+    await wait(320);assert(f.attempts.length===1 && !f.reads.length,'mismatched thread cancels the original visit');
+  });
   for (const kind of ['hidden','disabled','missing','ambiguous']) await test(kind+' read control can become ready after opening', async () => {
     const f=fixture({load:false}); let extra;
     if (kind==='disabled') f.action.disabled=true;

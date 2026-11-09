@@ -51,6 +51,11 @@ button[data-website-plan]:disabled { cursor:not-allowed; }
 .product-frame img { width:100%; height:auto; aspect-ratio:1280/600; object-fit:cover; object-position:top; display:block; border:1px solid #1e283a38; border-radius:8px; background:#23292b; }
 figcaption { font-size:11px; color:#6b778a; margin-top:12px; }
 .product-frame figcaption { text-align:center; margin-bottom:-3px; }
+.launch-film video { display:block; width:100%; height:auto; aspect-ratio:16/9; object-fit:contain; border:1px solid #1e283a38; border-radius:8px; background:#11161f; }
+.launch-film figcaption { max-width:760px; margin:14px auto 0; text-align:center; }
+.film-credit { display:block; margin-top:6px; }
+.light-detail .preview-bar { margin-right:20px; }
+
 .compatibility-strip { display:flex; align-items:center; justify-content:center; gap:42px; padding:27px 0 29px; border-bottom:1px solid var(--line); }
 .compatibility-strip span { display:flex; align-items:center; gap:8px; color:#65748a; font-size:12px; }
 .compatibility-strip svg { width:14px; height:14px; stroke:var(--accent); stroke-width:1.8; fill:none; }
@@ -209,3 +214,10 @@ textarea { min-height:150px; resize:vertical; }
   article h1 { font-size:35px; }
 }
 @media(prefers-reduced-motion:reduce) { :root { scroll-behavior:auto; } }
+
+/* Current free offer, alongside clearly labeled planned pricing. */
+.free-badge { display:inline-block; margin:0 0 18px; padding:5px 10px; border-radius:6px; background:#e2f5e9; color:#165b35; font-size:12px; font-weight:700; }
+.price.planned-price { font-size:32px; letter-spacing:-1px; color:#65748a; }
+.price.planned-price s { text-decoration-thickness:2px; }
+.free-price { color:var(--ink); font-size:38px !important; font-weight:650; margin:4px 0; }
+.free-price span { font-size:14px; font-weight:400; color:var(--muted); }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "background": {
     "service_worker": "background/settings.js"
   },
@@ -71,11 +71,39 @@
         "https://mail.google.com/*"
       ],
       "js": [
+        "shared/debug.js",
+        "shared/legal-config.js",
+        "shared/consent.js",
+        "shared/billing-config.js",
+        "shared/entitlement.js",
+        "shared/settings.js",
+        "content/gmailSelectors.js",
+        "content/reverseThreads.js",
+        "content/messageList.js",
+        "content/labelOrder.js",
+        "content/messageZoom.js",
+        "content/appearance.js",
+        "content/headerLayout.js",
+        "content/workspaceLayout.js",
+        "content/readingPane.js",
+        "content/floatingCompose.js",
+        "content/keyboardShortcuts.js",
+        "content/autoPaging.js",
+        "content/content.js",
         "content/autoBcc.js",
         "content/autoBccStart.js"
       ],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": false,
+      "css": [
+        "content/reverseThreads.css",
+        "content/messageList.css",
+        "content/labelOrder.css",
+        "content/messageZoom.css",
+        "shared/theme.css",
+        "content/appleMail.css",
+        "content/autoPaging.css"
+      ]
     }
   ],
   "content_security_policy": {

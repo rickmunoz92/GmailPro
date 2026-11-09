@@ -1,5 +1,27 @@
 # Automatic read on conversation opening
 
+## Resume after temporary message rendering — November 9, 2026
+
+A native read gesture can be ignored while Gmail is rendering. Previously, a
+briefly missing body/header during a retry cancelled that visit permanently.
+Retries now wait for the same selected conversation to become readable again,
+within the existing ten-second deadline. Every native action still requires
+the matching thread IDs, account, route, selected row and visible body. An
+opening successor may retain the previous pane while it loads; this remains a
+readiness wait, never permission to retry against the previous conversation.
+
+Focused regressions cover a body disappearing after the first ignored gesture,
+recovery on the same conversation, and rejection of a different conversation.
+The exact intermittent pattern in the user's mailbox was not reproduced.
+Chrome automatic-read fixtures passed **72/72**, including slow successors,
+native acknowledgement, retry expiry, manual unread, switching conversations,
+bulk selection and cleanup. Repository validation passed **44/44** settings and
+lifecycle checks plus manifest/resource/syntax/permission checks. The updated
+manifest was reloaded by the user. After reviewing/enabling the current agreement,
+the user confirmed Gmail Pro and the corrected CC display returned. The exact
+intermittent read-status pattern still requires normal-use confirmation; it was
+not reproduced in the live mailbox.
+
 ## Immediate reads on navigation — 0.9.50
 
 The reading-pane controller follows Gmail's native selected conversation, including

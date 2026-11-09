@@ -133,7 +133,7 @@ purchase. Historical-offer automatic recovery is not implemented.
   public-config sales were verified after the final deploy.
 - A real hosted Stripe Test mode Checkout from the production service code
   displayed the unchecked adult/Terms agreement, current immutable policy links,
-  seven-day trial, $0.99 monthly price, automatic renewal and cancellation notice.
+  30-day trial, $0.99 monthly price, automatic renewal and cancellation notice.
   The test session was expired afterward with no subscription or payment created.
 - Still required before sales: counsel/legal decisions; notification/receipt
   configuration and current release acceptance in README. Completed hosted
@@ -156,3 +156,26 @@ purchase. Historical-offer automatic recovery is not implemented.
 - Focused checks pass; policies are live and 1.0.2 is pending review with sales closed.
 - Brand clearance, personal liability and geographic/minor compliance need counsel.
 - Suggested Conventional Commit: `feat(legal): add versioned consent and strengthen service policies`.
+
+## November 6 review status update
+
+The owner authorized an updated Google review submission. Google had accepted
+1.0.3 and held it Ready to publish. That item was returned to draft so the latest
+November 6 toolbar changes could be submitted as 1.0.4. Google confirmed receipt
+for review, with automatic publication explicitly off. Paid sales remain closed.
+See the November 6 receipt in `release/README.md` for package hash and validation.
+This submission does not resolve the legal, insurance or paid-launch gates above.
+
+
+## November 7 free-publication authorization
+
+The owner chose to publish as free for now. Version 1.0.5 removes the paid gate
+and new Checkout while preserving affirmative adult/guardian agreement and all
+mail-action warnings. New current and archived Terms/Privacy are version
+2026-11-07.1; prior archives were preserved. Future paid access requires a
+separate affirmative purchase, never installation or continued use alone.
+The live Stripe audit found no subscriptions or open Checkout sessions.
+Google confirmed review submission with automatic publication enabled; approval
+and public availability remain controlled by Google. See the release receipt in
+`release/README.md`. Free distribution does not constitute legal/trademark
+clearance or eliminate the previously recorded personal-liability risks.

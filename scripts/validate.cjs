@@ -29,7 +29,10 @@ for (const content of manifest.content_scripts) {
 assert.equal(manifest.content_scripts[0].run_at, "document_start");
 assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css", "content/messageZoom.css", "shared/theme.css", "content/appleMail.css", "content/autoPaging.css"]);
 assert.equal(manifest.content_scripts[1].run_at, "document_idle");
-assert.deepEqual(manifest.content_scripts[1].js, ["content/autoBcc.js", "content/autoBccStart.js"]);
+assert.deepEqual(manifest.content_scripts[1].js, [...manifest.content_scripts[0].js, "content/autoBcc.js", "content/autoBccStart.js"],
+  'Idle startup must include its early dependencies in the same order');
+assert.deepEqual(manifest.content_scripts[1].css, manifest.content_scripts[0].css,
+  'Idle recovery must include the same local styles');
 assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/gmail-pro\.netlify\.app;/);
 
 const references = [manifest.background.service_worker, 'background/billing.js', 'background/consent.js', manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),

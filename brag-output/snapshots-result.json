@@ -1,0 +1,64 @@
+{
+  "ok": true,
+  "outputDir": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots",
+  "frames": [
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-00-at-0.4s.png",
+      "time": 0.4
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-01-at-1.8s.png",
+      "time": 1.8
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-02-at-4.4s.png",
+      "time": 4.4
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-03-at-7s.png",
+      "time": 7
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-04-at-8.9s.png",
+      "time": 8.9
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-05-at-12s.png",
+      "time": 12
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-06-at-13.7s.png",
+      "time": 13.7
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-07-at-16.9s.png",
+      "time": 16.9
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-08-at-18.8s.png",
+      "time": 18.8
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-09-at-21.5s.png",
+      "time": 21.5
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-10-at-23.7s.png",
+      "time": 23.7
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-11-at-23.75s.png",
+      "time": 23.75
+    }
+  ],
+  "contactSheets": [
+    "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/contact-sheet-1.jpg",
+    "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/contact-sheet-2.jpg"
+  ],
+  "_meta": {
+    "version": "0.9.25",
+    "latestVersion": "0.9.25",
+    "updateAvailable": false,
+    "checkedAt": "2026-11-08T20:42:00.839Z"
+  }
+}

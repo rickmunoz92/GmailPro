@@ -1,0 +1,10 @@
+The following is a diff from the previous accessibility tree for Window: "Store Listing" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 327-505
+~				6 button (disabled) Forward
+~						324 container Your extension was submitted for review
+~							325 heading Your extension was submitted for review, Value: 2
+~								326 text Your extension was submitted for review
++							327 text You may check the status on the developer dashboard home page.
++							328 text Items staged to be published later will expire 30 days after they have passed review.
++							329 button OK
+The focused UI element is 329 button OK

@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "outputDir": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed",
+  "frames": [
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-00-at-3.17s.png",
+      "time": 3.17
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-01-at-3.27s.png",
+      "time": 3.27
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-02-at-3.37s.png",
+      "time": 3.37
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-03-at-15.19s.png",
+      "time": 15.19
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-04-at-15.29s.png",
+      "time": 15.29
+    },
+    {
+      "path": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-05-at-15.39s.png",
+      "time": 15.39
+    }
+  ],
+  "contactSheets": [
+    "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/contact-sheet.jpg"
+  ],
+  "_meta": {
+    "version": "0.9.25",
+    "latestVersion": "0.9.25",
+    "updateAvailable": false,
+    "checkedAt": "2026-11-08T20:42:00.839Z"
+  }
+}

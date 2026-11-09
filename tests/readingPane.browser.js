@@ -24,8 +24,22 @@
     summary.innerHTML=kinds.map((kind,i)=>`${i?', ':''}${kind.toLowerCase()}${i?':':''} <span class="g2" email="${kind.toLowerCase()}+tag@example.test"><span>${kind} Person</span></span>${kind==='To'?', <span class="g2" data-hovercard-id="Other.Person@example.test">Other Person</span>':''}`).join('');
     const details=header.querySelector('button'), row=document.createElement('div'); row.className='ady'; details.className='ajy';
     header.before(row); header.replaceChildren(summary); row.append(header,details);
+    nativeDetails(f, kinds.map(kind => ({kind, people:[...summary.querySelectorAll('.g2')].filter(node =>
+      (node.getAttribute('email') || '').startsWith(kind.toLowerCase()+'+') || (kind==='To' && !node.hasAttribute('email')))})));
     const sender=f.main.querySelector('.gD'); sender.setAttribute('email','Sender.Name+tag@example.test'); sender.setAttribute('role','gridcell'); sender.setAttribute('tabindex','-1');
     return summary;
+  }
+  function nativeDetails(f, fields) {
+    const popup=document.createElement('div'); popup.className='ajA'; popup.hidden=true;
+    const body=document.createElement('tbody'), table=document.createElement('table'), panel=document.createElement('div');
+    panel.className='ajB'; table.className='ajC'; table.append(body); panel.append(table); popup.append(panel);
+    for(const {kind,people} of fields) {
+      const row=document.createElement('tr'), label=document.createElement('th'), cell=document.createElement('td');
+      label.scope='row'; label.textContent=kind.toLowerCase()+':';
+      for(const person of people) {const contact=document.createElement('span');contact.setAttribute('email',person.getAttribute('email')||person.getAttribute('data-hovercard-id'));cell.append(contact);}
+      row.append(label,cell);body.append(row);
+    }
+    f.main.querySelector('.gs').append(popup); return popup;
   }
   async function test(name, run) {
     try { await run(); reports.push(`PASS ${name}`); }
@@ -90,6 +104,62 @@
     const last=summary.querySelector('.g2:last-child').getBoundingClientRect();
     assert(last.bottom<=f.body.getBoundingClientRect().top,'all recipient rows above body');
     assert(summary.parentElement.scrollWidth<=summary.parentElement.clientWidth+1,'recipient summary does not overflow');
+  });
+  await test('native details separate a merged To/CC summary and preserve native contacts and BCC',async()=>{
+    const f=fixture(), summary=recipients(f), popup=f.main.querySelector('.ajA'); popup.remove();
+    summary.innerHTML='to <b><span class="g2" email="cc@example.test">Copied first</span></b>, <span class="g2" email="to@example.test">Direct</span>, <span class="g2" email="cc2@example.test">Copied second</span>, bcc: <span class="g2" email="bcc@example.test">Private</span>';
+    const people=[...summary.querySelectorAll('.g2')], before=summary.innerHTML, details=f.main.querySelector('.ajy');
+    details.setAttribute('role','button'); let toggles=0, clicks=0;
+    people[0].addEventListener('click',()=>clicks++);
+    details.addEventListener('click',()=>{
+      toggles++;
+      if(toggles===1) {const popup=nativeDetails(f,[{kind:'To',people:[people[1]]},{kind:'CC',people:[people[2],people[0]]},{kind:'BCC',people:[people[3]]}]);popup.hidden=false;popup.focus();}
+      else f.main.querySelector('.ajA').hidden=true;
+    });
+    f.main.tabIndex=0; f.main.focus(); start(); await settle();
+    assert(summary.textContent==='To: Direct\nCC: Copied second, Copied first\nBCC: Private','authoritative fields and order, including bold contact wrapper');
+    assert(summary.querySelectorAll('.g2')[2]===people[0] && summary.querySelector('b').contains(people[0]),'native nodes and wrappers retained');
+    assert(toggles===2 && f.main.querySelector('.ajA').hidden && document.activeElement===f.main,'native details closed and original focus restored');
+    window.dispatchEvent(new Event('resize')); await settle(); assert(toggles===2,'no repeated details gestures');
+    app.readingPane.stop(); assert(summary.innerHTML===before,'exact merged native markup restored');people[0].click();assert(clicks===1,'native contact listener retained');
+  });
+  await test('unknown recipient mapping uses a combined label and updates when matching native details arrive',async()=>{
+    const f=fixture(), summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
+    const details=f.main.querySelector('.ajy');details.setAttribute('role','button');
+    const people=[...summary.querySelectorAll('.g2')], before=summary.innerHTML;
+    start();await settle();assert(summary.textContent.startsWith('To/CC: '),'no false To classification without metadata');
+    const decoy=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[1]]},{kind:'BCC',people:[people[2]]}]);
+    f.body.append(decoy);await settle();assert(summary.textContent.startsWith('To/CC: '),'quoted body cannot supply native field mapping');
+    f.main.querySelector('.gs').append(decoy);await settle();
+    assert(summary.textContent==='To: To Person\nCC: Other Person\nBCC: BCC Person','late native details normalize the same summary');
+    app.readingPane.stop();assert(summary.innerHTML===before,'original labels restored after deferred details');
+  });
+  for(const stop of [false,true]) await test('deferred native details close '+(stop?'during mode cleanup':'before retaining recipient fields'),async()=>{
+    const f=fixture(),summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
+    const details=f.main.querySelector('.ajy'),people=[...summary.querySelectorAll('.g2')];details.setAttribute('role','button');
+    let popup,toggles=0;details.addEventListener('click',()=>{
+      if(++toggles===1) setTimeout(()=>{
+        popup=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[1]]},{kind:'BCC',people:[people[2]]}]);
+        popup.hidden=false;if(stop)app.readingPane.stop();
+      },20);
+      else popup.hidden=true;
+    });
+    start();await settle();assert(toggles===2 && popup.hidden,'only the owned delayed popup closes');
+    if(!stop)assert(summary.textContent==='To: To Person\nCC: Other Person\nBCC: BCC Person','deferred table supplies the actual fields');
+  });
+  await test('native comment markers preserve recipient formatting and restore exactly',async()=>{
+    const f=fixture(),summary=recipients(f),comment=document.createComment('native render marker');summary.prepend(comment);
+    const before=summary.innerHTML;start();await settle();
+    assert(summary.textContent==='To: To Person, Other Person\nCC: CC Person\nBCC: BCC Person','comment does not break reading-pane refresh');
+    app.readingPane.stop();assert(summary.innerHTML===before && summary.firstChild===comment,'original comment identity restored');
+  });
+  await test('incomplete or duplicate native field metadata cannot guess recipient assignments',async()=>{
+    const f=fixture(), summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
+    f.main.querySelector('.ajy').setAttribute('role','button');const people=[...summary.querySelectorAll('.g2')];
+    const popup=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[0]]},{kind:'BCC',people:[people[2]]}]);
+    start();await settle();assert(summary.textContent.startsWith('To/CC: ') && summary.querySelectorAll('.g2').length===3,'ambiguous membership leaves contacts in place');
+    popup.remove();nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'BCC',people:[people[2]]}]);await settle();
+    assert(summary.textContent.startsWith('To/CC: '),'missing contact membership stays unclassified');
   });
   await test('sender and each recipient name copy the exact address with feedback, without native contact actions',async()=>{
     const f=fixture(), summary=recipients(f), writes=[]; mockClipboard(async address=>writes.push(address));

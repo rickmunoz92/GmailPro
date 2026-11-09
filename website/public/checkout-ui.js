@@ -36,8 +36,8 @@ async function run(action) {
   finally { busy = false; try { render(); } catch (error) { say(error.message, true); } }
 }
 function activated(result) {
-  say(result.status.active ? 'Your license is ready. Save it privately, then activate Gmail Pro in Chrome.' :
-    'Your purchase is verified, but access is inactive. Use Manage subscription to review billing. For a subscription that has fully ended, activate this key in Gmail Pro and start a new subscription there, or contact support.');
+  say(result.status.active ? 'Your earlier purchase is verified. Save its license privately for billing management. No license is required for the current free release.' :
+    'Your earlier purchase is verified. Use Manage subscription to review billing or contact support. The current free release does not depend on this purchase.');
 }
 try {
   billing = createWebBilling({ storage: {
@@ -63,10 +63,10 @@ try {
     say('Checking your purchase…'); activated(await billing.complete());
   }));
   document.getElementById('cancel-checkout')?.addEventListener('click', () => run(async () => {
-    await billing.cancel(); say('The unfinished checkout is canceled. You can choose either plan.');
+    await billing.cancel(); say('The unfinished checkout is canceled. No purchase is needed for the current free release.');
   }));
   document.getElementById('copy-website-license')?.addEventListener('click', () => run(async () => {
-    try { await navigator.clipboard.writeText(billing.license()); say('License copied. Save it privately and paste it into Gmail Pro’s activation form.'); }
+    try { await navigator.clipboard.writeText(billing.license()); say('License copied. Save it privately for existing-purchase management.'); }
     catch { licenseInput.type = 'text'; licenseInput.focus(); licenseInput.select(); say('Select and copy the license shown below, then save it privately.'); }
   }));
   document.getElementById('manage-website-license')?.addEventListener('click', () => run(async () => {
@@ -83,7 +83,7 @@ try {
   if (planButtons.length) billing.publicConfig().then(config => {
     salesEnabled = config.salesEnabled === true;
     const saved = savedPurchase();
-    if (!saved && !storageUnavailable) say(salesEnabled ? 'Choose a plan to start your seven-day trial in Stripe Checkout.' :
+    if (!saved && !storageUnavailable) say(salesEnabled ? 'Choose a plan to start your 30-day trial in Stripe Checkout.' :
       'Trials will open when the Chrome Web Store release is ready. Checkout is currently closed.');
     render();
   }).catch(() => { const saved = savedPurchase(); if (!saved && !storageUnavailable) say('Checkout is temporarily unavailable. Please check back soon.', true); });

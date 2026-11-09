@@ -4,8 +4,7 @@
 
 Gmail Pro is a lightweight Chrome extension that adds useful power-user
 functionality to the Gmail web interface. Mail features run locally in your
-browser using bundled HTML, CSS, and JavaScript. The Chrome Web Store build
-verifies subscriptions through a small Netlify service backed by Stripe.
+browser using bundled HTML, CSS, and JavaScript. The current Chrome Web Store candidate is free for now, with no payment or license required. Earlier-purchase management uses a small Netlify service backed by Stripe.
 
 ## Features
 
@@ -666,12 +665,9 @@ updates. See [label organization QA](tests/labelOrder-QA.md).
 - Gmail Pro does not send Gmail bodies, subjects, attachments, recipients, BCC
   settings, label names or Gmail account addresses to its billing service.
 - There are no advertising trackers, behavioral analytics or remotely loaded code.
-- The service worker sends a random purchase token or license key to
-  `https://gmail-pro.netlify.app` for Checkout, activation, status checks and the
-  customer portal. Stripe holds billing records and handles payment details.
-  Active status is normally cached for six hours. After a temporary failure,
-  previously verified access lasts at most 24 hours and never beyond its trial
-  or paid period. Manual refresh and activation can make additional checks.
+- The current free release makes no automatic subscription checks. Optional
+  earlier-purchase management sends a saved license to our Netlify service and
+  Stripe. No Gmail content is sent. New Checkout is blocked in this release.
 - Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
   Gmail network traffic or call undocumented Gmail APIs.
 - Preferences are stored through **`chrome.storage.sync`**. This includes the configured
@@ -700,32 +696,29 @@ repository. Documentation and fixtures use synthetic examples only.
 | --- | --- |
 | `storage` | Save preferences, private local activation and cached subscription status. |
 | Content-script match: `https://mail.google.com/*` | Run only on Gmail over HTTPS, in the top-level frame. |
-| Host permission: `https://gmail-pro.netlify.app/*` | Allow the service worker to verify subscriptions and create Stripe Checkout/customer-portal sessions. No Gmail content is sent. |
+| Host permission: `https://gmail-pro.netlify.app/*` | Allow optional earlier-purchase verification/recovery and Stripe customer-portal sessions. Free access makes no subscription check; new Checkout is blocked. No Gmail content is sent. |
 
-This Manifest V3 extension uses a background service worker for subscription
-verification and the existing settings bridge. It has no Gmail OAuth scopes,
+This Manifest V3 extension uses a background service worker for consent, the
+settings bridge and optional earlier-purchase management. It has no Gmail OAuth scopes,
 `tabs`, `activeTab`, `scripting`, `webRequest`, or all-sites host permission.
 The extension CSP permits bundled executable code and connections only to the
 dedicated billing host. Stripe credentials never ship in the extension.
 
-## Subscriptions and release builds
+## Free access and release builds
 
-The planned store offer is **US$0.99/month or US$10/year**, with a **7-day free
-trial** on either plan. Checkout collects payment details. Cancel before the
-trial ends to avoid the first charge; later cancellation stops renewal at the
-end of the current period. Uninstalling does not cancel a subscription.
+All features are **free for now**. No payment details, subscription, license or
+trial countdown are required. Planned monthly US$0.99 / annual US$10 pricing is
+crossed out on the website and is not an active offer. Future paid access would
+require separately disclosed terms and affirmative purchase authorization.
 
-Checkout can start from the website or the installed extension popup. Both use
-Stripe and the same subscription license. Website purchases preserve recovery
-details in tab session storage and provide a license to paste into the extension;
-keep that tab open and save the license privately. Subscription help also opens
-the Stripe portal from a pasted license without requiring tab storage.
+`shared/billing-config.js` sets `free:true` and `required:false` in both the
+canonical checkout and the store package. Packaging strips unrelated files but
+preserves public free access. The same setting hard-blocks new server Checkout,
+even if the paid launch environment flag is accidentally enabled. Keep
+`GMAIL_PRO_LAUNCH_ENABLED=false`. Existing-purchase management remains available.
 
-The canonical unpacked checkout uses `shared/billing-config.js` with
-`required:false` for development. `npm run package:store` always writes
-`required:true` into the store ZIP and includes only production extension files.
-The store build does not start feature modules until access is verified.
-See [release setup and acceptance](release/README.md) before submitting or opening sales.
+The adult/guardian Terms and Privacy agreement remains required before mail
+features start. See [release setup and acceptance](release/README.md).
 
 ## Clean reading pane and persistent message actions
 

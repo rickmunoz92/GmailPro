@@ -1,0 +1,306 @@
+{
+  "ok": true,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 6,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 3 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/compositions/filing.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 4 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/compositions/hero.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 4 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/compositions/labels.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 3 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/compositions/newest.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 4 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/compositions/reveal.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 3 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/compositions/zoom.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      }
+    ],
+    "filesScanned": 7
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 3,
+    "findings": [
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 12.469,
+        "selector": "#zoom-body > p:nth-of-type(3)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1230.7,
+          "top": 917.48,
+          "right": 1883.75,
+          "bottom": 1016.42,
+          "width": 653.05,
+          "height": 98.94
+        },
+        "containerSelector": "#zoom-key",
+        "text": "Let’s make something great.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/zoom.html",
+        "bbox": {
+          "x": 1230.7,
+          "y": 917.48,
+          "width": 653.05,
+          "height": 98.94
+        },
+        "firstSeen": 12.469,
+        "lastSeen": 12.469,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          12.469
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 13.81,
+        "selector": "#labels-projects",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 942.02,
+          "top": 709.94,
+          "right": 1136.43,
+          "bottom": 788.77,
+          "width": 194.41,
+          "height": 78.83
+        },
+        "containerSelector": "#labels-clients",
+        "text": "Projects ⠿",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/labels.html",
+        "bbox": {
+          "x": 942.02,
+          "y": 709.94,
+          "width": 194.41,
+          "height": 78.83
+        },
+        "firstSeen": 13.81,
+        "lastSeen": 13.81,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          13.81
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 17.162,
+        "selector": "#filing-row > div:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 847.55,
+          "top": 578.65,
+          "right": 1190.34,
+          "bottom": 627.28,
+          "width": 342.79,
+          "height": 48.63
+        },
+        "containerSelector": "#filing-next > strong:nth-of-type(1)",
+        "text": "Next release ideas",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/filing.html",
+        "bbox": {
+          "x": 847.55,
+          "y": 578.65,
+          "width": 342.79,
+          "height": 48.63
+        },
+        "firstSeen": 17.162,
+        "lastSeen": 17.162,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          17.162
+        ]
+      }
+    ],
+    "duration": 24,
+    "samples": [
+      1.333,
+      4,
+      6.667,
+      9.333,
+      12,
+      14.667,
+      17.333,
+      20,
+      22.667
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 3,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      1.333,
+      6.667,
+      12,
+      17.333,
+      22.667
+    ],
+    "checked": 39,
+    "passed": 39
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 192
+  },
+  "audio": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  },
+  "saved": {
+    "id": "3d7b37dd-262e-4b6e-9a98-182d552b6a2f",
+    "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+    "report": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/.hyperframes/artifacts/checks/3d7b37dd-262e-4b6e-9a98-182d552b6a2f.json",
+    "attribution": "recorded-revision"
+  },
+  "_meta": {
+    "version": "0.9.25",
+    "latestVersion": "0.9.25",
+    "updateAvailable": false,
+    "checkedAt": "2026-11-08T20:42:00.839Z"
+  }
+}

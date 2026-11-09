@@ -23,6 +23,9 @@
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
   const markedFooters = new Set();
   const recipientLabels = new Map();
+  const recipientSummaries = new Map();
+  let recipientProbes = new WeakMap(), recipientTables = new WeakMap();
+  let recipientProbe;
   const emailContacts = new Map();
   const emailContactSelector = '.gE :is(.gD, .hb .g2):is([email], [data-hovercard-id])';
   let emailCopyContext, emailCopyNotice, emailCopyTimer;
@@ -389,7 +392,9 @@
 
   function markRead(pending) {
     if (pendingRead !== pending) return;
-    if (!readContext(pending) || !pending.row.classList.contains("zE")) return cancelRead();
+    pending.timer = undefined;
+    if (!validReadRow(pending) || !pending.row.classList.contains("zE")) return cancelRead();
+    if (!readContext(pending)) return refreshRead();
     const action = nativeToolbarAction(pending.main, S.markRead);
     // Gmail can ignore a gesture while rendering its toolbar. Keep checking
     // the native unread state until confirmed, cancelled, or expired.
@@ -487,7 +492,13 @@
     if (!pending.row.classList.contains("zE")) return cancelRead();
     const current = readContext(pending);
     if (!current) {
-      if (pending.started !== undefined || !pending.row.isConnected || location.hash !== pending.route) cancelRead();
+      const displayed = app.reverseThreads.currentConversation();
+      const different = displayed && (displayed.heading.closest(S.main) !== pending.main ||
+        displayed.heading.getAttribute("data-thread-perm-id") !== pending.thread.replace(/^#/, "") ||
+        displayed.heading.getAttribute("data-legacy-thread-id") !== pending.legacy);
+      // A matching selected row can briefly lose its body/header while Gmail
+      // renders. Retain the existing deadline, but never act on another thread.
+      if (pending.started && (different || !pending.row.classList.contains("aps"))) cancelRead();
       else awaitReadRendering(pending);
       return;
     }
@@ -498,7 +509,7 @@
       pending.expiry = setTimeout(cancelRead, readTimeout);
       pending.timer = undefined;
       markRead(pending);
-    }
+    } else if (pending.timer === undefined) markRead(pending);
   }
 
   function readCandidate(row) {
@@ -554,7 +565,127 @@
         (!shell?.contains(event.target) && !pendingRead.row.contains(event.target))) cancelRead();
   }
 
+  function recipientIdentity(message) {
+    return JSON.stringify([message.getAttribute('data-message-id'), message.getAttribute('data-legacy-message-id')]);
+  }
+
+  function recipientFields(summary) {
+    const message = summary.closest(S.threadMessage);
+    if (!message) return null;
+    const tables = [...message.querySelectorAll(':scope > .gs > .ajA .ajB > table.ajC')].filter(ownsChrome);
+    if (tables.length !== 1) return null;
+    const identity = recipientIdentity(message), owner = recipientTables.get(tables[0]);
+    if (owner && owner !== identity) return null;
+    recipientTables.set(tables[0], identity);
+    const fields = [];
+    for (const row of tables[0].rows) {
+      const label = row.querySelector(':scope > th[scope="row"]')?.textContent.trim().toLowerCase();
+      if (!["to:", "cc:", "bcc:"].includes(label)) continue;
+      if (fields.some(field => field.kind === label.slice(0, -1))) return null;
+      const contacts = [...row.querySelectorAll(':scope > td [email]')];
+      const addresses = contacts.map(node => contactAddress(node).toLowerCase());
+      if (!addresses.length || addresses.some(address => !address)) return null;
+      fields.push({ kind: label.slice(0, -1), addresses });
+    }
+    return fields.length ? fields : null;
+  }
+
+  function finishRecipientProbe(cancel = false) {
+    const probe = recipientProbe;
+    if (!probe) return;
+    const valid = enabled && probe.message.isConnected && visible(probe.control) &&
+      recipientIdentity(probe.message) === probe.identity && location.hash === probe.route && location.pathname === probe.page;
+    const popup = [...probe.message.querySelectorAll(':scope > .gs > .ajA')].find(visible);
+    if (valid && !popup && !cancel) return;
+    recipientProbe = undefined;
+    clearTimeout(probe.timer);
+    if (valid && popup) {
+      nativeGesture(probe.control);
+      if (probe.focus?.isConnected && document.activeElement !== probe.focus) {
+        if (probe.focus === document.body) document.activeElement?.blur();
+        else probe.focus.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  function interruptRecipientProbe() {
+    // Real user input takes ownership of any native popup immediately.
+    if (recipientProbe) clearTimeout(recipientProbe.timer);
+    recipientProbe = undefined;
+  }
+
+  function prepareRecipientFields(summary) {
+    const message = summary.closest(S.threadMessage), header = summary.closest('.gE');
+    if (!message || !header) return;
+    const controls = [...header.querySelectorAll('.ajy[role="button"][aria-label="Show details"]')];
+    if (controls.length !== 1 || recipientProbe || pendingFiling || recipientFields(summary)) return;
+    const control = controls[0], focus = document.activeElement;
+    const identity = recipientIdentity(message);
+    if (recipientProbes.get(control) === identity) return;
+    if (!visible(control) || focus?.closest('form, [contenteditable], [role="dialog"], [role="menu"]') ||
+        [...document.querySelectorAll('[role="dialog"], [role="menu"], .ajA')].some(visible)) return;
+    recipientProbes.set(control, identity);
+    // Gmail lazily creates its authoritative details table on this native
+    // toggle, then retains it when closed. Close before paint when synchronous;
+    // the existing chrome watch also closes deferred details within one second.
+    // never infer To/CC from the condensed summary's order or contact names.
+    recipientProbe = { message, control, focus, identity, route: location.hash, page: location.pathname,
+      timer: setTimeout(() => finishRecipientProbe(true), 1000) };
+    nativeGesture(control);
+    finishRecipientProbe();
+  }
+
+  function updateRecipientSummaries(shell) {
+    finishRecipientProbe();
+    for (const [summary, change] of recipientSummaries) {
+      const intact = change.after.length === summary.childNodes.length &&
+        change.after.every((node, i) => summary.childNodes[i] === node);
+      const fields = shell?.contains(summary) && recipientFields(summary);
+      const signature = fields && recipientIdentity(summary.closest(S.threadMessage)) + JSON.stringify(fields);
+      const addresses = [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n');
+      if (intact && signature === change.signature && addresses === change.addresses) continue;
+      if (intact) summary.replaceChildren(...change.before);
+      recipientSummaries.delete(summary);
+    }
+    for (const summary of shell?.querySelectorAll(S.readingRecipients) || []) {
+      if (!ownsChrome(summary) || recipientSummaries.has(summary)) continue;
+      prepareRecipientFields(summary);
+      const fields = recipientFields(summary);
+      if (!fields) continue;
+      const contacts = new Map();
+      let supported = true;
+      for (const node of summary.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) continue;
+        if (node.nodeType === Node.COMMENT_NODE) continue;
+        if (!(node instanceof Element)) { supported = false; break; }
+        const people = node.matches('.g2') ? [node] : [...node.querySelectorAll('.g2')];
+        const person = people[0], address = person && contactAddress(person).toLowerCase();
+        if (people.length !== 1 || !address || contacts.has(address) || node.textContent.trim() !== person.textContent.trim()) {
+          supported = false; break;
+        }
+        contacts.set(address, node);
+      }
+      const addresses = fields.flatMap(field => field.addresses);
+      // Unknown/truncated summaries and duplicate field membership stay native.
+      // Do not invent recipients or copy addresses from message body HTML.
+      if (!supported || contacts.size !== addresses.length || new Set(addresses).size !== addresses.length ||
+          addresses.some(address => !contacts.has(address))) continue;
+      const before = [...summary.childNodes], after = [];
+      for (const field of [...fields].sort((a, b) => ["to", "cc", "bcc"].indexOf(a.kind) - ["to", "cc", "bcc"].indexOf(b.kind))) {
+        after.push(document.createTextNode((after.length ? '\n' : '') + ({to:"To:",cc:"CC:",bcc:"BCC:"})[field.kind] + ' '));
+        field.addresses.forEach((address, i) => {
+          if (i) after.push(document.createTextNode(', '));
+          after.push(contacts.get(address));
+        });
+      }
+      summary.replaceChildren(...after);
+      recipientSummaries.set(summary, { before, after, signature: recipientIdentity(summary.closest(S.threadMessage)) + JSON.stringify(fields),
+        addresses: [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n') });
+    }
+  }
+
   function updateRecipientLabels(shell) {
+    updateRecipientSummaries(shell);
     for (const [node, change] of recipientLabels) {
       if (!shell?.contains(node) || node.data !== change.after) {
         if (node.data === change.after) node.data = change.before;
@@ -571,7 +702,10 @@
         const match = /^(\s*(?:,\s*)?)(to|cc|bcc):?(\s*)$/i.exec(node.data);
         if (!match) continue;
         const kind = match[2].toLowerCase();
-        const after = (kind === "to" ? "" : "\n") + ({ to: "To:", cc: "CC:", bcc: "BCC:" })[kind] + " ";
+        const unresolved = kind === "to" && summary.closest('.gE').querySelector('.ajy[role="button"][aria-label="Show details"]') &&
+          !recipientSummaries.has(summary) && ![...summary.childNodes].some(part =>
+            part.nodeType === Node.TEXT_NODE && /\bcc\s*:/i.test(part.data));
+        const after = (kind === "to" ? "" : "\n") + (unresolved ? "To/CC:" : ({ to: "To:", cc: "CC:", bcc: "BCC:" })[kind]) + " ";
         if (node.data === after) continue;
         recipientLabels.set(node, { before: node.data, after });
         node.data = after;
@@ -768,6 +902,10 @@
       observer.observe(header, { childList: true, subtree: true, characterData: true, attributes: true,
         attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "email", "data-hovercard-id"] });
     }
+    for (const details of shell.querySelectorAll('.gs > .ajA')) if (ownsChrome(details)) {
+      observer.observe(details, { childList: true, subtree: true, characterData: true, attributes: true,
+        attributeFilter: ["email", "data-hovercard-id", "style", "class", "hidden", "aria-hidden"] });
+    }
     observer.observe(toolbar, { childList: true, subtree: true, attributes: true,
       attributeFilter: ["style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
     for (let parent = toolbarHost; parent; parent = parent.parentElement) {
@@ -841,6 +979,9 @@
   }
 
   function stop() {
+    finishRecipientProbe(true);
+    document.removeEventListener("pointerdown", interruptRecipientProbe, true);
+    document.removeEventListener("keydown", interruptRecipientProbe, true);
     cancelFiling();
     for (const type of filingPointerEvents) document.removeEventListener(type, filingInput, true);
     for (const type of filingKeyEvents) window.removeEventListener(type, filingInput, true);
@@ -858,6 +999,7 @@
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
     updateRecipientLabels(null);
+    recipientProbes = new WeakMap(); recipientTables = new WeakMap();
     updateEmailContacts(null);
     clearEmailCopy();
     document.removeEventListener("click", copyContactEmail, true);
@@ -872,6 +1014,8 @@
     if (!patch.appleMailModeEnabled) return stop();
     if (enabled) return;
     enabled = true;
+    document.addEventListener("pointerdown", interruptRecipientProbe, true);
+    document.addEventListener("keydown", interruptRecipientProbe, true);
     document.addEventListener("click", copyContactEmail, true);
     document.addEventListener("keydown", copyContactEmail, true);
     // Enabling the mode does not change the status of an already-open message.

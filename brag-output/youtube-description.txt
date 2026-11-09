@@ -1,0 +1,15 @@
+A cleaner way to use Gmail. Less clutter. More room to read.
+
+Meet Gmail Pro: a desktop-style Gmail workspace with newest replies first, message-only zoom, one-click label filing, custom label order, and light or dark appearance.
+
+Add to Chrome:
+https://chromewebstore.google.com/detail/gmail-pro/aemijichdmmlihokhlianpllklnjnnfm
+
+Learn more:
+https://gmail-pro.netlify.app
+
+Product captures and illustrative animated demonstrations use fictional mailbox content. Message zoom shortcuts are available on macOS.
+
+Music: Happy Beats & Business Moves Vol. 12 by Sascha Ende — https://ende.app/
+Licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+Music excerpt trimmed, mixed and faded. Sound effects: Kenney, CC0.

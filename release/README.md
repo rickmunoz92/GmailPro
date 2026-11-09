@@ -1,5 +1,24 @@
 # Gmail Pro release
 
+## November 9, 2026 — 1.0.7 recipient and startup fixes
+
+Prepared from the canonical checkout for the owner-authorized public update.
+Corrects To/CC grouping using native message Details, retains BCC, resumes
+bounded read retries after temporary message rendering, and adds idle startup
+recovery when early initialization is absent. The owner confirmed CC in Gmail
+after reviewing/enabling the current agreement.
+
+Validation: reading pane 47/47, automatic read 72/72, startup browser integration
+3/3, settings/lifecycle 47/47, and consent 4/4. The exact intermittent mailbox
+read-status case was not reproduced live. Version-only packaging follows those
+checks; free access, consent versions and extension permissions are unchanged.
+
+Candidate: `dist/Gmail-Pro-1.0.7.zip`. Chrome Web Store upload/submission remains
+manual because the browser tool blocks Store automation. This is not a review
+submission, approval or public publication receipt. Preserve the current Store
+listing, promo video, screenshots and automatic-publication preference.
+
+
 ## November 8, 2026 — 1.0.6 layout and listing update
 
 The owner authorized committing/pushing the layout fixes and submitting the
@@ -36,6 +55,17 @@ updated extension, overview and feature-card screenshots to Chrome Web Store.
 - Readiness and submission evidence are local-only under
   `artifacts/store/1.0.6/`, including package/slide checksums and the receipt.
 
+## Current offer — November 7, 2026
+
+The owner authorized public free access. Version 1.0.5 removes the subscription
+gate while retaining affirmative legal consent. Planned prices are crossed out
+on the website; no card, license, trial or automatic future charge is required.
+New Checkout is blocked in the worker and HTTP service; keep sales disabled.
+Stripe live read-only checks found no subscriptions and no open Checkout sessions.
+Free package validation and Google publication status are recorded below.
+
+## Historical paid-launch setup (superseded offer)
+
 The public site is https://gmail-pro.netlify.app. The Chrome Web Store release
 has not been published. Production sales remain closed until acceptance below
 is complete. The unpacked owner/development checkout remains usable locally.
@@ -44,7 +74,7 @@ On November 4, the owner resumed launch preparation. Stripe reports live charges
 and payouts enabled. The restricted server key is saved in Netlify Production;
 its live Checkout-read permission was verified after deployment. Payment journeys
 have been exercised in the dedicated account’s Stripe Test mode.
-Website and extension checkout share the same seven-day trial and license service.
+Website and extension checkout share the same 30-day trial and license service.
 The Chrome Web Store draft is `aemijichdmmlihokhlianpllklnjnnfm`; its package,
 description, icon, actual fictional-content light/dark screenshots, privacy fields,
 and in-app-purchases distribution setting are saved. It was submitted for review on November 4, 2026, with automatic publication
@@ -53,7 +83,7 @@ Sales remain closed while store publication and payment acceptance are unfinishe
 
 ## Offer and services
 
-- US$0.99/month or US$10/year, seven days free on either plan.
+- US$0.99/month or US$10/year, 30 days free on either plan.
 - Payment details required at Checkout; automatic renewal after the trial.
 - Cancel before the trial ends to avoid the first charge. Later cancellation
   stops renewal at the end of the current period.
@@ -215,3 +245,183 @@ for the website/store; never publish raw personal-inbox screenshots.
 - [Stripe subscription testing](https://docs.stripe.com/billing/testing)
 - [Chrome Web Store user-data requirements](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq)
 - [Store copy and reviewer checklist](store-listing.md)
+
+## November 5 offer and icon update
+
+New Checkout sessions now request 30 trial days on either plan. Existing subscriptions
+retain their Stripe trial dates; no existing subscription was changed. Historical
+seven-day test results above describe the previous offer. Current focused checks
+cover 30-day Checkout parameters and access through the trial boundary.
+
+Version 1.0.3 includes the blue icon and updated popup offer/terms links. This is
+a new candidate, not the already approved package; uploading it requires another
+Google review. Preserve the approved package until the launch route is decided.
+
+## November 5 resubmission and Stripe verification
+
+Version 1.0.3 was uploaded and submitted to Google for review, with automatic
+publication disabled. The listing uses the blue icon and 30-day offer.
+The website has identical blue-icon headers on all current and archived pages;
+only navigation chrome changed in archived legal pages.
+
+The production Checkout service requests 30 trial days for both plans. Actual
+Stripe Test mode hosted checkouts showed 30 days free, then $0.99 monthly or
+$10 annually beginning December 5, 2026. Both required payment details and
+recorded the new terms version. Those unpaid test carts were expired afterward.
+The live webhook and customer portal configuration were rechecked: lifecycle,
+failed payments, refunds and risk events remain enabled; cancellation, card
+updates and invoice history remain available. No live subscriptions, payments,
+or existing trial dates were modified. Sales remain closed pending approval
+and the final installed-store/live Checkout checks.
+
+## November 5 prelaunch readiness and tax decision
+
+- Website footer now wraps the wordmark as a single flex child, preserving the
+  normal space between Gmail and Pro without the extra flex gap. This is a
+  website-only change; the submitted 1.0.3 ZIP remains unchanged.
+- Owner reports Colorado/Denver, no tax registrations, and worldwide sales intent.
+  Confirm the actual physical tax jurisdiction before government filings; a
+  postal city is not a jurisdiction determination.
+- Stripe Tax setup was initialized using the existing Stripe business profile.
+  Live Tax Settings now report active. The inherited account preset remains
+  General Electronically Supplied Services, with inferred-by-currency tax behavior.
+  There are no active tax registrations, the Gmail Pro Product has no tax code,
+  and its two Prices still have unspecified tax behavior. Those decisions were
+  not changed or represented as complete.
+- Server supports opt-in automatic tax using GMAIL_PRO_AUTOMATIC_TAX_ENABLED.
+  It remains off. When enabled, Checkout requires an explicit Price tax behavior
+  and Product tax code, and sends automatic_tax.enabled=true while preserving
+  the 30-day trial. Confirm registrations, classification and fees and run an
+  actual jurisdiction calculation before enabling collection; this code does
+  not register or file taxes for the operator.
+- Worldwide tax route is undecided. Managed Payments setup is a saved inactive
+  draft; no category was saved, activation terms were not accepted and the owner
+  has not approved the 3.5% add-on. Standard Tax Basic does not transfer the
+  operator's registration/filing responsibilities. No paid tax plan, filing
+  service or government registration was purchased or submitted.
+- Product/price reads, support form definition and production failure checks
+  were refreshed. Sales stay disabled; checkout returns 503, unsigned webhook
+  requests return 400, and unrecognized origins return 403. No live checkout or
+  purchase was created in this pass. Final live restricted-key create/expire,
+  portal and installed-store checks remain release gates.
+- Current checks: 44 extension checks and 41 billing/consent tests passed.
+
+Relevant sources checked November 5, 2026:
+- https://tax.colorado.gov/sales-use-tax-topics-computer-software (rules change
+  January 1, 2027; state-administered rules do not cover every home-rule city).
+- https://www.denvergov.org/files/assets/public/v/1/finance/documents/treasury/tax-guides/tax-update-2025/taxguidetopic18_software.pdf
+- https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Department-of-Finance/Our-Divisions/Treasury/Business-Tax-Information
+- https://stripe.com/tax/pricing
+- https://stripe.com/managed-payments
+- https://docs.stripe.com/payments/managed-payments/eligibility
+- https://www.gov.uk/government/publications/vat-notice-7001-should-i-be-registered-for-vat/vat-notice-7001-should-i-be-registered-for-vat
+
+The owner asked whether tax can wait until sales begin. Paid tax enrollment can
+wait while sales remain closed; obligations in intended launch markets must be
+resolved before accepting the applicable taxable transactions. Some overseas
+markets have no small-seller threshold for a non-established seller. A free trial
+is not treated here as permission to bypass tax readiness.
+
+### Stripe account follow-up found in the readiness check
+
+Live account reads show charges_enabled=true, payouts_enabled=true and statement
+descriptor GMAIL PRO, with the correct website and support URLs. However,
+individual.verification.document_live_capture appears in both currently_due and
+past_due; disabled_reason is null. The owner must complete Stripe's live identity
+verification directly. Enabled payments are not evidence that all onboarding
+requirements are cleared.
+
+The Dashboard Account status screen, inspected after the API read, reports
+“No active tasks to complete.” There is no live-capture task to hand off there
+currently, despite the API requirement fields. Recheck before launch and clarify
+with Stripe if the discrepancy persists; do not claim identity review is cleared
+or repeatedly ask the owner to upload documents without an available task.
+
+### Approved billing notifications
+
+The owner explicitly approved automated billing emails. Saved Stripe settings now
+have trial-ending reminders (seven days before the 30-day trial ends), upcoming
+renewal reminders, expiring-card notices, failed-card-payment emails and failed
+bank-debit-payment emails enabled. This changes future notifications, not the
+trial length. No email was manually sent in this pass. Other billing defaults
+were preserved. Managed Payments remains an inactive onboarding draft; its
+product-category preview was canceled without saving a category.
+
+## November 6 updated review submission
+
+Google showed version 1.0.3 as Ready to publish before this task. It was not
+published. The current checkout also includes the November 6 toolbar fixes for
+icon colors and native Refresh placement beside Select, which postdated the
+older ZIP. The owner requested submission of the updated package.
+
+- Incremented the extension manifest to **1.0.4** and built a production-only ZIP
+  from the current canonical checkout, with subscription verification required.
+- Returned the approved staged item to draft, uploaded `dist/Gmail-Pro-1.0.4.zip`,
+  and verified the version shown on Google's Package page.
+- Confirmed the existing listing already describes the 30-day trial and matches
+  the live website. Updated the private reviewer instructions (497 characters)
+  for the current agreement and toolbar flow, preserving the reviewer credential.
+- Explicitly unchecked automatic publication before submitting. Google displayed
+  **Your extension was submitted for review** and its staged-publication notice.
+  This is review submission, not Google approval or public publication.
+- Verified `salesEnabled:false` after submission. No sales, payment or public
+  publication was enabled. No commit, push or website deployment was performed.
+- SHA-256: `c673669c898bd2706aeef97690c13c1a11ffb6d75cc95706d335c0012087f047`.
+
+Validation: repository validation passed all 44 settings checks plus manifest,
+resources, syntax and permission checks; the consent/billing suite passed 41
+checks. Production popup and appearance browser fixtures passed 24/24 and 79/79.
+The full header fixture at the test browser's narrower default viewport passed
+125 checks and failed one width-threshold assertion. That isolated assertion
+passed at a 1600px viewport, which accommodates its 1400px fixture workspace
+(the fixture uses `max-width:100vw`). No source change or weakened assertion was
+needed. This was not a repeat of the whole header suite at the wider viewport.
+The temporary viewport override and fixture server were cleaned up.
+
+Plain-English Summary:
+- Submitted the latest toolbar fixes as version 1.0.4 for Google review.
+- Automatic publication and paid sales remain off.
+- Automated checks and focused browser verification completed as detailed above.
+- Google approval, legal decisions and paid-launch acceptance remain separate.
+- Suggested Conventional Commit: `chore(release): submit Gmail Pro 1.0.4 for review`.
+
+
+## November 7, 2026 — Free public release submitted
+
+The owner explicitly authorized publication as free for now. Google had approved
+1.0.4 but it still required a subscription, so it was returned to Draft and
+replaced with the verified free 1.0.5 package before publication.
+
+- ZIP: `dist/Gmail-Pro-1.0.5.zip` (43 production files).
+- SHA-256: `2b9cf6394146eb2d67e89c763294e4af635b430a3d85cce10d489792950babbf`.
+- Packaged config: `required:false`, `free:true`; affirmative versioned consent
+  still gates every mail feature. New terms/privacy versions: `2026-11-07.1`.
+- No new-user payment, trial or license prompt. Website planned monthly/annual
+  prices are crossed out with Free for now labels; no automatic future charge.
+- Worker and deployed HTTP service both reject new Checkout. Public config
+  reports `salesEnabled:false` and `free:true`, even if the launch flag is enabled.
+- Live Stripe read-only audit found zero subscriptions (all statuses) and zero
+  open Checkout sessions; no financial state was changed.
+- Google distribution saved as Free of charge, Public, All regions. Public
+  listing and permission justifications describe free access; obsolete reviewer
+  license removed. New private reviewer instructions: 487 characters.
+- Submission dialog explicitly had automatic publication checked. Google then
+  confirmed: Your extension was submitted for review. This is a review receipt,
+  not confirmation of public availability; Google controls approval timing.
+- Website/service production deploy `6aef6d7001f1892c1fe1f264` verified live:
+  homepage free pricing, current/permanent legal pages HTTP 200, config free,
+  direct new Checkout HTTP 503 with no payment required. Final copy-only
+  deploy `6aef6e89fed2b4c4fbb0a706` adds the direct store link for availability
+  after approval; its live markup and free public config were verified.
+- Verification: repository validation/settings checks passed; focused consent,
+  billing lifecycle/worker/service/web tests 44/44; actual-popup synthetic browser
+  fixture 25/25. Desktop pricing inspected; 390px layout has no horizontal
+  overflow, both planned prices are struck through, and no checkout controls or
+  checkout initialization script exists on the homepage.
+- ZIP config/version and production-only contents inspected. No content-script
+  source was changed. No actual signed-in Gmail/store-install test, CI result,
+  payment transaction, legal clearance or counsel review is asserted.
+
+All previous paid-launch offer instructions above are historical. Do not enable
+paid sales for this free release. A future paid release needs separate purchase
+consent and renewed billing/tax validation before accepting payments.

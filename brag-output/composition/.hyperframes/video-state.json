@@ -1,0 +1,3710 @@
+{
+  "version": 1,
+  "historyId": "f24d82bd-b26c-414b-b0dc-7281441b74de",
+  "currentRevision": "5a7f2f8a-25a6-457a-9b3d-90b03d743e12",
+  "pendingChanges": false,
+  "files": {
+    "AGENTS.md": {
+      "hash": "18bcca1593d1b29cd7442b3dc91d18ada440affb9b7acd577c1da57446f3d24f",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/18/18bcca1593d1b29cd7442b3dc91d18ada440affb9b7acd577c1da57446f3d24f"
+    },
+    "CLAUDE.md": {
+      "hash": "18bcca1593d1b29cd7442b3dc91d18ada440affb9b7acd577c1da57446f3d24f",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/18/18bcca1593d1b29cd7442b3dc91d18ada440affb9b7acd577c1da57446f3d24f"
+    },
+    "SPEC.md": {
+      "hash": "0cc0dd2f1b56962ee78c36def1fccf870dab142534819827b879e1ef6b81171a",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/0c/0cc0dd2f1b56962ee78c36def1fccf870dab142534819827b879e1ef6b81171a"
+    },
+    "assets/camera.js": {
+      "hash": "48665a330934b9af0da5adb7dd97aa5a1472e8defd3ddf38a9a7a5e40216d92a",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/48/48665a330934b9af0da5adb7dd97aa5a1472e8defd3ddf38a9a7a5e40216d92a"
+    },
+    "assets/click.ogg": {
+      "hash": "2fa929138bc3a0f432696588f66eac94b8f6d463905ec8808c6461ce4b054292",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/2f/2fa929138bc3a0f432696588f66eac94b8f6d463905ec8808c6461ce4b054292"
+    },
+    "assets/film.css": {
+      "hash": "c941a38a72dddc15470bc9acd4df7ce4992674323c3af3c336d9e9057fa46827",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/c9/c941a38a72dddc15470bc9acd4df7ce4992674323c3af3c336d9e9057fa46827"
+    },
+    "assets/gmail-pro-dark.jpg": {
+      "hash": "6d3f7857d434a0feb9947c3635748dc67dec4966dd3f9092ac7cceec6cc223f4",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/6d/6d3f7857d434a0feb9947c3635748dc67dec4966dd3f9092ac7cceec6cc223f4"
+    },
+    "assets/gmail-pro-light.jpg": {
+      "hash": "8a7ba2e010369af118e532b3d194ec123e8a4acb5d55efe7babaab9c5991fe79",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/8a/8a7ba2e010369af118e532b3d194ec123e8a4acb5d55efe7babaab9c5991fe79"
+    },
+    "assets/gsap.min.js": {
+      "hash": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/92/92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb"
+    },
+    "assets/icon128.png": {
+      "hash": "7b32ee8fbf4b0e453009f1d380d0e3b80231140a659ebe04ae3f4cb57f4d73fe",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/7b/7b32ee8fbf4b0e453009f1d380d0e3b80231140a659ebe04ae3f4cb57f4d73fe"
+    },
+    "assets/impact.ogg": {
+      "hash": "7642a4fd43e547afe4f7adfadb3dabb681c0ff512f52c1674bae30a726841faf",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/76/7642a4fd43e547afe4f7adfadb3dabb681c0ff512f52c1674bae30a726841faf"
+    },
+    "assets/shots.js": {
+      "hash": "72168e8dbe964a1fd60139e30beea654a23f9882f844a68bf4a6fb49285c0342",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/72/72168e8dbe964a1fd60139e30beea654a23f9882f844a68bf4a6fb49285c0342"
+    },
+    "build-film.py": {
+      "hash": "b4311dcd7c277ebb29586f5903316814d1d363ae0ef363211e9449c39ef5b9db",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/b4/b4311dcd7c277ebb29586f5903316814d1d363ae0ef363211e9449c39ef5b9db"
+    },
+    "compositions/hero.html": {
+      "hash": "5f299be2ce8b470165b8610d5ec06235747ccea17b5ea1128bc7dff0cd88f4f4",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/5f/5f299be2ce8b470165b8610d5ec06235747ccea17b5ea1128bc7dff0cd88f4f4"
+    },
+    "compositions/labels.html": {
+      "hash": "24734f129b9464351b2773638b35046a853698d212cbd5bf6ee59bfeb8c88745",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/24/24734f129b9464351b2773638b35046a853698d212cbd5bf6ee59bfeb8c88745"
+    },
+    "compositions/newest.html": {
+      "hash": "ad656de24997b372aa32a6cf304ac5b881cd65d5fb64578baa2520830cabe596",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/ad/ad656de24997b372aa32a6cf304ac5b881cd65d5fb64578baa2520830cabe596"
+    },
+    "compositions/reveal.html": {
+      "hash": "c793ce33aee0ae95dc1cdce5693b3a605455687faf9c9394952523c07e2d2aa2",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/c7/c793ce33aee0ae95dc1cdce5693b3a605455687faf9c9394952523c07e2d2aa2"
+    },
+    "compositions/zoom.html": {
+      "hash": "bb50070545782b2eb13e14ae402a226e1c75f92bd9e887a967457ad9326b627b",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/bb/bb50070545782b2eb13e14ae402a226e1c75f92bd9e887a967457ad9326b627b"
+    },
+    "hyperframes.json": {
+      "hash": "3af6ecb4d7f8c0cf28a50880f71291f27406c4548e5db2ea2d57430abd99e0e1",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/3a/3af6ecb4d7f8c0cf28a50880f71291f27406c4548e5db2ea2d57430abd99e0e1"
+    },
+    "index.html": {
+      "hash": "9dbc03f0477c441e4afbeb8d9c6c962fb24022f67f356cd7f4ca8ad780ba0107",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/9d/9dbc03f0477c441e4afbeb8d9c6c962fb24022f67f356cd7f4ca8ad780ba0107"
+    },
+    "meta.json": {
+      "hash": "3726dd6548bbe0ef9eb814fa4a8630828c18de54589c4eaceed41b47f98e76a8",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/37/3726dd6548bbe0ef9eb814fa4a8630828c18de54589c4eaceed41b47f98e76a8"
+    },
+    "package.json": {
+      "hash": "355d86d2ecdafdd294846b03c3c65c7e8e4c1f43399aae92bf73359e506bd919",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/35/355d86d2ecdafdd294846b03c3c65c7e8e4c1f43399aae92bf73359e506bd919"
+    },
+    "shots.json": {
+      "hash": "83ce63f7d8941cccc67c71a3cb358e9719c716c8facd21c45cd4e643b060dd96",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/83/83ce63f7d8941cccc67c71a3cb358e9719c716c8facd21c45cd4e643b060dd96"
+    },
+    "assets/music.mp3": {
+      "hash": "5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/58/5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1"
+    },
+    "README.md": {
+      "hash": "99851eda670e82428366ac51c973a629d9559775fade1ea683e4bb46e516517b",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/99/99851eda670e82428366ac51c973a629d9559775fade1ea683e4bb46e516517b"
+    },
+    "REVIEW.md": {
+      "hash": "7d38213fe063102fbf26e62ecfa34b7dfbd7e559abb579760bb405242ea564e2",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/7d/7d38213fe063102fbf26e62ecfa34b7dfbd7e559abb579760bb405242ea564e2"
+    },
+    "compositions/filing.html": {
+      "hash": "184e8fb63c2630462e7cb02d7636c3fa59ca5ff9ddbb95da1afe0470317f0de5",
+      "content": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/18/184e8fb63c2630462e7cb02d7636c3fa59ca5ff9ddbb95da1afe0470317f0de5"
+    }
+  },
+  "revisions": {
+    "8d4283d6-a44f-42a2-8a39-551dc0aeca60": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171168491,
+      "endedAt": 1794171168492,
+      "files": {
+        "README.md": {
+          "before": null,
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/99/99851eda670e82428366ac51c973a629d9559775fade1ea683e4bb46e516517b"
+        }
+      }
+    },
+    "ba87caa2-ed44-4880-802f-0bc2d25f896e": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171212711,
+      "endedAt": 1794171212811,
+      "files": {
+        "assets/camera.js": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/64/64c52ad309d4dcdd922300f9038117328b692c01fc7c885cf7cd5c2015c982dc",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/48/48665a330934b9af0da5adb7dd97aa5a1472e8defd3ddf38a9a7a5e40216d92a"
+        },
+        "assets/film.css": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/8a/8ae58903407753a2ccf6f16bd495ec73667f6cf085ada6d9d68632083f2b2bb4",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/19/1983dc69e56fc2a3cf1b5270b1614b3059e4de3e4df1c51373dca9ea35eaae85"
+        },
+        "assets/shots.js": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/97/97a1a0d42ca6e2c313e26df7fe7b843a105ecfd3e3e72dbd1a1b841beb9c95f2",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/8c/8ce0206e1866beb0e162c3e82b672e0405f3a58339c0663acedc7a9c8494548f"
+        },
+        "build-film.py": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/e8/e8a673007ae55036914eb38bfe74943069116c9078576949c5820b21b7c4ee1b",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/44/449ad414343454b18d9a3fe47bbf384e337a2c88c94cb3a72a15779948e8f5b8"
+        },
+        "compositions/hero.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/fd/fdb759bca790b23ca87b88f43a59db073d9771e7ad2f789f4a810bd143af443a",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/5f/5f299be2ce8b470165b8610d5ec06235747ccea17b5ea1128bc7dff0cd88f4f4"
+        },
+        "compositions/labels.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/ea/ea79012c7c1e4704ba0a3497eea1974e7619b1aeb6124489a7f43079ad150fbb",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/13/13d6f3f8ab875afb19bc6ee4cc415d271fff9a33832cf6316b12c4642855c090"
+        },
+        "compositions/newest.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/11/11c0a447481c2f65fb21ef414cffee1e5718f21f346480feefb5465f73cb3c93",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/e7/e7e486db68ef04dd3ee8533823225c719b1234ac3de58cfdd114ceaaa8437539"
+        },
+        "compositions/reveal.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/bf/bf733fcc8ad7da1b5341f1cfc7fc0a48407107a9fdb9ce45af4cfc521c5b125e",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/c7/c793ce33aee0ae95dc1cdce5693b3a605455687faf9c9394952523c07e2d2aa2"
+        },
+        "compositions/workspace.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/9e/9eef3639a11afe8f1901a1b7235f6fded171b3498c61a56e1c5324ab7bab9816",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/66/666cf4eb063d3dfccf828e840786d9d37eece94dcac87c65ddb5b37ce45d900b"
+        },
+        "compositions/zoom.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/54/54162388cb71ee8ab74e926af22e8faa250ca7c456cb6c358f124d904966c953",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/af/af82b9b325a9296750675485821e84060f131837007f23fb1c11f590c01a9ad3"
+        },
+        "shots.json": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/ff/ff8bbf6e47f2df2be0a4215a890f2173c6dcd2fff2f363084c85d85b669363d5",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/4b/4b83f4f8456a6b30da61ec5e0aef55f41a61406e8ae9890a550709cb5cfe438e"
+        }
+      }
+    },
+    "7bb66c50-6970-4b22-815d-98f0a2f6e1f5": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171255662,
+      "endedAt": 1794171257897,
+      "files": {
+        "assets/shots.js": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/8c/8ce0206e1866beb0e162c3e82b672e0405f3a58339c0663acedc7a9c8494548f",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/6a/6a090b6b208c61a7db478cd7feee8369d13d954fd463ac414bda107526e75d74"
+        },
+        "shots.json": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/4b/4b83f4f8456a6b30da61ec5e0aef55f41a61406e8ae9890a550709cb5cfe438e",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/06/065cc10a78427e20a8ff66aa025f3024a8f5b440bde4a49e4b4c06f70f8ce76c"
+        }
+      }
+    },
+    "9703e056-6b2f-4626-bfd8-60ca5bebcab0": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171283146,
+      "endedAt": 1794171285148,
+      "files": {
+        "assets/film.css": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/19/1983dc69e56fc2a3cf1b5270b1614b3059e4de3e4df1c51373dca9ea35eaae85",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/31/31b4e5339d5004440459134c78c1269687cf64a6aef6877531658041c9b72949"
+        },
+        "build-film.py": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/44/449ad414343454b18d9a3fe47bbf384e337a2c88c94cb3a72a15779948e8f5b8",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/15/15c8c5f75f41f1018522ee863a281508ebd616569793af15acbb938f845577a2"
+        }
+      }
+    },
+    "287a4949-10b0-47a6-9506-33e5f46c62f2": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171344383,
+      "endedAt": 1794171346385,
+      "files": {
+        "REVIEW.md": {
+          "before": null,
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/d3/d32f12d8c072fe8c28c532a5130f0837943ae86e1a160bf68907c5fdbe98c504"
+        }
+      }
+    },
+    "f7ad8b1a-831c-4c4f-9671-a55993580d3e": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171477418,
+      "endedAt": 1794171480284,
+      "files": {
+        "assets/film.css": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/31/31b4e5339d5004440459134c78c1269687cf64a6aef6877531658041c9b72949",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/c9/c941a38a72dddc15470bc9acd4df7ce4992674323c3af3c336d9e9057fa46827"
+        },
+        "assets/shots.js": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/6a/6a090b6b208c61a7db478cd7feee8369d13d954fd463ac414bda107526e75d74",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/a5/a52d0d8dc5425181f64229fba4ed552eba11023871d2b64dc0ad8556528b624b"
+        },
+        "build-film.py": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/15/15c8c5f75f41f1018522ee863a281508ebd616569793af15acbb938f845577a2",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/b3/b37d02fdff1074a6223fa8a172d2fed8bcb52cb56fe9a215a734c8be19a1bed5"
+        },
+        "compositions/filing.html": {
+          "before": null,
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/7e/7e8af24c6fe5933c4f71f9d0d58905fb587807d97f88191c85d7fe69c2cb68cf"
+        },
+        "compositions/labels.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/13/13d6f3f8ab875afb19bc6ee4cc415d271fff9a33832cf6316b12c4642855c090",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/1a/1a64016bf1df254b38d2fd4796a696d4a02545131172df7deeab20d5ccca51bb"
+        },
+        "compositions/newest.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/e7/e7e486db68ef04dd3ee8533823225c719b1234ac3de58cfdd114ceaaa8437539",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/ad/ad656de24997b372aa32a6cf304ac5b881cd65d5fb64578baa2520830cabe596"
+        },
+        "compositions/workspace.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/66/666cf4eb063d3dfccf828e840786d9d37eece94dcac87c65ddb5b37ce45d900b",
+          "after": null
+        },
+        "compositions/zoom.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/af/af82b9b325a9296750675485821e84060f131837007f23fb1c11f590c01a9ad3",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/bb/bb50070545782b2eb13e14ae402a226e1c75f92bd9e887a967457ad9326b627b"
+        },
+        "index.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/35/3571ef3d657e34cb1ff092bf792bed30ee064ba1b8c4bb89fc3afb03fdb98eb2",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/9d/9dbc03f0477c441e4afbeb8d9c6c962fb24022f67f356cd7f4ca8ad780ba0107"
+        },
+        "shots.json": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/06/065cc10a78427e20a8ff66aa025f3024a8f5b440bde4a49e4b4c06f70f8ce76c",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/da/daeaf3456139755571e374aac0e53dde48e82c4526783e095bdff68d60a84643"
+        }
+      }
+    },
+    "72577060-eb51-4325-91f8-38adf1e12d81": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171495399,
+      "endedAt": 1794171498393,
+      "files": {
+        "assets/shots.js": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/a5/a52d0d8dc5425181f64229fba4ed552eba11023871d2b64dc0ad8556528b624b",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/72/72168e8dbe964a1fd60139e30beea654a23f9882f844a68bf4a6fb49285c0342"
+        },
+        "build-film.py": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/b3/b37d02fdff1074a6223fa8a172d2fed8bcb52cb56fe9a215a734c8be19a1bed5",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/54/540c0f123420582320657319daa276d5f10520e73f2270fed068ebacee9ca570"
+        },
+        "compositions/filing.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/7e/7e8af24c6fe5933c4f71f9d0d58905fb587807d97f88191c85d7fe69c2cb68cf",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/d1/d10a25ab0235947acc19f6b6f949d4d4e7bfd4a3ece33a7c3d061a6ad6d0bfb6"
+        },
+        "shots.json": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/da/daeaf3456139755571e374aac0e53dde48e82c4526783e095bdff68d60a84643",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/83/83ce63f7d8941cccc67c71a3cb358e9719c716c8facd21c45cd4e643b060dd96"
+        }
+      }
+    },
+    "228434da-9cb9-4aa9-a35a-9941eae2f367": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171528393,
+      "endedAt": 1794171530394,
+      "files": {
+        "SPEC.md": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/4e/4eb9da2ec1275a37cd9d7627bd705d8af5e94f5d5472f321a4787fc7f76f5217",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/0c/0cc0dd2f1b56962ee78c36def1fccf870dab142534819827b879e1ef6b81171a"
+        }
+      }
+    },
+    "446fc771-436c-426a-a77b-d1438231f4aa": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171555240,
+      "endedAt": 1794171557272,
+      "files": {
+        "build-film.py": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/54/540c0f123420582320657319daa276d5f10520e73f2270fed068ebacee9ca570",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/b4/b4311dcd7c277ebb29586f5903316814d1d363ae0ef363211e9449c39ef5b9db"
+        },
+        "compositions/filing.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/d1/d10a25ab0235947acc19f6b6f949d4d4e7bfd4a3ece33a7c3d061a6ad6d0bfb6",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/18/184e8fb63c2630462e7cb02d7636c3fa59ca5ff9ddbb95da1afe0470317f0de5"
+        },
+        "compositions/labels.html": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/1a/1a64016bf1df254b38d2fd4796a696d4a02545131172df7deeab20d5ccca51bb",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/24/24734f129b9464351b2773638b35046a853698d212cbd5bf6ee59bfeb8c88745"
+        }
+      }
+    },
+    "648c3be0-a3cc-4550-af76-2e33428297a5": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171597205,
+      "endedAt": 1794171599206,
+      "files": {
+        "REVIEW.md": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/d3/d32f12d8c072fe8c28c532a5130f0837943ae86e1a160bf68907c5fdbe98c504",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/a6/a68772e96d2707d8285cefbbdc7a783f15ac3412a015dcf7b52a67a137b49cf2"
+        }
+      }
+    },
+    "5a7f2f8a-25a6-457a-9b3d-90b03d743e12": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794171776141,
+      "endedAt": 1794171778142,
+      "files": {
+        "REVIEW.md": {
+          "before": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/a6/a68772e96d2707d8285cefbbdc7a783f15ac3412a015dcf7b52a67a137b49cf2",
+          "after": "/Users/rmunoz/.cache/hyperframes/history/f24d82bd-b26c-414b-b0dc-7281441b74de/blobs/7d/7d38213fe063102fbf26e62ecfa34b7dfbd7e559abb579760bb405242ea564e2"
+        }
+      }
+    }
+  },
+  "checks": {
+    "latest": {
+      "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+      "id": "3d7b37dd-262e-4b6e-9a98-182d552b6a2f"
+    },
+    "revisions": {
+      "ba87caa2-ed44-4880-802f-0bc2d25f896e": [
+        {
+          "id": "c297c669-d977-4edf-998c-621dc0668db6",
+          "scope": "project",
+          "report": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/.hyperframes/artifacts/checks/c297c669-d977-4edf-998c-621dc0668db6.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 45000,
+              "cache": true,
+              "contrast": true,
+              "craft": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto",
+              "includeUnmounted": false
+            }
+          },
+          "createdAt": 1794171228230,
+          "contentHash": "b687ae679dfc98e1ed5f66c07bb7cc1b3c90bea7c21f5f963aade168217ccc92",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "9703e056-6b2f-4626-bfd8-60ca5bebcab0": [
+        {
+          "id": "58bf76f5-b4fd-40b8-b855-8c57a23b8990",
+          "scope": "project",
+          "report": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/.hyperframes/artifacts/checks/58bf76f5-b4fd-40b8-b855-8c57a23b8990.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 45000,
+              "cache": true,
+              "contrast": true,
+              "craft": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto",
+              "includeUnmounted": false
+            }
+          },
+          "createdAt": 1794171293814,
+          "contentHash": "5f63d5f0198ce78450d21365dab53900e3e8d1cab0879bffa0142071ff7f88a9",
+          "revision": "9703e056-6b2f-4626-bfd8-60ca5bebcab0",
+          "inputFingerprint": "64a08535594b927d21e23d54b601b5339b7fb80aa193deb8ca7fa648d8eb3419",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "72577060-eb51-4325-91f8-38adf1e12d81": [
+        {
+          "id": "1fafaf93-7454-41cf-9f81-59dc945dc682",
+          "scope": "project",
+          "report": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/.hyperframes/artifacts/checks/1fafaf93-7454-41cf-9f81-59dc945dc682.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 45000,
+              "cache": true,
+              "contrast": true,
+              "craft": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto",
+              "includeUnmounted": false
+            }
+          },
+          "createdAt": 1794171513681,
+          "contentHash": "6fe59199199b5d26c51122926e04fae5c2e357a08a6daca4e07a546ad3ca9261",
+          "revision": "72577060-eb51-4325-91f8-38adf1e12d81",
+          "inputFingerprint": "f00800672532817673177b7e3bb6e68620afa1b6248f3550f889f7219e283724",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "446fc771-436c-426a-a77b-d1438231f4aa": [
+        {
+          "id": "3d7b37dd-262e-4b6e-9a98-182d552b6a2f",
+          "scope": "project",
+          "report": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/.hyperframes/artifacts/checks/3d7b37dd-262e-4b6e-9a98-182d552b6a2f.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 45000,
+              "cache": true,
+              "contrast": true,
+              "craft": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto",
+              "includeUnmounted": false
+            }
+          },
+          "createdAt": 1794171574236,
+          "contentHash": "5d5dc058945f236a2e217f11a1ec88f9150d0e92606ea7ed49edb3acfa934abb",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ]
+    },
+    "unversioned": [
+      {
+        "id": "33115c0a-50ea-4b05-85ee-67f21a6bece6",
+        "scope": "project",
+        "report": "/Users/rmunoz/Documents/GmailPro/brag-output/composition/.hyperframes/artifacts/checks/33115c0a-50ea-4b05-85ee-67f21a6bece6.json",
+        "metadata": {
+          "ok": false,
+          "browserSkipped": false,
+          "options": {
+            "samples": 9,
+            "atTransitions": false,
+            "maxIssues": 80,
+            "collapseStatic": true,
+            "tolerance": 2,
+            "timeout": 45000,
+            "cache": true,
+            "contrast": true,
+            "craft": true,
+            "strict": false,
+            "snapshots": false,
+            "browserGpuMode": "auto",
+            "includeUnmounted": false
+          }
+        },
+        "createdAt": 1794171093361,
+        "contentHash": "0f38462729c0c2eef11f6b785666eecf7cb19a74fed07b9d82f165b9aca3fa11",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      }
+    ]
+  },
+  "snapshots": {
+    "latest": {
+      "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+      "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-36"
+    },
+    "revisions": {
+      "8d4283d6-a44f-42a2-8a39-551dc0aeca60": [
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-0",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-01-at-0.3s.png",
+          "time": 0.3,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "reveal"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "2fae0bd6f274ceb6d33d0f1b4a53ea2c5d3a9ecd27306ec6d96872857cb5ef28",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-1",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-02-at-1.635s.png",
+          "time": 1.635,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "reveal mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "fcfc5b44a5cec1d407aab002f0b84a0f2ff937e5387f9a232b6fde70c3b8e13b",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-2",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-03-at-3.57s.png",
+          "time": 3.57,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "workspace"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "3858fecc7601616ccc99c6645546b890404337c2868070d3a945f57ba324ec23",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-3",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-04-at-4.635s.png",
+          "time": 4.635,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "workspace mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "64a15de1127309b5d80d8d037d8dd172d5c5904ab9b0e3ccce92a215517742a3",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-4",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-05-at-6.3s.png",
+          "time": 6.3,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "newest"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "c2c35c98b410eb6965b696b7fc4af085111cdde08bc8e9a8c9aa2681876689f7",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-5",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-06-at-8.465s.png",
+          "time": 8.465,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "newest mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "bf48d8b8cc1b93fad5dc18b147fc9c9d68832edbf5902e8bd3e404430187fd44",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-6",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-07-at-11.23s.png",
+          "time": 11.23,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "zoom"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "0c261c8c8cb9dd2aeeab0ff238333a02e8cca43345ac130cbe887846cebe5765",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-7",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-08-at-13.11s.png",
+          "time": 13.11,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "zoom mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "8ddc6fbba7467bd402f239521600c8cb1c8a8975b0b9ef7ddf2e94017460abb5",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-8",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-09-at-15.59s.png",
+          "time": 15.59,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "labels"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "66548f3d39a4726e12683a18255b308a33b6f009e58d27a237b74e4c8b6ca646",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-9",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-10-at-17.475s.png",
+          "time": 17.475,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "labels mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "772e891d94d9466d4fa4d22395ed57e140bf4c9cceccde291c9c27510e1c5b7b",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-10",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-11-at-19.96s.png",
+          "time": 19.96,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "hero"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "5b50bd0baf47b2fcd5474113d5a39704ddb67369ad6264a05ac0712a0fd85bf5",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-11",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/beat-12-at-21.83s.png",
+          "time": 21.83,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "hero mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "26b3171d594b4113051ab5ac9e2f710d8d39200e3245e9d021dd64cb6115d57e",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-12",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-01-1-at-3.07s.png",
+          "time": 3.07,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "543ff11f2a53d0651eac4af5b745bb9bcb8139aec1d68dbd0e8f4cbbf5e017fd",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-13",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-01-2-at-3.17s.png",
+          "time": 3.17,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "6947fd8500aff8e13549f160c587563a42a052b51af2365b1ba74a392cc6ae61",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-14",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-01-3-at-3.27s.png",
+          "time": 3.27,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut reveal -> workspace"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "da548ac328b3a2995f78696b14b8700d6fc0681ff42ec39ddf3b5e1afefefbcf",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-15",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-01-4-at-3.37s.png",
+          "time": 3.37,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "f43ea80ecf2c1bafae75fb8e091a860bd1c94074ced99b316c23d4658a24854a",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-16",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-01-5-at-3.47s.png",
+          "time": 3.47,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "1aae820fe4a055795ed4523b3b39dc5201c07055e1e87cc9b0d87188c4261304",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-17",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-02-1-at-5.8s.png",
+          "time": 5.8,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "582760ed4ae6de3428fc61cd8e794fde5e92ee0b09d19cf97ec3875ae04b1d6c",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-18",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-02-2-at-5.9s.png",
+          "time": 5.9,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "dbf46f9dc7146bfd85c0c641acb5ec872fc5bceffad5dc4f7e6773ab1612e4d8",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-19",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-02-3-at-6s.png",
+          "time": 6,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut workspace -> newest"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "d9c630c9d210747045845fae576710a746670824a57a53d749a0200d3d35c558",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-20",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-02-4-at-6.1s.png",
+          "time": 6.1,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177003,
+          "contentHash": "9b16b958f4b082544f24b5bfb5cc8148438e7a64649ba6778988373d6631df40",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-21",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-02-5-at-6.2s.png",
+          "time": 6.2,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "21019676f49b62441cea9b9eb7da6b245a40c37ff080c6dc9e7b41bf3323962f",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-22",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-03-1-at-10.73s.png",
+          "time": 10.73,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "0c647804de1804893ff6146450fbc4bda5638c87d1e3c484f6cd4952b00d364d",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-23",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-03-2-at-10.83s.png",
+          "time": 10.83,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "cbe39ed10508609d450dca9f337bfa6c3ddf7345f5f9a7bfd01fd0b2f1fa7d69",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-24",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-03-3-at-10.93s.png",
+          "time": 10.93,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut newest -> zoom"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "51b5aef486824a08709d54a02457c58bc1bc30cca4791a1c538fbe51abab39d5",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-25",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-03-4-at-11.03s.png",
+          "time": 11.03,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "8cfa62a5a22b43f16dde6883a9f7e084904188ba25686b03e32b0c6ae6cc9a62",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-26",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-03-5-at-11.13s.png",
+          "time": 11.13,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "18b5b4751ddbbb92b0c97c57dade291ce174ae270c5e9893c6f74a0f289097db",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-27",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-04-1-at-15.09s.png",
+          "time": 15.09,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "7600c21f100177cb011344bc5c2487c2492bb6549956437abf916e164ddf80a9",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-28",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-04-2-at-15.19s.png",
+          "time": 15.19,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "00d428f9025570607d15ae5e247f3dd3c09ec65366d82a3ad6380d712bb47155",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-29",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-04-3-at-15.29s.png",
+          "time": 15.29,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut zoom -> labels"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "ac5280d11d8d00f2abee1a26e7dc61fd8eedd63f94293fc8b31c3f1401143e23",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-30",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-04-4-at-15.39s.png",
+          "time": 15.39,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "156a5c93d833259fdb72d2a0efed4fa9c97e7fb98c31a2cb9a85a64b9d7e09ec",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-31",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-04-5-at-15.49s.png",
+          "time": 15.49,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "047c86dfd085d7d88c98cd3f423f2f40822812d4dac74391d25d6221a689c19c",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-32",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-05-1-at-19.46s.png",
+          "time": 19.46,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "6eb02998bcbcb9766749171f13e65267cc3c7c46e852b2cf95f19d66519dd6e8",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-33",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-05-2-at-19.56s.png",
+          "time": 19.56,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "88c727738d04d474b11d3a014fc0a48c04452e0f3833de52aca63f15a9ab33b1",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-34",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-05-3-at-19.66s.png",
+          "time": 19.66,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut labels -> hero"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "2401d5b05892274d65ef03f3adea801b5b63a4202abc4be5751d4680ed15fc08",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-35",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-05-4-at-19.76s.png",
+          "time": 19.76,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "29f0f9d48bb0f14993848efb1fff48e5f0df52fd7887d26c0668664cad414429",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "40494fe0-573b-4dd1-bebd-0f61bebc0983-36",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review/seam-05-5-at-19.86s.png",
+          "time": 19.86,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171177004,
+          "contentHash": "310525ef92c99109015ad3f816914b47f4762aa54dd4503684c73ebdcb01cfe0",
+          "revision": "8d4283d6-a44f-42a2-8a39-551dc0aeca60",
+          "inputFingerprint": "d5089a856c11bbcb2138f4f1f9f54a497b9ef7879201eac84d764b5c7162bb48",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "ba87caa2-ed44-4880-802f-0bc2d25f896e": [
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-0",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-01-at-0.3s.png",
+          "time": 0.3,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "reveal"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228616,
+          "contentHash": "ff184d2988e6c5ff614b278957644a95b42e0eba2acf93bbe301350be6a560cb",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-1",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-02-at-1.635s.png",
+          "time": 1.635,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "reveal mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228616,
+          "contentHash": "fd853a52c19d04b20c2a67692c5c17448d97dc1316310eaf92f9fbf8e758ecf6",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-2",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-03-at-3.57s.png",
+          "time": 3.57,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "workspace"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228617,
+          "contentHash": "0dada59250bf9ba3ac4c30b763f8fcea6c488ecf6819a657a1477b967e5a046f",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-3",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-04-at-4.635s.png",
+          "time": 4.635,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "workspace mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228617,
+          "contentHash": "4a6072334dde6b7f8f6bbd266ee315b942bed67650f2f3a0a125f3ea59855647",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-4",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-05-at-6.3s.png",
+          "time": 6.3,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "newest"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228617,
+          "contentHash": "76d67cd129a5a614ab039a932f324acdf8e6f3a30b3b717486929d83ce8a96d4",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-5",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-06-at-8.465s.png",
+          "time": 8.465,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "newest mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228617,
+          "contentHash": "88ed8d914d55489ba4864607da00c437660d9256c2d12e40328e24488c9441ee",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-6",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-07-at-11.23s.png",
+          "time": 11.23,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "zoom"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228618,
+          "contentHash": "09baa15f2a87894a921b0bb08e44f701cd8800d51b19932d09f05bf31873b030",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-7",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-08-at-13.11s.png",
+          "time": 13.11,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "zoom mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228618,
+          "contentHash": "a010a43b8bb309cd8be240387a94923efa0db665c005cc0c105abdb8ed38f80f",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-8",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-09-at-15.59s.png",
+          "time": 15.59,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "labels"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228618,
+          "contentHash": "1e8d29178705f95b7af79b837bc403757d8d7faa51e452c7d31193bf22040783",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-9",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-10-at-17.475s.png",
+          "time": 17.475,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "labels mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228619,
+          "contentHash": "8813225cbf8f8b87c4a3232cab98d07101628310edd2cace364abc3237e9c946",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-10",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-11-at-19.96s.png",
+          "time": 19.96,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "hero"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228619,
+          "contentHash": "5b50bd0baf47b2fcd5474113d5a39704ddb67369ad6264a05ac0712a0fd85bf5",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-11",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/beat-12-at-21.83s.png",
+          "time": 21.83,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "hero mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228619,
+          "contentHash": "26b3171d594b4113051ab5ac9e2f710d8d39200e3245e9d021dd64cb6115d57e",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-12",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-01-1-at-3.07s.png",
+          "time": 3.07,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228619,
+          "contentHash": "052087ea10c7928b9b6fd9b7e3da49ff1a2139a0bde401eeab7dc1c987c6ddbf",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-13",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-01-2-at-3.17s.png",
+          "time": 3.17,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228620,
+          "contentHash": "c6c3b4bfc09942728299d6316e5fb4c516f2f8950c156830c562e564517826c7",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-14",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-01-3-at-3.27s.png",
+          "time": 3.27,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut reveal -> workspace"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228620,
+          "contentHash": "da548ac328b3a2995f78696b14b8700d6fc0681ff42ec39ddf3b5e1afefefbcf",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-15",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-01-4-at-3.37s.png",
+          "time": 3.37,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228620,
+          "contentHash": "1b91924916adcd68f9e7969d993d3402c87c0e5625ad56076d889094f6006a1f",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-16",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-01-5-at-3.47s.png",
+          "time": 3.47,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228620,
+          "contentHash": "05837fa77676d3db841e43e1f1a2cbed23dd2021a2b52524a6ee4496925df7b0",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-17",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-02-1-at-5.8s.png",
+          "time": 5.8,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228620,
+          "contentHash": "ebfefe0cb8468dc74b663e6db1ddf446b3adf8fa242cc17cda16a0b567ac215f",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-18",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-02-2-at-5.9s.png",
+          "time": 5.9,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "c947005cf7b6e848cf6269387185b2699daf1d20806af10875ca54e57e2800cf",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-19",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-02-3-at-6s.png",
+          "time": 6,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut workspace -> newest"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "7e0883b92e5c4b2efcfdcecb30a31a09e6535c579f76842117a1d135fcf2506d",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-20",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-02-4-at-6.1s.png",
+          "time": 6.1,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "12e3fe314b11e07db9cfd1338c10536263b19116d91a34dbe1226f799a7fea54",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-21",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-02-5-at-6.2s.png",
+          "time": 6.2,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "eee92b7b801d50c3a243d31b06c3621a55919adcd7bd349aaf71455142be2920",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-22",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-03-1-at-10.73s.png",
+          "time": 10.73,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "0de191fc80f5815c316b4209be3f235dbf7b8f36347295866385483e2f75237b",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-23",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-03-2-at-10.83s.png",
+          "time": 10.83,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "6a48679a1ba5910cbc19d264aff9a52ba1a4cee9cf9dd6c1f516ee941a8d5650",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-24",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-03-3-at-10.93s.png",
+          "time": 10.93,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut newest -> zoom"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228621,
+          "contentHash": "dee71097df838fd57c59e4895601dea112af230b6b2c3bfb4de6edf5005e28d4",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-25",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-03-4-at-11.03s.png",
+          "time": 11.03,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228622,
+          "contentHash": "e0e0a47942e4decf20af5074c0241bec40ced5a16d428c5e2d54e3c128683f96",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-26",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-03-5-at-11.13s.png",
+          "time": 11.13,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228622,
+          "contentHash": "25e03c4917288cfd00e961726bea49a31e9e5ee9ba98409b46e57b17e80f0898",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-27",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-04-1-at-15.09s.png",
+          "time": 15.09,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228622,
+          "contentHash": "32a3985abb00b40ccb404dc88f6365c0087dd3330f17a7e74fdf1e408c4f5ae9",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-28",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-04-2-at-15.19s.png",
+          "time": 15.19,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228622,
+          "contentHash": "0876e6622492eef140fe9d96eca6f5a705d10f5960d56492d50537b0767852a5",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-29",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-04-3-at-15.29s.png",
+          "time": 15.29,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut zoom -> labels"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228622,
+          "contentHash": "aca03c74b3298556fde0df71f2e4966dcc6ce8bc8be06655b8d72a0c907be26f",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-30",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-04-4-at-15.39s.png",
+          "time": 15.39,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228622,
+          "contentHash": "f48e5db746b06d96be6030c0573e82e476b0c63a953e143538291f883cc0cf7f",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-31",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-04-5-at-15.49s.png",
+          "time": 15.49,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228623,
+          "contentHash": "b0062f189c693996d1a5ee183399cac21b0c10efa64dfb867735a320e13bfdd7",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-32",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-05-1-at-19.46s.png",
+          "time": 19.46,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228623,
+          "contentHash": "27201e9c584d2c9b923360ea46923ec6f9f230b50f5dad117e7d817b6b02267b",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-33",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-05-2-at-19.56s.png",
+          "time": 19.56,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228623,
+          "contentHash": "e3229a8adc5ba567879cecc2d1ecb660bffce9ab986696a40a9674f14b475796",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-34",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-05-3-at-19.66s.png",
+          "time": 19.66,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut labels -> hero"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228623,
+          "contentHash": "2401d5b05892274d65ef03f3adea801b5b63a4202abc4be5751d4680ed15fc08",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-35",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-05-4-at-19.76s.png",
+          "time": 19.76,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228623,
+          "contentHash": "29f0f9d48bb0f14993848efb1fff48e5f0df52fd7887d26c0668664cad414429",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "ff52938d-9771-4a8d-8f76-9e593c1f609d-36",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/review-final/seam-05-5-at-19.86s.png",
+          "time": 19.86,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171228623,
+          "contentHash": "310525ef92c99109015ad3f816914b47f4762aa54dd4503684c73ebdcb01cfe0",
+          "revision": "ba87caa2-ed44-4880-802f-0bc2d25f896e",
+          "inputFingerprint": "cf8cb4226b30775d508377ce96196ea6576fba3e54bcf8a715676b651ec39ac9",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "7bb66c50-6970-4b22-815d-98f0a2f6e1f5": [
+        {
+          "scope": "full",
+          "id": "3b8e2336-9019-4a96-9455-4e13ae0691ad-0",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-00-at-3.17s.png",
+          "time": 3.17,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171262231,
+          "contentHash": "9496c897809c93a627da157cc313443a32688098dc61c3bef95a16cf349a09be",
+          "revision": "7bb66c50-6970-4b22-815d-98f0a2f6e1f5",
+          "inputFingerprint": "7a8eea3896e6a4541c3550a22f642db2d4281dafe2f376924caed1234c556bb1",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "3b8e2336-9019-4a96-9455-4e13ae0691ad-1",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-01-at-3.27s.png",
+          "time": 3.27,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171262231,
+          "contentHash": "8fe024b1e92feb35747dcda4ee5520b982bb27dea01ac49a836434d19f6a6d3c",
+          "revision": "7bb66c50-6970-4b22-815d-98f0a2f6e1f5",
+          "inputFingerprint": "7a8eea3896e6a4541c3550a22f642db2d4281dafe2f376924caed1234c556bb1",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "3b8e2336-9019-4a96-9455-4e13ae0691ad-2",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-02-at-3.37s.png",
+          "time": 3.37,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171262231,
+          "contentHash": "d8345968ea4144a639fb4b05051eb755dee6fcd9612a6eded6a9942480b01045",
+          "revision": "7bb66c50-6970-4b22-815d-98f0a2f6e1f5",
+          "inputFingerprint": "7a8eea3896e6a4541c3550a22f642db2d4281dafe2f376924caed1234c556bb1",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "3b8e2336-9019-4a96-9455-4e13ae0691ad-3",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-03-at-15.19s.png",
+          "time": 15.19,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171262231,
+          "contentHash": "b11f1ec07eaa2641683130cd4da83d7c46ae9049cdef88fbf576d2d7ca238627",
+          "revision": "7bb66c50-6970-4b22-815d-98f0a2f6e1f5",
+          "inputFingerprint": "7a8eea3896e6a4541c3550a22f642db2d4281dafe2f376924caed1234c556bb1",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "3b8e2336-9019-4a96-9455-4e13ae0691ad-4",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-04-at-15.29s.png",
+          "time": 15.29,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171262231,
+          "contentHash": "f8ba794c8c006aabc7ff89e89b066d0ee31fc6dde132dc05504d6fbd2e1e7160",
+          "revision": "7bb66c50-6970-4b22-815d-98f0a2f6e1f5",
+          "inputFingerprint": "7a8eea3896e6a4541c3550a22f642db2d4281dafe2f376924caed1234c556bb1",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "3b8e2336-9019-4a96-9455-4e13ae0691ad-5",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/seams-fixed/frame-05-at-15.39s.png",
+          "time": 15.39,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171262232,
+          "contentHash": "e9ba18b4117168219ffaefc8796be61da77acf105b32623f31ba246bf0f628e7",
+          "revision": "7bb66c50-6970-4b22-815d-98f0a2f6e1f5",
+          "inputFingerprint": "7a8eea3896e6a4541c3550a22f642db2d4281dafe2f376924caed1234c556bb1",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "72577060-eb51-4325-91f8-38adf1e12d81": [
+        {
+          "scope": "full",
+          "id": "7d3b73eb-6f15-4b0a-a1c5-27b06c85ce6d-0",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/filing-review/frame-00-at-15.9s.png",
+          "time": 15.9,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171506067,
+          "contentHash": "492a1028c4d3699390d1487601a6fb27663cfd46bf892b5f9697d683aecfb656",
+          "revision": "72577060-eb51-4325-91f8-38adf1e12d81",
+          "inputFingerprint": "f00800672532817673177b7e3bb6e68620afa1b6248f3550f889f7219e283724",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "7d3b73eb-6f15-4b0a-a1c5-27b06c85ce6d-1",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/filing-review/frame-01-at-16.7s.png",
+          "time": 16.7,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171506068,
+          "contentHash": "e7927aa3a3c77fb7f46b28ba33b92d9a600adbdcdbdac2bc9a88c6deb02ac4ad",
+          "revision": "72577060-eb51-4325-91f8-38adf1e12d81",
+          "inputFingerprint": "f00800672532817673177b7e3bb6e68620afa1b6248f3550f889f7219e283724",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "7d3b73eb-6f15-4b0a-a1c5-27b06c85ce6d-2",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/filing-review/frame-02-at-17.5s.png",
+          "time": 17.5,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171506068,
+          "contentHash": "857bf6ddea3fee347439d64660232ee947312834af2f8a59bb304e6262ee405c",
+          "revision": "72577060-eb51-4325-91f8-38adf1e12d81",
+          "inputFingerprint": "f00800672532817673177b7e3bb6e68620afa1b6248f3550f889f7219e283724",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "7d3b73eb-6f15-4b0a-a1c5-27b06c85ce6d-3",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/filing-review/frame-03-at-18.8s.png",
+          "time": 18.8,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171506068,
+          "contentHash": "1277a02841ae3b30210295b1939863280ae700ff3966606190ef1d6090e1ca66",
+          "revision": "72577060-eb51-4325-91f8-38adf1e12d81",
+          "inputFingerprint": "f00800672532817673177b7e3bb6e68620afa1b6248f3550f889f7219e283724",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "7d3b73eb-6f15-4b0a-a1c5-27b06c85ce6d-4",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/filing-review/frame-04-at-19.4s.png",
+          "time": 19.4,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171506068,
+          "contentHash": "06722fe5580c37b78665d60aa1d559c1ca732ded17338aefcf064df1caea430c",
+          "revision": "72577060-eb51-4325-91f8-38adf1e12d81",
+          "inputFingerprint": "f00800672532817673177b7e3bb6e68620afa1b6248f3550f889f7219e283724",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "446fc771-436c-426a-a77b-d1438231f4aa": [
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-0",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-01-at-0.3s.png",
+          "time": 0.3,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "reveal"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574794,
+          "contentHash": "ff184d2988e6c5ff614b278957644a95b42e0eba2acf93bbe301350be6a560cb",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-1",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-02-at-1.635s.png",
+          "time": 1.635,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "reveal mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574795,
+          "contentHash": "fd853a52c19d04b20c2a67692c5c17448d97dc1316310eaf92f9fbf8e758ecf6",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-2",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-03-at-3.57s.png",
+          "time": 3.57,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "newest"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574795,
+          "contentHash": "6f535673e296415076e3048bc62444016f99a92be9838bd0b06e06030eddf7c3",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-3",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-04-at-5.73s.png",
+          "time": 5.73,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "newest mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574795,
+          "contentHash": "42e292746146c024b470c8fb6b9ec1244bc321b89c50ebcf849755b749370fb5",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-4",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-05-at-8.49s.png",
+          "time": 8.49,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "zoom"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574796,
+          "contentHash": "09baa15f2a87894a921b0bb08e44f701cd8800d51b19932d09f05bf31873b030",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-5",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-06-at-10.37s.png",
+          "time": 10.37,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "zoom mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574796,
+          "contentHash": "a010a43b8bb309cd8be240387a94923efa0db665c005cc0c105abdb8ed38f80f",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-6",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-07-at-12.85s.png",
+          "time": 12.85,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "labels"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574796,
+          "contentHash": "656aca731e996c3bde68a17f39565c1671811590459e96bc105a8e45f8490bd2",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-7",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-08-at-13.92s.png",
+          "time": 13.92,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "labels mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574797,
+          "contentHash": "967b40aeda059627e13a135a8ce515af57c13cf6db3134cbf42e94522fd5d2c2",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-8",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-09-at-15.59s.png",
+          "time": 15.59,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "filing"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574797,
+          "contentHash": "43d9b5e90e72488235836ad3f9734ef966f7867e5b9989928999f1e1e7e61a11",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-9",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-10-at-17.475s.png",
+          "time": 17.475,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "filing mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574798,
+          "contentHash": "cd1b6e26e2c727a5ed87c5535b5481f6007f603de7d5a12dcb8e84d0cd7ab601",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-10",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-11-at-19.96s.png",
+          "time": 19.96,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "hero"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574798,
+          "contentHash": "5b50bd0baf47b2fcd5474113d5a39704ddb67369ad6264a05ac0712a0fd85bf5",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-11",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/beat-12-at-21.83s.png",
+          "time": 21.83,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "beat",
+              "label": "hero mid"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574798,
+          "contentHash": "26b3171d594b4113051ab5ac9e2f710d8d39200e3245e9d021dd64cb6115d57e",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-12",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-1-at-3.07s.png",
+          "time": 3.07,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574799,
+          "contentHash": "93ee8f2e1ef12f73309ea922e402eb845b5f45927b282492afd35619da8b9c2f",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-13",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-2-at-3.17s.png",
+          "time": 3.17,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574800,
+          "contentHash": "de2f360c850ad9e8ecf5bb65e3e81c2eefee65d129bb91b3e19ec27762a97b4d",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-14",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-3-at-3.27s.png",
+          "time": 3.27,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut reveal -> newest"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574800,
+          "contentHash": "7e0883b92e5c4b2efcfdcecb30a31a09e6535c579f76842117a1d135fcf2506d",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-15",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-4-at-3.37s.png",
+          "time": 3.37,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574801,
+          "contentHash": "12e3fe314b11e07db9cfd1338c10536263b19116d91a34dbe1226f799a7fea54",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-16",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-01-5-at-3.47s.png",
+          "time": 3.47,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574801,
+          "contentHash": "eee92b7b801d50c3a243d31b06c3621a55919adcd7bd349aaf71455142be2920",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-17",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-1-at-7.99s.png",
+          "time": 7.99,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574803,
+          "contentHash": "49698c120c55677f930966ebc85118dc59e47b43632add11b7a6c08ef452cddd",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-18",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-2-at-8.09s.png",
+          "time": 8.09,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574803,
+          "contentHash": "54ae50c0fd134f04c06cfa4fa7257695fd61893d78258442cf893efb4c33ab7f",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-19",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-3-at-8.19s.png",
+          "time": 8.19,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut newest -> zoom"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574804,
+          "contentHash": "dee71097df838fd57c59e4895601dea112af230b6b2c3bfb4de6edf5005e28d4",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-20",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-4-at-8.29s.png",
+          "time": 8.29,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574804,
+          "contentHash": "e0e0a47942e4decf20af5074c0241bec40ced5a16d428c5e2d54e3c128683f96",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-21",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-02-5-at-8.39s.png",
+          "time": 8.39,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574805,
+          "contentHash": "25e03c4917288cfd00e961726bea49a31e9e5ee9ba98409b46e57b17e80f0898",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-22",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-1-at-12.35s.png",
+          "time": 12.35,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574805,
+          "contentHash": "c0d869dfd66891fb0aeb5ca3c4c06608c1413eec0a8a64906306f43387cab1a5",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-23",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-2-at-12.45s.png",
+          "time": 12.45,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574806,
+          "contentHash": "b11f1ec07eaa2641683130cd4da83d7c46ae9049cdef88fbf576d2d7ca238627",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-24",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-3-at-12.55s.png",
+          "time": 12.55,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut zoom -> labels"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574806,
+          "contentHash": "f8ba794c8c006aabc7ff89e89b066d0ee31fc6dde132dc05504d6fbd2e1e7160",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-25",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-4-at-12.65s.png",
+          "time": 12.65,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574806,
+          "contentHash": "6161e6175db986b576146c95388d37fab80235ced779059f1bb4285acac1eba8",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-26",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-03-5-at-12.75s.png",
+          "time": 12.75,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574807,
+          "contentHash": "128a8c31619e76d653375be4b2bd9bcf94a859abc2880d70dcbbf263badfae5d",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-27",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-1-at-15.09s.png",
+          "time": 15.09,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574807,
+          "contentHash": "b7c6451ef9da07bc83f328afb1997ed1aa2319171de7f80d3ce67a22eacf76c4",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-28",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-2-at-15.19s.png",
+          "time": 15.19,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574808,
+          "contentHash": "44c28e4495b2d02c7c54893bc338dfca83996ef8aa32fb7cf747daab3bacd347",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-29",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-3-at-15.29s.png",
+          "time": 15.29,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut labels -> filing"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574808,
+          "contentHash": "a203544a2011317d8ef52715b4921ff0474998613b91153d98cc1b10e8d769f4",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-30",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-4-at-15.39s.png",
+          "time": 15.39,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574809,
+          "contentHash": "76adc522ad29db9ca15ef661988d07dedf3a2cdf9dfd51e1b8d1770b640f4b95",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-31",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-04-5-at-15.49s.png",
+          "time": 15.49,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574809,
+          "contentHash": "d9bc667bb3802358c88c2629896ab668284c61699d29064f6fd4cf1d57b27319",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-32",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-1-at-19.46s.png",
+          "time": 19.46,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut -0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574809,
+          "contentHash": "a556fa30c721f23abe500b0cac03b5845b588451a520d1398f385da9cfd56b15",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-33",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-2-at-19.56s.png",
+          "time": 19.56,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "-0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574809,
+          "contentHash": "cb1593351052a4e48b56217e1ec90e82a2e36f18b4b9abde95f2f907cedd65ef",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-34",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-3-at-19.66s.png",
+          "time": 19.66,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "cut filing -> hero"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574810,
+          "contentHash": "2401d5b05892274d65ef03f3adea801b5b63a4202abc4be5751d4680ed15fc08",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-35",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-4-at-19.76s.png",
+          "time": 19.76,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.1"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574810,
+          "contentHash": "823ab2e2c4c898c91afc258d4799eb6e7bbfc1d307e755850af136b8e2294a5f",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        },
+        {
+          "scope": "full",
+          "id": "51f7b5c3-39e5-4df0-bb6b-160d17ed16d6-36",
+          "image": "/Users/rmunoz/Documents/GmailPro/brag-output/final-review/seam-05-5-at-19.86s.png",
+          "time": 19.86,
+          "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "zoomScale": 1,
+            "browserGpuMode": "auto",
+            "review": {
+              "role": "seam",
+              "label": "+0.2"
+            },
+            "warnings": [],
+            "partial": false
+          },
+          "createdAt": 1794171574812,
+          "contentHash": "7d38b5100849bbefca495ff16b9ded37fb136bdf92c8bf9453546601d6bdfbf3",
+          "revision": "446fc771-436c-426a-a77b-d1438231f4aa",
+          "inputFingerprint": "dc937d2090876e802ac733535036b6e875af80ac379f522a5dbd386e1b565327",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ]
+    },
+    "unversioned": [
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-0",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-00-at-0.4s.png",
+        "time": 0.4,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "99e17c6f06aa708b7d26c723dfd80bba7a5d3a575e6f145f9c87b6c5e50011d8",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-1",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-01-at-1.8s.png",
+        "time": 1.8,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "fcfc5b44a5cec1d407aab002f0b84a0f2ff937e5387f9a232b6fde70c3b8e13b",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-2",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-02-at-4.4s.png",
+        "time": 4.4,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "a19b6dc6ab2d619a49d061b192a31110adb929fc2d079151d2adf909b020e7e8",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-3",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-03-at-7s.png",
+        "time": 7,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "515070b3c4ed6d3b729472af247ee1dbc26a8dacd2bd55c2b49f59a51f46b076",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-4",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-04-at-8.9s.png",
+        "time": 8.9,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "32931386a3c0d730cbb70e293fd971b5e619211f8175536dcd82b4e287d7256a",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-5",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-05-at-12s.png",
+        "time": 12,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "965ee1f0d72b4fa6b0db950aeb8ab7b9a7c9ad614a05052eb96084eb8d7839b5",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-6",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-06-at-13.7s.png",
+        "time": 13.7,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "8ddc6fbba7467bd402f239521600c8cb1c8a8975b0b9ef7ddf2e94017460abb5",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-7",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-07-at-16.9s.png",
+        "time": 16.9,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "0365182a172daa257f14e621dd4ec0b91b4f275eacbf5dda0252a65c362ddbd4",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-8",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-08-at-18.8s.png",
+        "time": 18.8,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "298631167becd17414c837c52cfc45568d39661cb3b8b4285b2b4099b22760e2",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-9",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-09-at-21.5s.png",
+        "time": 21.5,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "26b3171d594b4113051ab5ac9e2f710d8d39200e3245e9d021dd64cb6115d57e",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-10",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-10-at-23.7s.png",
+        "time": 23.7,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "26b3171d594b4113051ab5ac9e2f710d8d39200e3245e9d021dd64cb6115d57e",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      },
+      {
+        "scope": "full",
+        "id": "7d290ec2-c792-4651-a2e0-e3759621b6b8-11",
+        "image": "/Users/rmunoz/Documents/GmailPro/brag-output/snapshots/frame-11-at-23.75s.png",
+        "time": 23.75,
+        "metadata": {
+          "width": 1920,
+          "height": 1080,
+          "zoomScale": 1,
+          "browserGpuMode": "auto",
+          "warnings": [],
+          "partial": false
+        },
+        "createdAt": 1794171089827,
+        "contentHash": "26b3171d594b4113051ab5ac9e2f710d8d39200e3245e9d021dd64cb6115d57e",
+        "revision": null,
+        "inputFingerprint": "79f86704dd1ece4413920eab10c78683a4781c06436ae678a4c987febb6ecaad",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      }
+    ]
+  },
+  "renders": {
+    "latest": {
+      "id": "5e09afe1-fb26-4960-8a10-c1b61f91da84",
+      "completedAt": 1794171670564,
+      "output": "/Users/rmunoz/Documents/GmailPro/brag-output/brag.mp4",
+      "status": "completed",
+      "revision": null
+    },
+    "retainedRevisions": []
+  },
+  "pendingArtifactCleanup": []
+}

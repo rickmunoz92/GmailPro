@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local-only fixture server. Never included in the extension manifest."""
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -16,6 +17,15 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        if urlsplit(self.path).path == "/tests/startup.manifest.js":
+            registrations = json.loads((ROOT / "manifest.json").read_text())["content_scripts"]
+            data = ("window.GmailProStartupManifest = " + json.dumps(registrations) + ";").encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if urlsplit(self.path).path != "/tests/popup.html":
             return super().do_GET()
         # Use production markup/scripts, with synthetic Chrome storage inserted
