@@ -338,7 +338,9 @@ Phish Alert toolbar icon uses a neutral tint while keeping its original action.
 Reply All remains available for single-recipient conversations by using Gmail's
 native Reply when Gmail omits Reply All; recipient handling stays native.
 Expanded message headers show To, CC, and BCC on separate lines, omitting absent
-fields. Click a sender or recipient name to copy its email address, or focus the
+fields. While Gmail loads reliable field assignments, the header shows a brief
+loading state, followed by a native Details prompt if assignments remain unavailable.
+Click a sender or recipient name to copy its email address, or focus the
 name and press Enter or Space. A brief notice confirms the copy or reports failure.
 Inbox, Sent, Starred, other mailboxes, labels, and search results use the same
 single toolbar row. The redundant From/time/attachment filter row is hidden;

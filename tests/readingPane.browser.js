@@ -4,6 +4,10 @@
   const assert = (value, message) => { if (!value) throw new Error(message); };
   const settle = () => new Promise(resolve => setTimeout(resolve, 80));
   const css = node => getComputedStyle(node);
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const unresolved = summary => summary.hasAttribute('data-gp-recipients-unresolved') && css(summary).display==='none';
+  const status = summary => summary.nextElementSibling?.textContent;
+
   const button = key => workspace.querySelector(`[data-gp-message-action="${key}"]`);
   const settings = {appleMailModeEnabled:true,appearanceTheme:"dark",accentColor:"blue"};
   const start = () => { app.appearance.start(settings); app.readingPane.start(settings); };
@@ -49,9 +53,15 @@
     workspace.replaceChildren(); clicks.length = 0; await settle();
     result.textContent = reports.join('\n');
   }
-  if (new URLSearchParams(location.search).has('preview')) {
+  const preview = new URLSearchParams(location.search);
+  if (preview.has('preview')) {
     const f=fixture('preview');
     recipients(f);
+    if(preview.get('preview')==='unavailable') {
+      f.main.querySelector('.ajA').remove();f.main.querySelector('.ajy').setAttribute('role','button');
+    }
+    if(preview.has('width')) f.main.style.width=Number(preview.get('width'))+'px';
+    if(preview.get('theme')==='light') settings.appearanceTheme='light';
     const paste=document.createElement('input'); paste.setAttribute('aria-label','Clipboard verification'); paste.placeholder='Paste here to verify a copied address';
     workspace.append(paste);
     f.footer.addEventListener('click',()=>{ result.textContent='Native action invoked: '+clicks.at(-1)?.key; });
@@ -66,6 +76,9 @@
     const summary=document.createElement('span'); summary.className='hb';
     summary.innerHTML='to <span class="g2" email="one@example.test">One</span>, cc: <span class="g2">Two</span>, bcc: <span class="g2">Three</span>';
     header.prepend(summary);
+    const people=[...summary.querySelectorAll('.g2')];
+    people[1].setAttribute('email','two@example.test');people[2].setAttribute('email','three@example.test');
+    nativeDetails(f, ['To','CC','BCC'].map((kind,i)=>({kind,people:[people[i]]})));
     const original=summary.innerHTML, contact=summary.querySelector('.g2');
     const decoy=summary.cloneNode(true); f.body.append(decoy); const bodyBefore=f.body.innerHTML;
     let clicked=0; contact.addEventListener('click',()=>clicked++);
@@ -107,29 +120,29 @@
   });
   await test('native details separate a merged To/CC summary and preserve native contacts and BCC',async()=>{
     const f=fixture(), summary=recipients(f), popup=f.main.querySelector('.ajA'); popup.remove();
-    summary.innerHTML='to <b><span class="g2" email="cc@example.test">Copied first</span></b>, <span class="g2" email="to@example.test">Direct</span>, <span class="g2" email="cc2@example.test">Copied second</span>, bcc: <span class="g2" email="bcc@example.test">Private</span>';
+    summary.innerHTML='to <b><span class="g2" email="cc@example.test">Copied first</span></b>, <span class="g2" email="to@example.test">Direct</span>, <span class="g2" email="cc2@example.test">Copied second</span>, bcc: <span class="g2" email="bcc@example.test">Private</span>, bcc: <span class="g2" email="bcc2@example.test">Also private</span>';
     const people=[...summary.querySelectorAll('.g2')], before=summary.innerHTML, details=f.main.querySelector('.ajy');
     details.setAttribute('role','button'); let toggles=0, clicks=0;
     people[0].addEventListener('click',()=>clicks++);
     details.addEventListener('click',()=>{
       toggles++;
-      if(toggles===1) {const popup=nativeDetails(f,[{kind:'To',people:[people[1]]},{kind:'CC',people:[people[2],people[0]]},{kind:'BCC',people:[people[3]]}]);popup.hidden=false;popup.focus();}
+      if(toggles===1) {const popup=nativeDetails(f,[{kind:'To',people:[people[1]]},{kind:'CC',people:[people[2],people[0]]},{kind:'BCC',people:[people[3],people[4]]}]);popup.hidden=false;popup.focus();}
       else f.main.querySelector('.ajA').hidden=true;
     });
     f.main.tabIndex=0; f.main.focus(); start(); await settle();
-    assert(summary.textContent==='To: Direct\nCC: Copied second, Copied first\nBCC: Private','authoritative fields and order, including bold contact wrapper');
+    assert(summary.textContent==='To: Direct\nCC: Copied second, Copied first\nBCC: Private, Also private','authoritative fields and order, including bold contact wrapper');
     assert(summary.querySelectorAll('.g2')[2]===people[0] && summary.querySelector('b').contains(people[0]),'native nodes and wrappers retained');
     assert(toggles===2 && f.main.querySelector('.ajA').hidden && document.activeElement===f.main,'native details closed and original focus restored');
     window.dispatchEvent(new Event('resize')); await settle(); assert(toggles===2,'no repeated details gestures');
     app.readingPane.stop(); assert(summary.innerHTML===before,'exact merged native markup restored');people[0].click();assert(clicks===1,'native contact listener retained');
   });
-  await test('unknown recipient mapping uses a combined label and updates when matching native details arrive',async()=>{
+  await test('unknown recipient mapping hides native labels and updates when matching native details arrive',async()=>{
     const f=fixture(), summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
     const details=f.main.querySelector('.ajy');details.setAttribute('role','button');
     const people=[...summary.querySelectorAll('.g2')], before=summary.innerHTML;
-    start();await settle();assert(summary.textContent.startsWith('To/CC: '),'no false To classification without metadata');
+    start();await settle();assert(unresolved(summary) && status(summary)==='Loading recipients…','no misleading recipient rows while loading');
     const decoy=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[1]]},{kind:'BCC',people:[people[2]]}]);
-    f.body.append(decoy);await settle();assert(summary.textContent.startsWith('To/CC: '),'quoted body cannot supply native field mapping');
+    f.body.append(decoy);await settle();assert(unresolved(summary),'quoted body cannot supply native field mapping');
     f.main.querySelector('.gs').append(decoy);await settle();
     assert(summary.textContent==='To: To Person\nCC: Other Person\nBCC: BCC Person','late native details normalize the same summary');
     app.readingPane.stop();assert(summary.innerHTML===before,'original labels restored after deferred details');
@@ -157,9 +170,112 @@
     const f=fixture(), summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
     f.main.querySelector('.ajy').setAttribute('role','button');const people=[...summary.querySelectorAll('.g2')];
     const popup=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[0]]},{kind:'BCC',people:[people[2]]}]);
-    start();await settle();assert(summary.textContent.startsWith('To/CC: ') && summary.querySelectorAll('.g2').length===3,'ambiguous membership leaves contacts in place');
+    start();await settle();assert(unresolved(summary) && summary.querySelectorAll('.g2').length===3,'ambiguous membership stays available in native Details');
     popup.remove();nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'BCC',people:[people[2]]}]);await settle();
-    assert(summary.textContent.startsWith('To/CC: '),'missing contact membership stays unclassified');
+    assert(unresolved(summary),'missing contact membership stays unclassified');
+  });
+  await test('an ignored initial Details gesture retries once and resolves',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const people=[...summary.querySelectorAll('.g2')],control=f.main.querySelector('.ajy');control.setAttribute('role','button');
+    let toggles=0,popup;
+    control.addEventListener('click',()=>{
+      toggles++;
+      if(toggles===2){popup=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);popup.hidden=false;}
+      else if(popup)popup.hidden=true;
+    });
+    start();await wait(1450);
+    assert(toggles===3 && !unresolved(summary) && popup.hidden,'one retry opens and closes complete Details');
+    await wait(350);assert(toggles===3,'no further gestures after success');
+  });
+  await test('empty and partial Details stay open until all membership arrives',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const people=[...summary.querySelectorAll('.g2')],control=f.main.querySelector('.ajy');control.setAttribute('role','button');
+    let toggles=0,popup;
+    control.addEventListener('click',()=>{
+      if(++toggles===1){popup=nativeDetails(f,[]);popup.hidden=false;}else popup.hidden=true;
+    });
+    start();await settle();assert(toggles===1 && !popup.hidden && unresolved(summary),'empty popup remains owned');
+    const source=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);
+    const rows=[...source.querySelectorAll('tr')];source.remove();
+    popup.querySelector('tbody').append(rows[0]);await settle();assert(toggles===1 && unresolved(summary),'partial table is not ready');
+    popup.querySelector('tbody').append(...rows.slice(1));await settle();
+    assert(toggles===2 && popup.hidden && !unresolved(summary),'complete membership closes and renders');
+  });
+  await test('a timed out message releases the next header and ends at a usable Details prompt',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const first=f.main.querySelector('[data-message-id]'),second=first.cloneNode(true);
+    second.setAttribute('data-message-id','second');second.setAttribute('data-legacy-message-id','legacy-second');first.after(second);
+    const secondSummary=second.querySelector('.hb'),people=[...secondSummary.querySelectorAll('.g2')];
+    const controls=[first.querySelector('.ajy'),second.querySelector('.ajy')];controls.forEach(c=>c.setAttribute('role','button'));
+    let attempts=0,secondToggles=0,popup;
+    controls[0].addEventListener('click',()=>attempts++);
+    controls[1].addEventListener('click',()=>{
+      if(++secondToggles===1){popup=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);second.querySelector('.gs').append(popup);popup.hidden=false;}
+      else popup.hidden=true;
+    });
+    start();await wait(1150);
+    assert(secondToggles===2 && !unresolved(secondSummary),'second message progresses without unrelated changes');
+    await wait(1350);
+    assert(attempts===2 && status(summary)==='View recipient details','two attempts then actionable fallback');
+    summary.nextElementSibling.querySelector('button').click();await settle();assert(attempts===3,'prompt delegates to current native Details');
+    app.readingPane.stop();assert(!summary.hasAttribute('data-gp-recipients-unresolved') && !f.main.querySelector('.gmail-pro-recipient-status'),'OFF reveals native summary and removes status');
+  });
+  await test('composer focus and an unrelated popup defer work until both blockers clear',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const people=[...summary.querySelectorAll('.g2')],control=f.main.querySelector('.ajy');control.setAttribute('role','button');
+    const form=document.createElement('form'),input=document.createElement('input'),dialog=document.createElement('div');
+    form.append(input);workspace.append(form);dialog.setAttribute('role','dialog');dialog.textContent='Unrelated popup';workspace.append(dialog);input.focus();
+    let toggles=0,popup;control.addEventListener('click',()=>{
+      if(++toggles===1){popup=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);popup.hidden=false;}else popup.hidden=true;
+    });
+    start();await settle();assert(toggles===0 && status(summary)==='View recipient details','no automatic gesture while editing');
+    input.blur();await settle();assert(toggles===0,'unrelated dialog still blocks');
+    dialog.remove();await settle();assert(toggles===2 && !unresolved(summary),'popup removal wakes deferred work');
+  });
+  await test('user input relinquishes owned popup and suppresses reopening',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const control=f.main.querySelector('.ajy');control.setAttribute('role','button');let toggles=0,popup;
+    control.addEventListener('click',()=>{if(++toggles===1){popup=nativeDetails(f,[]);popup.hidden=false;}else popup.hidden=true;});
+    start();await settle();document.dispatchEvent(new Event('pointerdown',{bubbles:true}));await wait(1400);
+    assert(toggles===1 && !popup.hidden && status(summary)==='View recipient details','no close, retry, or focus restoration after takeover');
+    app.readingPane.stop();assert(!popup.hidden,'OFF leaves user-owned popup alone');
+  });
+  await test('unrelated input does not disable recovery for an already resolved header',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const people=[...summary.querySelectorAll('.g2')],control=f.main.querySelector('.ajy');control.setAttribute('role','button');
+    let toggles=0,popup;control.addEventListener('click',()=>{
+      if(++toggles%2){popup=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);popup.hidden=false;}
+      else popup.hidden=true;
+    });
+    start();await settle();document.dispatchEvent(new Event('pointerdown',{bubbles:true}));popup.remove();await settle();
+    assert(toggles===4 && !unresolved(summary),'completed header retains its remaining recovery attempt');
+  });
+  await test('message and editor popup lookalikes neither block probing nor enter chrome observation',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const control=f.main.querySelector('.ajy');control.setAttribute('role','button');let toggles=0;
+    control.addEventListener('click',()=>toggles++);
+    f.body.innerHTML='<div role="dialog"><div class="ajA">Received lookalike</div></div>';
+    const editor=document.createElement('div');editor.contentEditable='true';editor.innerHTML='<div role="menu">Editor lookalike</div>';f.shell.append(editor);
+    start();await settle();assert(toggles===1 && status(summary)==='Loading recipients…','only real chrome popups block');
+    let changes=0;const watch=new MutationObserver(records=>changes+=records.length);
+    watch.observe(f.footer,{attributes:true});watch.observe(workspace.querySelector('.gmail-pro-message-actions'),{attributes:true,subtree:true});
+    f.body.querySelector('.ajA').append(document.createElement('span'));editor.querySelector('[role=menu]').append(document.createElement('span'));
+    await settle();watch.disconnect();assert(changes===0,'received/editor mutations did not rescan chrome');
+  });
+  for(const stop of [false,true]) await test((stop?'OFF':'route change')+' cancels a scheduled recipient retry',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    const control=f.main.querySelector('.ajy');control.setAttribute('role','button');let toggles=0;
+    control.addEventListener('click',()=>toggles++);start();await wait(1100);
+    const route=location.hash;
+    if(stop)app.readingPane.stop();else location.hash=route+'-recipient-navigation';
+    await wait(450);assert(toggles===1,'no stale retry gesture ('+toggles+')');
+    if(!stop)location.hash=route;
+  });
+  await test('a header without a native Details control shows unavailable and restores exactly',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();f.main.querySelector('.ajy').remove();
+    const before=summary.innerHTML;start();await settle();
+    assert(unresolved(summary) && status(summary)==='Recipient details unavailable','no inert fallback button');
+    app.readingPane.stop();assert(summary.innerHTML===before && !summary.hasAttribute('data-gp-recipients-unresolved'),'native contacts restored');
   });
   await test('sender and each recipient name copy the exact address with feedback, without native contact actions',async()=>{
     const f=fixture(), summary=recipients(f), writes=[]; mockClipboard(async address=>writes.push(address));
@@ -195,12 +311,12 @@
   });
   await test('native recipient updates and replacement contacts copy fresh metadata',async()=>{
     const f=fixture(), summary=recipients(f,['To','BCC']), writes=[]; mockClipboard(async address=>writes.push(address));
-    start(); await settle(); const old=summary.querySelector('.g2'); old.setAttribute('email','Fresh+Case@example.test'); await settle();
+    start(); await settle(); const old=summary.querySelector('.g2'); old.setAttribute('email','Fresh+Case@example.test'); f.main.querySelector('.ajC [email]').setAttribute('email','Fresh+Case@example.test'); await settle();
     assert(old.title==='Copy Fresh+Case@example.test','address attribute update observed');
     old.click(); await settle(); assert(writes.at(-1)==='Fresh+Case@example.test','updated address copied');
     const replacement=document.createElement('span'); replacement.className='hb';
     replacement.innerHTML='to <span class="g2" email="new@example.test">New</span>, cc: <span class="g2" email="cc@example.test">CC</span>';
-    summary.replaceWith(replacement); await settle();
+    summary.replaceWith(replacement); f.main.querySelector('.ajA').remove();nativeDetails(f,[{kind:'To',people:[replacement.querySelector('.g2')]},{kind:'CC',people:[replacement.querySelectorAll('.g2')[1]]}]); await settle();
     assert(replacement.textContent==='To: New\nCC: CC' && !old.hasAttribute('data-gp-copy-email'),'new rows normalized; detached contact restored');
     replacement.querySelector('.g2').click(); await settle(); assert(writes.at(-1)==='new@example.test','replacement name works');
   });

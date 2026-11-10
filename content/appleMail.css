@@ -671,6 +671,14 @@ html.gmail-pro-apple-mail-mode .vY > .vX:has(.vZ.L4XNt > .v1) {
   .gE .ady:has(.hb) { align-items: flex-start; }
   .gE .hb { color: var(--gp-text-primary) !important; white-space: pre-line !important; overflow-wrap: anywhere; }
   .gE .hb .g2 { color: var(--gp-reading-meta-text) !important; }
+  .gE .hb[data-gp-recipients-unresolved] { display: none !important; }
+  .gE .gmail-pro-recipient-status { color: var(--gp-reading-meta-text); font-size: 12px; }
+  .gE .gmail-pro-recipient-status button {
+    appearance: none; border: 0; background: none; padding: 0; margin: 0;
+    color: inherit !important; font: inherit; cursor: pointer; text-align: start;
+  }
+  .gE .gmail-pro-recipient-status button:hover { text-decoration: underline; }
+  .gE .gmail-pro-recipient-status button:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 2px; border-radius: 2px; }
   .gE [data-gp-copy-email] { cursor: pointer; }
   .gE [data-gp-copy-email]:hover { text-decoration: underline; }
   .gE [data-gp-copy-email]:focus-visible { outline: 2px solid var(--gp-accent-ui); outline-offset: 2px; border-radius: 2px; }

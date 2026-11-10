@@ -22,9 +22,9 @@
   const readTimeout = 10000;
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
   const markedFooters = new Set();
-  const recipientLabels = new Map();
   const recipientSummaries = new Map();
-  let recipientProbes = new WeakMap(), recipientTables = new WeakMap();
+  const recipientStates = new Map();
+  let recipientTables = new WeakMap(), retiredRecipients = new WeakMap();
   let recipientProbe;
   const emailContacts = new Map();
   const emailContactSelector = '.gE :is(.gD, .hb .g2):is([email], [data-hovercard-id])';
@@ -590,87 +590,186 @@
     return fields.length ? fields : null;
   }
 
-  function finishRecipientProbe(cancel = false) {
+  // Readiness is shared by the probe and renderer: a partial Details table
+  // must never suppress recovery or assign a condensed To/CC list to To.
+  function reconcileRecipients(summary) {
+    const fields = recipientFields(summary);
+    if (!fields) return null;
+    const contacts = new Map();
+    for (const node of summary.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.COMMENT_NODE) continue;
+      if (!(node instanceof Element)) return null;
+      const people = node.matches('.g2') ? [node] : [...node.querySelectorAll('.g2')];
+      const person = people[0], address = person && contactAddress(person).toLowerCase();
+      if (people.length !== 1 || !address || contacts.has(address) || node.textContent.trim() !== person.textContent.trim()) return null;
+      contacts.set(address, node);
+    }
+    const addresses = fields.flatMap(field => field.addresses);
+    // Unknown/truncated contacts and ambiguous field membership remain available
+    // through native Details. Never invent contacts or inspect received HTML.
+    if (contacts.size !== addresses.length || new Set(addresses).size !== addresses.length ||
+        addresses.some(address => !contacts.has(address))) return null;
+    return { fields, contacts };
+  }
+
+  function recipientControl(summary) {
+    const controls = [...summary.closest('.gE')?.querySelectorAll('.ajy[role="button"][aria-label="Show details"]') || []];
+    return controls.length === 1 ? controls[0] : null;
+  }
+
+  function recipientStateCurrent(state) {
+    return enabled && state.summary.isConnected && state.summary.closest(S.threadMessage) === state.message &&
+      state.shell.contains(state.summary) && ownsChrome(state.summary) && visible(state.header) &&
+      recipientIdentity(state.message) === state.identity && location.hash === state.route && location.pathname === state.page;
+  }
+
+  function recipientBlockers() {
+    return [...document.querySelectorAll('[role="dialog"], [role="menu"], .ajA')].filter(node =>
+      !node.closest('.ii, .a3s, [contenteditable], form') && visible(node));
+  }
+
+  function recipientBlocked() {
+    return document.hidden || document.activeElement?.closest('form, [contenteditable], [role="dialog"], [role="menu"]') ||
+      recipientBlockers().length;
+  }
+
+  function finishRecipientProbe(cancel = false, retry = true) {
     const probe = recipientProbe;
     if (!probe) return;
-    const valid = enabled && probe.message.isConnected && visible(probe.control) &&
-      recipientIdentity(probe.message) === probe.identity && location.hash === probe.route && location.pathname === probe.page;
-    const popup = [...probe.message.querySelectorAll(':scope > .gs > .ajA')].find(visible);
-    if (valid && !popup && !cancel) return;
+    const { state } = probe;
+    const valid = recipientStateCurrent(state) && recipientControl(state.summary) === probe.control && visible(probe.control);
+    const ready = valid && reconcileRecipients(state.summary);
+    if (valid && !ready && !cancel) return;
     recipientProbe = undefined;
     clearTimeout(probe.timer);
+    const popup = [...state.message.querySelectorAll(':scope > .gs > .ajA')].find(visible);
     if (valid && popup) {
-      nativeGesture(probe.control);
+      nativeGesture(probe.control, () => recipientStateCurrent(state));
       if (probe.focus?.isConnected && document.activeElement !== probe.focus) {
         if (probe.focus === document.body) document.activeElement?.blur();
         else probe.focus.focus({ preventScroll: true });
       }
     }
+    if (valid && !ready && retry && state.attempts < 2 && !state.suppressed) {
+      state.retryTimer = setTimeout(() => {
+        state.retryTimer = undefined;
+        if (recipientStateCurrent(state)) schedule();
+      }, 250);
+    }
+    schedule(); // Release the next expanded message even after a timeout.
   }
 
   function interruptRecipientProbe() {
-    // Real user input takes ownership of any native popup immediately.
+    // Real input takes ownership immediately, including during a retry delay.
+    for (const state of recipientStates.values()) if (recipientProbe?.state === state || state.retryTimer) {
+      state.suppressed = true;
+      clearTimeout(state.retryTimer); state.retryTimer = undefined;
+    }
     if (recipientProbe) clearTimeout(recipientProbe.timer);
     recipientProbe = undefined;
+    wakeRecipientFields();
   }
 
-  function prepareRecipientFields(summary) {
-    const message = summary.closest(S.threadMessage), header = summary.closest('.gE');
-    if (!message || !header) return;
-    const controls = [...header.querySelectorAll('.ajy[role="button"][aria-label="Show details"]')];
-    if (controls.length !== 1 || recipientProbe || pendingFiling || recipientFields(summary)) return;
-    const control = controls[0], focus = document.activeElement;
-    const identity = recipientIdentity(message);
-    if (recipientProbes.get(control) === identity) return;
-    if (!visible(control) || focus?.closest('form, [contenteditable], [role="dialog"], [role="menu"]') ||
-        [...document.querySelectorAll('[role="dialog"], [role="menu"], .ajA')].some(visible)) return;
-    recipientProbes.set(control, identity);
-    // Gmail lazily creates its authoritative details table on this native
-    // toggle, then retains it when closed. Close before paint when synchronous;
-    // the existing chrome watch also closes deferred details within one second.
-    // never infer To/CC from the condensed summary's order or contact names.
-    recipientProbe = { message, control, focus, identity, route: location.hash, page: location.pathname,
+  function wakeRecipientFields() {
+    if ([...recipientStates.keys()].some(summary => !recipientSummaries.has(summary))) schedule();
+  }
+
+  function recipientFocusChanged(event) {
+    const probe = recipientProbe;
+    if (probe && event.type === 'focusin' && event.target !== probe.focus && event.target !== probe.control &&
+        !event.target.closest('.ajA') && !probe.state.header.contains(event.target)) interruptRecipientProbe();
+    wakeRecipientFields();
+  }
+
+  function prepareRecipientFields(state) {
+    if (recipientProbe || pendingFiling || state.suppressed || state.retryTimer || state.attempts >= 2 ||
+        !recipientStateCurrent(state) || reconcileRecipients(state.summary)) return;
+    const control = recipientControl(state.summary);
+    if (!visible(control) || !usable(control) || recipientBlocked()) return;
+    state.attempts++;
+    recipientProbe = { state, control, focus: document.activeElement,
       timer: setTimeout(() => finishRecipientProbe(true), 1000) };
-    nativeGesture(control);
+    nativeGesture(control, () => recipientStateCurrent(state) && recipientProbe?.state === state);
     finishRecipientProbe();
   }
 
-  function updateRecipientSummaries(shell) {
+  function clearRecipientStatus(state) {
+    if (state.summary.getAttribute('data-gp-recipients-unresolved') === '') state.summary.removeAttribute('data-gp-recipients-unresolved');
+    if (state.status?.contains(document.activeElement)) recipientControl(state.summary)?.focus({ preventScroll: true });
+    state.status?.remove(); state.status = undefined;
+  }
+
+  function showRecipientStatus(state) {
+    const control = recipientControl(state.summary);
+    const available = visible(control) && usable(control);
+    const loading = recipientProbe?.state === state || !!state.retryTimer ||
+      (available && state.attempts < 2 && !state.suppressed && !recipientBlocked());
+    const text = loading ? 'Loading recipients…' : available ? 'View recipient details' : 'Recipient details unavailable';
+    if (!state.status) {
+      state.status = document.createElement('span');
+      state.status.className = 'gmail-pro-recipient-status';
+      state.status.setAttribute('role', 'status'); state.status.setAttribute('aria-live', 'polite');
+    }
+    if (state.status.textContent !== text) {
+      if (!loading && available) {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
+        button.addEventListener('click', event => {
+          event.preventDefault(); event.stopPropagation();
+          const current = recipientControl(state.summary);
+          if (!recipientStateCurrent(state) || !visible(current) || !usable(current)) return;
+          interruptRecipientProbe(); state.suppressed = true;
+          nativeGesture(current, () => recipientStateCurrent(state));
+          schedule();
+        });
+        state.status.replaceChildren(button);
+      } else state.status.textContent = text;
+    }
+    if (state.status.previousSibling !== state.summary) state.summary.after(state.status);
+    if (!state.summary.hasAttribute('data-gp-recipients-unresolved')) state.summary.setAttribute('data-gp-recipients-unresolved', '');
+  }
+
+  function updateRecipientLabels(shell) {
     finishRecipientProbe();
+    for (const [summary, state] of recipientStates) {
+      if (summary.isConnected && summary.closest(S.threadMessage) === state.message &&
+          recipientIdentity(state.message) === state.identity && (state.route !== location.hash || state.page !== location.pathname)) {
+        // Gmail can retain the old header during navigation. Do not start a
+        // fresh attempt against that stale DOM just because its URL changed.
+        clearTimeout(state.retryTimer); state.retryTimer = undefined;
+        retiredRecipients.set(summary, state.identity);
+        state.suppressed = true; state.route = location.hash; state.page = location.pathname;
+      }
+      if (shell === state.shell && recipientStateCurrent(state)) continue;
+      if (recipientProbe?.state === state) finishRecipientProbe(true, false);
+      clearTimeout(state.retryTimer);
+      clearRecipientStatus(state); recipientStates.delete(summary);
+    }
     for (const [summary, change] of recipientSummaries) {
       const intact = change.after.length === summary.childNodes.length &&
         change.after.every((node, i) => summary.childNodes[i] === node);
       const fields = shell?.contains(summary) && recipientFields(summary);
       const signature = fields && recipientIdentity(summary.closest(S.threadMessage)) + JSON.stringify(fields);
       const addresses = [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n');
-      if (intact && signature === change.signature && addresses === change.addresses) continue;
+      if (intact && signature === change.signature && addresses === change.addresses && summary.textContent === change.text) continue;
       if (intact) summary.replaceChildren(...change.before);
       recipientSummaries.delete(summary);
     }
     for (const summary of shell?.querySelectorAll(S.readingRecipients) || []) {
       if (!ownsChrome(summary) || recipientSummaries.has(summary)) continue;
-      prepareRecipientFields(summary);
-      const fields = recipientFields(summary);
-      if (!fields) continue;
-      const contacts = new Map();
-      let supported = true;
-      for (const node of summary.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) continue;
-        if (node.nodeType === Node.COMMENT_NODE) continue;
-        if (!(node instanceof Element)) { supported = false; break; }
-        const people = node.matches('.g2') ? [node] : [...node.querySelectorAll('.g2')];
-        const person = people[0], address = person && contactAddress(person).toLowerCase();
-        if (people.length !== 1 || !address || contacts.has(address) || node.textContent.trim() !== person.textContent.trim()) {
-          supported = false; break;
-        }
-        contacts.set(address, node);
+      const message = summary.closest(S.threadMessage), header = summary.closest('.gE');
+      if (!message || !visible(header)) continue;
+      let state = recipientStates.get(summary);
+      if (!state) {
+        state = { summary, message, header, shell, identity: recipientIdentity(message), route: location.hash,
+          page: location.pathname, attempts: 0, suppressed: retiredRecipients.get(summary) === recipientIdentity(message) };
+        recipientStates.set(summary, state);
       }
-      const addresses = fields.flatMap(field => field.addresses);
-      // Unknown/truncated summaries and duplicate field membership stay native.
-      // Do not invent recipients or copy addresses from message body HTML.
-      if (!supported || contacts.size !== addresses.length || new Set(addresses).size !== addresses.length ||
-          addresses.some(address => !contacts.has(address))) continue;
-      const before = [...summary.childNodes], after = [];
+      prepareRecipientFields(state);
+      const ready = reconcileRecipients(summary);
+      if (!ready) { showRecipientStatus(state); continue; }
+      clearTimeout(state.retryTimer); state.retryTimer = undefined;
+      clearRecipientStatus(state);
+      const { fields, contacts } = ready, before = [...summary.childNodes], after = [];
       for (const field of [...fields].sort((a, b) => ["to", "cc", "bcc"].indexOf(a.kind) - ["to", "cc", "bcc"].indexOf(b.kind))) {
         after.push(document.createTextNode((after.length ? '\n' : '') + ({to:"To:",cc:"CC:",bcc:"BCC:"})[field.kind] + ' '));
         field.addresses.forEach((address, i) => {
@@ -679,37 +778,8 @@
         });
       }
       summary.replaceChildren(...after);
-      recipientSummaries.set(summary, { before, after, signature: recipientIdentity(summary.closest(S.threadMessage)) + JSON.stringify(fields),
-        addresses: [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n') });
-    }
-  }
-
-  function updateRecipientLabels(shell) {
-    updateRecipientSummaries(shell);
-    for (const [node, change] of recipientLabels) {
-      if (!shell?.contains(node) || node.data !== change.after) {
-        if (node.data === change.after) node.data = change.before;
-        recipientLabels.delete(node);
-      }
-    }
-    for (const summary of shell?.querySelectorAll(S.readingRecipients) || []) {
-      if (!ownsChrome(summary)) continue;
-      // Only Gmail's direct English label fragments, never recipient nodes or
-      // received HTML. Line breaks replace only the separators between fields;
-      // contacts and separators within each recipient list remain native.
-      for (const node of summary.childNodes) {
-        if (node.nodeType !== Node.TEXT_NODE || recipientLabels.has(node)) continue;
-        const match = /^(\s*(?:,\s*)?)(to|cc|bcc):?(\s*)$/i.exec(node.data);
-        if (!match) continue;
-        const kind = match[2].toLowerCase();
-        const unresolved = kind === "to" && summary.closest('.gE').querySelector('.ajy[role="button"][aria-label="Show details"]') &&
-          !recipientSummaries.has(summary) && ![...summary.childNodes].some(part =>
-            part.nodeType === Node.TEXT_NODE && /\bcc\s*:/i.test(part.data));
-        const after = (kind === "to" ? "" : "\n") + (unresolved ? "To/CC:" : ({ to: "To:", cc: "CC:", bcc: "BCC:" })[kind]) + " ";
-        if (node.data === after) continue;
-        recipientLabels.set(node, { before: node.data, after });
-        node.data = after;
-      }
+      recipientSummaries.set(summary, { before, after, signature: recipientIdentity(message) + JSON.stringify(fields),
+        addresses: [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n'), text: summary.textContent });
     }
   }
 
@@ -906,6 +976,15 @@
       observer.observe(details, { childList: true, subtree: true, characterData: true, attributes: true,
         attributeFilter: ["email", "data-hovercard-id", "style", "class", "hidden", "aria-hidden"] });
     }
+    if ([...recipientStates.values()].some(state => !state.suppressed && state.attempts < 2 && !recipientSummaries.has(state.summary))) {
+      for (const blocker of recipientBlockers()) for (let node = blocker; node; node = node.parentElement) {
+        // Do not replace the richer subtree watches for headers/Details.
+        if (shell.contains(node) && node.matches('.gE, .gs > .ajA')) continue;
+        observer.observe(node, { childList: true, attributes: true,
+          attributeFilter: ["style", "class", "hidden", "aria-hidden"] });
+        if (node === document.body) break;
+      }
+    }
     observer.observe(toolbar, { childList: true, subtree: true, attributes: true,
       attributeFilter: ["style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
     for (let parent = toolbarHost; parent; parent = parent.parentElement) {
@@ -979,9 +1058,12 @@
   }
 
   function stop() {
-    finishRecipientProbe(true);
+    finishRecipientProbe(true, false);
     document.removeEventListener("pointerdown", interruptRecipientProbe, true);
     document.removeEventListener("keydown", interruptRecipientProbe, true);
+    for (const type of ["focusin", "focusout"]) document.removeEventListener(type, recipientFocusChanged, true);
+    for (const type of ["click", "visibilitychange"]) document.removeEventListener(type, wakeRecipientFields, true);
+    for (const type of ["hashchange", "popstate"]) window.removeEventListener(type, wakeRecipientFields);
     cancelFiling();
     for (const type of filingPointerEvents) document.removeEventListener(type, filingInput, true);
     for (const type of filingKeyEvents) window.removeEventListener(type, filingInput, true);
@@ -999,7 +1081,7 @@
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
     updateRecipientLabels(null);
-    recipientProbes = new WeakMap(); recipientTables = new WeakMap();
+    recipientTables = new WeakMap(); retiredRecipients = new WeakMap();
     updateEmailContacts(null);
     clearEmailCopy();
     document.removeEventListener("click", copyContactEmail, true);
@@ -1016,6 +1098,9 @@
     enabled = true;
     document.addEventListener("pointerdown", interruptRecipientProbe, true);
     document.addEventListener("keydown", interruptRecipientProbe, true);
+    for (const type of ["focusin", "focusout"]) document.addEventListener(type, recipientFocusChanged, true);
+    for (const type of ["click", "visibilitychange"]) document.addEventListener(type, wakeRecipientFields, true);
+    for (const type of ["hashchange", "popstate"]) window.addEventListener(type, wakeRecipientFields);
     document.addEventListener("click", copyContactEmail, true);
     document.addEventListener("keydown", copyContactEmail, true);
     // Enabling the mode does not change the status of an already-open message.

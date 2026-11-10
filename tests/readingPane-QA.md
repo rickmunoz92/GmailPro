@@ -1,5 +1,35 @@
 # Reading pane and persistent native actions — 0.9.0
 
+## Recipient grouping recovery — November 10, 2026
+
+The formatter now requires the same complete recipient reconciliation before
+both rendering fields and declaring a native Details probe successful. Empty
+or partial tables remain pending. Probes run serially, allow one retry after
+250 ms, and have a one-second deadline per attempt. Completion and timeout
+release the next expanded header. Navigation, message identity changes, mode
+cleanup and user takeover prevent stale gestures; focus and scoped popup
+observation wake safely deferred work without observing message/editor content.
+
+Verified headers render at most one To, CC and BCC label, with all recipients
+for that field on the same wrapping row. Unresolved native summaries stay intact
+but hidden, replaced by “Loading recipients…” during resolution and a “View
+recipient details” button afterward. The button delegates to that message's
+native Details control. Missing controls show “Recipient details unavailable.”
+Mode OFF removes status UI/visibility markers and restores original markup.
+
+The focused fixtures cover repeated BCC fragments, delayed/partial tables,
+ignored gestures, retry limits, multiple expanded headers, blocked focus/popup
+recovery, user ownership, navigation/OFF cancellation, body/editor lookalikes,
+idle header stability and native contact/markup restoration.
+
+Validation: `node scripts/validate.cjs` passed **47/47** plus manifest/resource,
+syntax and permission checks; the Chrome reading-pane fixture passed **57/57**;
+header/reading-pane integration passed **6/6**. Narrow-pane resolved rows in dark
+mode and the unavailable Details prompt in light mode were visually inspected.
+The final diff passed `git diff --check`. Chrome's browser security policy blocked
+the `chrome://extensions/` page, so reloading the unpacked extension and verifying
+this implementation in the live mailbox remain pending. No commit or push occurred.
+
 ## Startup recovery after reload — November 9, 2026
 
 Live reload exposed an absent early initialization phase: the idle Auto BCC
