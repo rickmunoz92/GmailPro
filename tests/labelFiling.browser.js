@@ -43,7 +43,7 @@
       const owner = document.createElement("div"); owner.className = "aim";
       const line = document.createElement("div"); line.className = "TN"; line.style.marginLeft = "0px";
       const link = document.createElement("a"); link.href = "#label/" + encodeURIComponent(name); link.textContent = name;
-      const menu = document.createElement("span"); menu.setAttribute("data-label-name", name); menu.setAttribute("aria-haspopup", "true");
+      const menu = document.createElement("span"); menu.setAttribute("data-label-name", name); menu.setAttribute("aria-haspopup", "menu");
       line.append(link, menu); owner.append(line); navigation.querySelector('.TK').append(owner); return { owner, link, menu };
     }
     const labelOwners = sidebar ? labels.map(addLabel) : [];

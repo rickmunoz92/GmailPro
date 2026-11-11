@@ -1,5 +1,28 @@
 # Label organization QA — 0.9.37
 
+## Gmail menu compatibility — November 10, 2026
+
+The work inbox now marks native label-menu triggers with `aria-haspopup="menu"`.
+The shared selector only accepted `"true"`, so the organizer rejected the native
+label lists and could not apply saved order or hidden branches. Accept both
+values while retaining the existing matching-path and hierarchy validation.
+No settings migration, reset, or account-scoping change is needed.
+
+All three affected browser fixtures now use current menu markup. Label checks
+also cover legacy and mixed triggers, restoration from saved preferences without
+startup writes, account isolation, unsupported menu kinds, and mismatched paths.
+
+- `node scripts/validate.cjs`: manifest/resource/syntax/permission checks and
+  **47/47 settings/lifecycle tests** passed.
+- Label organization with Apple Mail appearance: **56/56** passed.
+- Label filing: **97/97** passed.
+- Header/sidebar: **126/127** passed in the 1280px in-app browser. The remaining
+  fixed-width search check passed when isolated in desktop Chrome, where the
+  fixture's 1400px layout fits. No header implementation changes were made.
+- After the user reloaded the unpacked extension in the work Chrome profile,
+  the live inbox restored saved ordering and sublabel hiding without resetting
+  preferences. The user also confirmed the sidebar looked correct again.
+
 ## Nested parent identity fix — October 12, 2026
 
 Gmail's closed parent picker displays a nested parent's short name, while its

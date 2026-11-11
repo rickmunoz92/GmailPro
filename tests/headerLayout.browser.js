@@ -104,7 +104,7 @@
     const line = row.querySelector('.TN'), link = row.querySelector('a');
     line.style.marginLeft = `${depth}px`; link.href = hash; link.textContent = name.split('/').at(-1);
     if (hash.startsWith('#label/')) {
-      const menu = document.createElement('div'); menu.dataset.labelName = name; menu.setAttribute('aria-haspopup', 'true'); line.append(menu);
+      const menu = document.createElement('div'); menu.dataset.labelName = name; menu.setAttribute('aria-haspopup', 'menu'); line.append(menu);
     }
     return row;
   }

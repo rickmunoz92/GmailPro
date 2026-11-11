@@ -34,7 +34,7 @@
     const element = document.createElement("div"); element.className = "aim";
     const line = document.createElement("div"); line.className = "TN"; line.style.marginLeft = `${depth * 12}px`;
     const link = document.createElement("a"); link.href = `#label/${encodeURIComponent(name).replace(/%20/g, "+")}`; link.textContent = name.split("/").at(-1); link.draggable = false;
-    const menu = document.createElement("div"); menu.dataset.labelName = name; menu.setAttribute("aria-haspopup", "true");
+    const menu = document.createElement("div"); menu.dataset.labelName = name; menu.setAttribute("aria-haspopup", "menu");
     menu.addEventListener("click", event => { event.stopPropagation(); showNativeMenu(name); });
     menu.tabIndex = 0;
     menu.addEventListener("keydown", event => { if (["Enter", " ", "ArrowDown"].includes(event.key)) showNativeMenu(name); });
@@ -177,6 +177,29 @@
     assert(list.querySelectorAll(".unread").length === 5 && !host.querySelector(".gmail-pro-label-handle"), "counts and normal mode preserved");
     equal([...host.querySelectorAll('.system a')].map(a => a.hash), ["#inbox", "#sent"]);
   });
+  await test("current, legacy and mixed menu triggers restore saved order and hidden branches", async () => {
+    for (const kind of ["menu", "true", "mixed"]) {
+      const list = fixture();
+      list.querySelectorAll('[data-label-name]').forEach((menu, index) =>
+        menu.setAttribute('aria-haspopup', kind === 'mixed' ? index % 2 ? 'menu' : 'true' : kind));
+      Object.assign(prefs, { customLabelOrder: ['label/Gamma', 'label/Alpha', 'label/Beta'],
+        sidebarHiddenSublabels: [{account:'one@example.test',path:'label/Alpha/Child'},
+          {account:'two@example.test',path:'label/Beta/Child'}] });
+      const before = structuredClone(prefs), beforeWrites = writes;
+      feature.start(prefs); await settle();
+      equal(ids(list), ['Gamma', 'Alpha', 'Alpha/Child', 'Alpha/Child/Grandchild', 'Beta']);
+      for (const node of [...list.children].slice(1, 3)) equal(getComputedStyle(node).display, 'none');
+      equal(prefs, before); equal(writes, beforeWrites);
+      assert(feature.edit(), kind + ' organizer opens');
+      host.querySelector('.gmail-pro-label-toolbar input').click(); await settle();
+      assert(!eye(list, 'Alpha/Child').disabled && eye(list, 'Alpha/Child/Grandchild').disabled, 'branch restoration available');
+      eye(list, 'Alpha/Child').click(); await settle();
+      assert(!list.querySelector('[data-gmail-pro-label-hidden]'), 'branch restored');
+      equal(prefs.sidebarHiddenSublabels, [{account:'two@example.test',path:'label/Beta/Child'}]);
+      const {action} = await labelMenuFor(list, 'Alpha/Child');
+      equal(action?.textContent, 'Hide from sidebar — Gmail Pro');
+    }
+  });
   await test("idle and repeated apply have no mutation loop or DOM writes", async () => {
     const list = fixture(); on(); await settle();
     let records = 0; const observer = new MutationObserver(items => { records += items.length; });
@@ -259,6 +282,19 @@
     const list = fixture(["Alpha", "Beta", "Gamma"]); const bad = document.createElement("button"); list.append(bad); on();
     equal(ids(list), ["Alpha", "Beta", "Gamma"]);
     const orphan = fixture(["Missing/Child", "Beta", "Gamma"]); on(); equal(ids(orphan), ["Missing/Child", "Beta", "Gamma"]);
+  });
+  await test("unsupported menu kinds and mismatched label identities fail closed", () => {
+    for (const kind of [null, 'false', 'dialog', 'mismatched path']) {
+      const list = fixture(), menu = list.firstElementChild.querySelector('[data-label-name]');
+      if (kind === null) menu.removeAttribute('aria-haspopup');
+      else if (kind === 'mismatched path') menu.dataset.labelName = 'Different label';
+      else menu.setAttribute('aria-haspopup', kind);
+      prefs.customLabelOrder = ['label/Gamma', 'label/Alpha', 'label/Beta'];
+      prefs.sidebarHiddenSublabels = [{account:'one@example.test',path:'label/Alpha/Child'}];
+      feature.start(prefs);
+      assert(!list.hasAttribute('style') && !list.querySelector('[data-gmail-pro-label-hidden]'), 'unsupported list stays native');
+      assert(!feature.edit() && !host.querySelector('.gmail-pro-label-handle'), 'unsupported list has no organizer controls');
+    }
   });
   await test("large list remains stable and cleanup removes ordering styles", async () => {
     const names = Array.from({ length: 300 }, (_, i) => `Label ${String(i).padStart(3, "0")}`);

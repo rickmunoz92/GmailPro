@@ -21,7 +21,7 @@
     labelRow: '.aim',
     labelLine: '.TN',
     labelLink: 'a[href*="#label/"]',
-    labelMenu: '[data-label-name][aria-haspopup="true"]',
+    labelMenu: '[data-label-name]:is([aria-haspopup="true"], [aria-haspopup="menu"])',
     labelSection: '[aria-labelledby]',
     labelCreate: '[role="button"][aria-label="Create new label"]',
     labelAccount: 'header[role="banner"] [aria-label^="Google Account:"]',
