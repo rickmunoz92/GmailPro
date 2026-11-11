@@ -11,8 +11,15 @@ Validation: 47 repository checks and 250 focused browser checks passed. Standalo
 Gmail reported 63 ms interaction latency in the final capture, and the owner
 confirmed responsive pickup. Exact drag-image timing and a complete
 extension-disabled recording were not measured. See `tests/messageList-QA.md`.
-Permissions, free access and consent versions are unchanged. Store submission
-status will be recorded after upload; preparation is not public availability.
+Permissions, free access and consent versions are unchanged. The production ZIP
+contains 43 files and its five changed content scripts match the checkout.
+SHA-256: `1321efea9826a46bbd140e93ad9f2911f36cfddb9f1d4160ae08ca2ec946a67a`.
+The dashboard confirmed published version 1.0.7 and uploaded draft 1.0.8 before
+submission. Google then displayed **Your extension was submitted for review**.
+Automatic publication remained checked. Version 1.0.8 is awaiting Google review;
+1.0.7 remains public until approval and rollout. Existing listing text, images,
+promo video and privacy disclosures were preserved. Implementation and version
+were pushed in `f7ee583`; this receipt records submission, not public availability.
 
 ## November 9, 2026 — 1.0.7 recipient and startup fixes
 
