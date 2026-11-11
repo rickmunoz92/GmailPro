@@ -4,6 +4,8 @@
   if (app.labelOrder) return;
   const S = app.selectors;
   const states = new Map(), handles = new Map(), hiddenRows = new Set();
+  const visibilityEyes = new Map(), subscribers = new Set();
+  const systemRows = new WeakSet();
   const mailboxStyles = { styles: new Map() };
   let mailboxes;
   let active = false, enabled = false, started = false, order = [], hidden = [];
@@ -83,6 +85,30 @@
     const rows = allRows().filter(row => row.id === id);
     return rows.length === 1 ? rows[0] : null;
   }
+  function sidebarRows(owner = account()) {
+    const rows = allRows().filter(row => row.id.startsWith('label/'));
+    const roots = new Set([...states.keys()].map(list => list.closest(S.mailboxNavigation)).filter(Boolean));
+    for (const root of roots) for (const node of root.querySelectorAll(S.labelRow)) {
+      if (node.closest(`${S.labelContainer}, ${S.main}, ${S.editor}, [role="dialog"], [role="menu"]`)) continue;
+      const line = node.querySelector(S.labelLine), links = line?.querySelectorAll('a[href]');
+      if (links?.length !== 1 || line.closest(S.labelRow) !== node) continue;
+      let url; try { url = new URL(links[0].getAttribute('href'), location.href); } catch { continue; }
+      const id = app.labelRecency?.sidebarPath(url.hash);
+      if (!id?.startsWith('mailbox/') || url.origin !== location.origin || url.pathname !== location.pathname) continue;
+      systemRows.add(node);
+      rows.push({ node, line, link: links[0], id, depth: 0, mailbox: true });
+    }
+    const counts = new Map(); for (const row of rows) counts.set(row.id, (counts.get(row.id) || 0) + 1);
+    return rows.filter(row => counts.get(row.id) === 1).map(row => ({ ...row, account: owner,
+      hidden: !!hiddenBy(row, owner), inherited: hidden.some(entry => entry.account === owner &&
+        row.id.startsWith('label/') && below(row.id, entry.path)) }));
+  }
+  function findSidebarRow(id) { return sidebarRows().find(row => row.id === id); }
+  function publish(event = {}) {
+    if (!subscribers.size) return;
+    const owner = account(), value = { account: owner, rows: sidebarRows(owner), editing, ...event };
+    for (const listener of subscribers) listener(value);
+  }
   function rank(groups) {
     const ranks = new Map(order.map((id, index) => [id, index]));
     // Existing saved label orders predate these two native mailbox rows.
@@ -92,8 +118,8 @@
   }
   function hiddenBy(row, owner = account()) {
     // Native indentation, not slashes alone, distinguishes Gmail sublabels.
-    return row.depth && owner ? hidden.find(entry => entry.account === owner &&
-      (entry.path === row.id || below(row.id, entry.path)))?.path : null;
+    return owner ? hidden.find(entry => entry.account === owner &&
+      (entry.path === row.id || (row.id.startsWith('label/') && entry.path.startsWith('label/') && below(row.id, entry.path))))?.path : null;
   }
 
   function style(state, node, property, value) {
@@ -139,6 +165,11 @@
       }
     }
     for (const node of document.querySelectorAll(S.labelAccount)) observer.observe(node, { attributes: true, attributeFilter: ["aria-label"] });
+    for (const nav of new Set([...states.keys()].map(list => list.closest(S.mailboxNavigation)).filter(Boolean))) {
+      // Reuse this sidebar observer. No message rows or body-wide watch.
+      observer.observe(nav, { childList: true, subtree: true, attributes: true, attributeOldValue: true,
+        attributeFilter: ['href', 'class', 'hidden', 'aria-hidden'] });
+    }
     if (!states.size && document.documentElement) observer.observe(document.documentElement, { childList: true });
   }
 
@@ -175,12 +206,12 @@
           style(state, list, "display", "flex"); style(state, list, "flex-direction", "column");
           rank(groups).flatMap(group => group.rows).forEach((row, index) => style(state, row.node, "order", String(index)));
         }
-        for (const row of (groups || []).flatMap(group => group.rows)) {
-          if (!hiddenBy(row, owner)) continue;
-          const value = editing && revealHidden ? "revealed" : "hidden";
-          if (row.node.getAttribute("data-gmail-pro-label-hidden") !== value) row.node.setAttribute("data-gmail-pro-label-hidden", value);
-          seenHidden.add(row.node); hiddenRows.add(row.node);
-        }
+      }
+      for (const row of sidebarRows(owner)) {
+        if (!hiddenBy(row, owner)) continue;
+        const value = editing && revealHidden ? 'revealed' : 'hidden';
+        if (row.node.getAttribute('data-gmail-pro-label-hidden') !== value) row.node.setAttribute('data-gmail-pro-label-hidden', value);
+        seenHidden.add(row.node); hiddenRows.add(row.node);
       }
       const mailboxRows = mailboxes?.root.isConnected ? orderedGroups(mailboxes.list).flatMap(group => group.rows) : [];
       const mailboxNodes = new Set(mailboxRows.map(row => row.node));
@@ -190,10 +221,11 @@
         if (!seenHidden.has(row)) { row.removeAttribute("data-gmail-pro-label-hidden"); hiddenRows.delete(row); }
       }
       placeHeaderButton();
-      if (editing) renderHandles();
+      if (editing) { renderHandles(); renderVisibilityEyes(); }
       refreshLabelMenu();
       if (notice && (!notice.node.isConnected || notice.account !== owner)) clearNotice();
     } finally { observe(); }
+    publish();
   }
 
   function setMailboxes(next) {
@@ -226,7 +258,7 @@
       if (target.closest?.("[data-gmail-pro-label-ui]")) continue;
       if (record.type === "attributes") {
         if (record.attributeName === "aria-label") { changed = true; continue; }
-        const ownedRow = states.has(target.parentElement);
+        const ownedRow = states.has(target.parentElement) || systemRows.has(target);
         if (record.attributeName === "class") {
           // Gmail paints native hover/drop feedback in CSS. Only ignore these
           // tokens on an already-known row that remains structurally a row;
@@ -236,6 +268,7 @@
         }
         const relevant = states.has(target) || ownedRow || target.matches(S.labelRow) ||
           (record.attributeName !== "class" && target.matches(`${S.labelLine}, ${S.labelLink}, ${S.labelMenu}`)) ||
+          (record.attributeName === 'href' && target.matches('a[href]') && target.closest(S.mailboxNavigation)) ||
           [...states.keys()].some(list => target.contains(list));
         if (!relevant) continue;
         // Release our layout before checking newly changed native visibility classes.
@@ -300,7 +333,7 @@
   }
 
   function sameSource(source, owner) {
-    const fresh = findRow(source.id);
+    const fresh = source.mailbox ? findSidebarRow(source.id) : findRow(source.id);
     return active && owner === account() && fresh?.node === source.node &&
       fresh.menu === source.menu && fresh.parentId === source.parentId;
   }
@@ -429,7 +462,7 @@
     const trigger = event.target.closest?.(S.labelMenu);
     if (!trigger) return;
     const source = allRows().find(row => row.menu === trigger);
-    if (!source?.depth || !account() || operation || saving) { clearLabelMenu(); return; }
+    if (!source?.id.startsWith('label/') || !account() || operation || saving) { clearLabelMenu(); return; }
     if (labelMenu?.source.menu === trigger) return;
     clearLabelMenu();
     const context = { source, account: account(), controller: new AbortController() };
@@ -444,6 +477,7 @@
       button.disabled = value;
       if (eye) eye.disabled = value || eye.dataset.inherited === "true" || !owner;
     }
+    for (const { button } of visibilityEyes.values()) button.disabled = value || !owner;
     if (toolbar) toolbar.querySelector("input").disabled = value;
     refreshLabelMenu();
   }
@@ -469,31 +503,36 @@
     }
   }
 
-  async function saveSidebarVisibility(id, hide, context) {
-    if (!active || saving) return;
-    const row = findRow(id), owner = account();
-    if (!row?.depth || !owner) { visibilityFeedback("Couldn’t identify this Gmail account. Refresh Gmail and try again.", true); return; }
+  async function saveSidebarVisibility(id, hide, context, expectedAccount) {
+    if (!active || saving) return false;
+    const row = findSidebarRow(id), owner = account();
+    if (!row || !owner || (expectedAccount && expectedAccount !== owner)) {
+      visibilityFeedback("Couldn’t identify this Gmail account. Refresh Gmail and try again.", true); return false;
+    }
     const save = { source: row, account: owner, context }, revision = hiddenRevision;
     visibilitySave = save;
     setSaving(true); cancelDrag();
     try {
       const stored = await app.settings.load();
-      if (visibilitySave !== save || !sameSource(row, owner) || (context && labelMenu !== context)) return;
+      if (visibilitySave !== save || !sameSource(row, owner) || (context && labelMenu !== context)) return false;
       const current = stored.sidebarHiddenSublabels;
       const exact = current.some(entry => entry.account === owner && entry.path === id);
       if (current.some(entry => entry.account === owner && below(id, entry.path))) {
-        visibilityFeedback("This sublabel is hidden with its parent. Restore the parent first.", true); return;
+        visibilityFeedback("This label is hidden with its parent. Restore the parent first.", true); return false;
       }
       const next = hide ? exact ? current : [...current, { account: owner, path: id }] :
         current.filter(entry => entry.account !== owner || entry.path !== id);
       if (exact !== hide) await app.settings.save({ sidebarHiddenSublabels: next });
-      if (visibilitySave !== save || !active || owner !== account()) return;
+      if (visibilitySave !== save || !active || owner !== account()) return false;
       if (revision === hiddenRevision) { hidden = next; apply(); }
       if (context && labelMenu === context) { nativeMenuKey(context, "Escape"); clearLabelMenu(); }
-      visibilityFeedback(hide ? "Sublabel hidden. Restore it in Organize labels → Show hidden sublabels." : "Sublabel shown in this sidebar.");
+      visibilityFeedback(hide ? "Label hidden. Restore it in Organize labels → Show hidden labels." : "Label shown in this sidebar.");
       if (!visible(row.node)) (toolbar?.querySelector("button") || headerButton)?.focus({ preventScroll: true });
+      if (!hide) publish({ restored: id });
+      return true;
     } catch {
       if (visibilitySave === save && active && owner === account()) visibilityFeedback("Couldn’t save sidebar visibility. Please try again; the previous setting is unchanged.", true);
+      return false;
     } finally {
       if (visibilitySave === save) { visibilitySave = null; setSaving(!!operation); if (active) apply(); }
     }
@@ -781,7 +820,7 @@
         });
         for (const type of ["pointercancel", "lostpointercapture"]) button.addEventListener(type, cancelDrag);
         row.line.prepend(button); entry = { button, row: row.node }; handles.set(row.id, entry);
-        if (row.depth) {
+        if (row.id.startsWith('label/')) {
           const eye = iconButton("Hide from sidebar — Gmail Pro", "M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z", "gmail-pro-label-eye");
           for (const type of ["mousedown", "dblclick"]) eye.addEventListener(type, event => event.stopPropagation());
           eye.addEventListener("click", event => {
@@ -803,8 +842,29 @@
     }
     for (const [id, entry] of handles) if (!seen.has(id)) { entry.button.remove(); entry.eye?.remove(); handles.delete(id); }
   }
+  function renderVisibilityEyes() {
+    const seen = new Set();
+    for (const row of sidebarRows()) {
+      if (!row.mailbox) continue;
+      seen.add(row.id);
+      let entry = visibilityEyes.get(row.id);
+      if (entry?.row !== row.node) { entry?.button.remove(); visibilityEyes.delete(row.id); entry = null; }
+      if (!entry) {
+        const button = iconButton('Hide from sidebar — Gmail Pro', 'M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z', 'gmail-pro-label-eye');
+        for (const type of ['mousedown', 'dblclick', 'pointerdown']) button.addEventListener(type, event => event.stopPropagation());
+        button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation();
+          void saveSidebarVisibility(row.id, !hiddenBy(row), null, row.account); });
+        row.line.prepend(button); entry = { row: row.node, button }; visibilityEyes.set(row.id, entry);
+      }
+      const label = row.hidden ? 'Show in sidebar — Gmail Pro' : 'Hide from sidebar — Gmail Pro';
+      entry.button.setAttribute('aria-label', `${label}: ${row.link.textContent}`); entry.button.title = label;
+      entry.button.setAttribute('aria-pressed', String(row.hidden)); entry.button.disabled = saving || !row.account;
+    }
+    for (const [id, entry] of visibilityEyes) if (!seen.has(id)) { entry.button.remove(); visibilityEyes.delete(id); }
+  }
   function escape(event) {
     if (event.key !== "Escape") return;
+    if (event.target.closest?.('.gmail-pro-label-recency-popover')) return;
     // A keyboard-opened Gmail editor retains its own Escape behavior.
     if (!operation && event.target.closest?.(`${S.labelEditor}, ${S.labelNativeMenu}`)) return;
     if (operation || event.target.closest?.("[data-gmail-pro-label-ui]")) {
@@ -823,6 +883,7 @@
     saving = !!operation || !!visibilitySave;
     observer?.disconnect(); cancelDrag();
     for (const { button, eye } of handles.values()) { button.remove(); eye?.remove(); } handles.clear();
+    for (const { button } of visibilityEyes.values()) button.remove(); visibilityEyes.clear();
     toolbar?.remove(); toolbar = null; status = null;
     headerButton?.setAttribute("aria-pressed", "false");
     document.removeEventListener("keydown", escape, true);
@@ -833,10 +894,14 @@
     if (!active) return false;
     discover();
     if (editing) { toolbar?.querySelector("button")?.focus(); return true; }
-    const list = [...states.keys()].find(node => groupsFor(node).length && (visible(node) ||
-      (node === mailboxes?.list && visible(mailboxes.inbox))));
+    const hasSidebarRows = sidebarRows().length > 0;
+    const usable = node => [node, node.closest(S.labelSection), mailboxes?.root, headerButton?.parentElement]
+      .some(anchor => visible(anchor) && anchor.getBoundingClientRect().width >= 140);
+    // The primary list can be display:contents, and Inbox itself may be hidden.
+    // Restoration belongs to the sidebar/header, not one mailbox's visibility.
+    const list = [...states.keys()].find(node => (groupsFor(node).length || hasSidebarRows) && usable(node));
     const section = list?.closest(S.labelSection);
-    if (!section || (!list.getBoundingClientRect().width && list !== mailboxes?.list)) return false;
+    if (!section) return false;
     clearNotice();
     returnFocus = document.activeElement; editing = true; generation++; observer.disconnect();
     toolbar = document.createElement("div"); toolbar.className = "gmail-pro-label-toolbar";
@@ -845,7 +910,7 @@
     const done = document.createElement("button"); done.type = "button"; done.textContent = "Done"; done.addEventListener("click", exit);
     const revealLabel = document.createElement("label"), reveal = document.createElement("input"); reveal.type = "checkbox";
     reveal.addEventListener("change", () => { cancelDrag(); revealHidden = reveal.checked; apply(); });
-    revealLabel.append(reveal, document.createTextNode("Show hidden sublabels"));
+    revealLabel.append(reveal, document.createTextNode("Show hidden labels"));
     status = document.createElement("span"); status.setAttribute("role", "status"); status.textContent = help;
     toolbar.append(title, done, revealLabel, status); section.prepend(toolbar);
     headerButton?.setAttribute("aria-pressed", "true"); apply(); document.addEventListener("keydown", escape, true);
@@ -882,5 +947,8 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", discover, { once: true });
     discover();
   }
-  app.labelOrder = Object.freeze({ start, update, stop, edit, setMailboxes, account });
+  app.labelOrder = Object.freeze({ start, update, stop, edit, setMailboxes, account, sidebarRows,
+    notify: visibilityFeedback,
+    subscribe(listener) { subscribers.add(listener); return () => subscribers.delete(listener); },
+    setSidebarVisibility: (id, hide, owner) => saveSidebarVisibility(id, hide, null, owner) });
 })();

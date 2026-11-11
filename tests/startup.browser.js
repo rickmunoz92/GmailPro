@@ -38,10 +38,10 @@
         accepted=true;for(const listener of messages)listener({type:'gmail-pro-consent-changed'});await settle();
       }
       assert(doc.documentElement.classList.contains('gmail-pro-apple-mail-mode'),'real appearance controller started');
-      // Consent and native label-menu integration each own one runtime listener.
-      assert(reads===1&&writes===0&&changes.size===1&&messages.size===2,`single startup owners, no writes (${reads}/${writes}/${changes.size}/${messages.size})`);
+      // Consent, native label menus, and reminder status each own one runtime listener.
+      assert(reads===1&&writes===0&&changes.size===1&&messages.size===3,`single startup owners, no writes (${reads}/${writes}/${changes.size}/${messages.size})`);
       await registration(GmailProStartupManifest[1]);await settle();
-      assert(reads===1&&writes===0&&changes.size===1&&messages.size===2,'replay is idempotent');
+      assert(reads===1&&writes===0&&changes.size===1&&messages.size===3,'replay is idempotent');
       target.dispatchEvent(new target.PageTransitionEvent('pagehide'));
       assert(changes.size===0&&messages.size===0,'cleanup releases both subscriptions');
       assert(!errors.length,errors.join('; '));reports.push('PASS '+mode);

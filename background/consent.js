@@ -14,6 +14,7 @@
     return { accepted, ...(accepted ? { acceptedAt: record.acceptedAt } : {}),
       termsVersion: legal.termsVersion, privacyVersion: legal.privacyVersion };
   }
+  globalThis.GmailProConsentWorker = Object.freeze({ status });
   async function notify() {
     const message = { type: 'gmail-pro-consent-changed' };
     // IDs need no browsing-history permission; only our installed content

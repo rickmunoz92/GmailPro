@@ -4,7 +4,7 @@
   "private": true,
   "description": "Gmail Pro store release and private subscription service",
   "scripts": {
-    "test": "node scripts/validate.cjs && node --test tests/consent.test.cjs tests/billing*.test.cjs tests/billing*.test.mjs",
+    "test": "node scripts/validate.cjs && node --test tests/consent.test.cjs tests/labelReminders.test.cjs tests/billing*.test.cjs tests/billing*.test.mjs",
     "package:store": "node scripts/package-store.cjs",
     "deploy:preview": "netlify deploy --dir website/public --functions website/netlify/functions",
     "deploy:production": "netlify deploy --prod --dir website/public --functions website/netlify/functions"

@@ -7,6 +7,10 @@
   const runtimeListeners = new Set();
   state.agreement = { accepted: false };
   state.failConsentWrite = false;
+  state.reminders = { configured: false, connected: false, results: [], pending: 0 };
+  state.reminderScans = 0;
+  state.reminderActions = [];
+  state.connectionPermissionRequests = 0;
   state.emit = patch => {
     const changes = Object.fromEntries(Object.entries(patch).map(([key, newValue]) =>
       [key, { oldValue: state.values[key], newValue }]));
@@ -32,6 +36,15 @@
   window.chrome.runtime = {
     onMessage: { addListener: fn => runtimeListeners.add(fn), removeListener: fn => runtimeListeners.delete(fn) },
     async sendMessage(message) {
+      if (message.type === 'gmail-pro-label-reminders') {
+        state.reminderActions.push(message.action);
+        if (message.action === 'scan') {
+          state.reminderScans++;
+          if (state.reminderScans > 5) throw new Error('Synthetic runaway scan');
+          if (state.disableRemindersDuringScan) state.reminders.enabled = false;
+        }
+        return { ok: true, ...state.reminders };
+      }
       if (message.type === 'gmail-pro-billing' && message.action === 'details') return { ok: true, status: { active: false }, licenseKey: '', pending: false, salesEnabled: false };
       if (message.type !== 'gmail-pro-consent') throw new Error('Unexpected synthetic message');
       if (message.action === 'accept') {
@@ -41,5 +54,7 @@
       return { ok: true, status: { ...state.agreement, termsVersion: GmailProLegal.termsVersion, privacyVersion: GmailProLegal.privacyVersion } };
     }
   };
+  window.chrome.permissions = { async request() { state.connectionPermissionRequests++; return false; } };
+  state.remindersChanged = () => { for (const fn of runtimeListeners) fn({ type: 'gmail-pro-label-reminders-changed' }); };
   window.GmailProPopupTest = state;
 })();

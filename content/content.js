@@ -35,6 +35,7 @@
       app.keyboardShortcuts.update(patch);
       app.messageZoom.update(patch);
       app.labelOrder.update(patch);
+      app.labelReminders.update(patch);
     }
   };
   app.startAutoBcc = () => {
@@ -57,6 +58,7 @@
     app.keyboardShortcuts.start(current);
     app.messageZoom.start(current);
     app.labelOrder.start(current);
+    app.labelReminders.start(current);
   };
   const stopFeatures = () => {
     if (!running) return;
@@ -72,6 +74,7 @@
     app.appearance.stop();
     app.headerLayout.stop();
     app.messageZoom.stop();
+    app.labelReminders.stop();
     app.labelOrder.stop();
   };
   async function checkLicense() {

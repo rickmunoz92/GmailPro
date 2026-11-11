@@ -12,10 +12,15 @@ assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.name, "Gmail Pro");
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
 assert.ok(manifest.description.length <= 132, 'Chrome Web Store description is at most 132 characters');
-assert.deepEqual(manifest.permissions, ["storage"]);
+assert.deepEqual(manifest.permissions, ["storage", "identity"]);
 assert.deepEqual(manifest.background, { service_worker: 'background/settings.js' });
 assert.deepEqual(manifest.host_permissions, ['https://gmail-pro.netlify.app/*']);
-for (const key of ["optional_permissions", "optional_host_permissions", "web_accessible_resources", "externally_connectable", "oauth2"]) {
+assert.deepEqual(manifest.optional_host_permissions, ['https://gmail.googleapis.com/*']);
+if (manifest.oauth2) {
+  assert.match(manifest.oauth2.client_id, /^[\w-]+\.apps\.googleusercontent\.com$/);
+  assert.deepEqual(manifest.oauth2.scopes, ['https://www.googleapis.com/auth/gmail.readonly']);
+}
+for (const key of ["optional_permissions", "web_accessible_resources", "externally_connectable"]) {
   assert.equal(manifest[key], undefined, `Unexpected manifest capability: ${key}`);
 }
 assert.equal(manifest.content_scripts.length, 2);
@@ -27,13 +32,13 @@ for (const content of manifest.content_scripts) {
   assert.ok(!content.world || content.world === "ISOLATED");
 }
 assert.equal(manifest.content_scripts[0].run_at, "document_start");
-assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css", "content/messageZoom.css", "shared/theme.css", "content/appleMail.css", "content/autoPaging.css"]);
+assert.deepEqual(manifest.content_scripts[0].css, ["content/reverseThreads.css", "content/messageList.css", "content/labelOrder.css", "content/labelReminders.css", "content/messageZoom.css", "shared/theme.css", "content/appleMail.css", "content/autoPaging.css"]);
 assert.equal(manifest.content_scripts[1].run_at, "document_idle");
 assert.deepEqual(manifest.content_scripts[1].js, [...manifest.content_scripts[0].js, "content/autoBcc.js", "content/autoBccStart.js"],
   'Idle startup must include its early dependencies in the same order');
 assert.deepEqual(manifest.content_scripts[1].css, manifest.content_scripts[0].css,
   'Idle recovery must include the same local styles');
-assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/gmail-pro\.netlify\.app;/);
+assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/gmail-pro\.netlify\.app https:\/\/gmail\.googleapis\.com;/);
 
 const references = [manifest.background.service_worker, 'background/billing.js', 'background/consent.js', manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
   ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)];
@@ -64,7 +69,11 @@ for (const directory of ["background", "shared", "content", "popup", "tests"]) {
     const filename = path.join(root, directory, file);
     const source = fs.readFileSync(filename, "utf8");
     new vm.Script(source, { filename });
-    if (directory === 'background' && file === 'billing.js') {
+    if (directory === 'background' && file === 'labelReminders.js') {
+      assert.ok(!/\b(?:XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source));
+      assert.ok(source.includes("origin = 'https://gmail.googleapis.com'"), 'Label requests use only the documented Gmail API');
+      assert.ok(source.includes("fields: 'internalDate'"), 'Message requests exclude bodies and headers');
+    } else if (directory === 'background' && file === 'billing.js') {
       assert.ok(!/\b(?:XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source));
       assert.ok(source.includes("config.apiOrigin + '/api/billing/'"), 'Worker requests are scoped to our billing service');
     } else assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|setInterval|eval)\s*\(/.test(source), `Unexpected networking, polling, or eval in ${file}`);

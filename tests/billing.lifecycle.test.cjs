@@ -13,7 +13,7 @@ function fixture({ accepted = true, required = true } = {}) {
     debug: { log() {} }, entitlement: { subscribe: fn => { licenseChanged = fn; return () => {}; }, getStatus: async () =>
       { licenseReads++; return typeof nextStatus === 'function' ? nextStatus() : nextStatus; } } };
   for (const name of ['autoBcc', 'reverseThreads', 'messageList', 'autoPaging', 'appearance', 'headerLayout', 'readingPane',
-    'floatingCompose', 'keyboardShortcuts', 'messageZoom', 'labelOrder', 'workspaceLayout']) app[name] = {
+    'floatingCompose', 'keyboardShortcuts', 'messageZoom', 'labelOrder', 'labelReminders', 'workspaceLayout']) app[name] = {
       start: data => starts.push({ name, data: structuredClone(data) }),
       update: data => updates.push({ name, data: structuredClone(data) }), stop: () => stops.push(name) };
   const context = vm.createContext({ GmailPro: app, GmailProBillingConfig: { required },
@@ -31,10 +31,10 @@ test('no module starts without entitlement, saved changes survive activation, ex
   const f = fixture(); await f.settle(); assert.equal(f.starts.length, 0);
   f.change({ bccAddress: 'new@example.com' }); assert.equal(f.updates.length, 0);
   f.setStatus({ active: true, validUntil: Date.now() + 86400000 }); await f.check();
-  assert.equal(f.starts.length, 12); assert.ok(f.starts.every(value => value.data.bccAddress === 'new@example.com'));
+  assert.equal(f.starts.length, 13); assert.ok(f.starts.every(value => value.data.bccAddress === 'new@example.com'));
   assert.equal(f.settings.bccAddress, 'archive@example.com', 'no saved preference was erased');
   f.setStatus({ active: false, validUntil: Date.now() }); await f.check();
-  assert.equal(f.stops.length, 12); assert.ok(f.stops.includes('labelOrder'));
+  assert.equal(f.stops.length, 13); assert.ok(f.stops.includes('labelOrder'));
   assert.equal(f.timers.size, 0);
 });
 test('a stale active response cannot override a newer inactive result or navigation', async () => {
@@ -49,8 +49,8 @@ test('a stale active response cannot override a newer inactive result or navigat
 test('already-expired active responses never start features; transport failure stops running modules', async () => {
   const f = fixture(); await f.settle();
   f.setStatus({ active: true, validUntil: Date.now() - 1 }); await f.check(); assert.equal(f.starts.length, 0);
-  f.setStatus({ active: true, validUntil: Date.now() + 50000 }); await f.check(); assert.equal(f.starts.length, 12);
-  f.setStatus(() => Promise.reject(new Error('unavailable'))); await f.check(); assert.equal(f.stops.length, 12);
+  f.setStatus({ active: true, validUntil: Date.now() + 50000 }); await f.check(); assert.equal(f.starts.length, 13);
+  f.setStatus(() => Promise.reject(new Error('unavailable'))); await f.check(); assert.equal(f.stops.length, 13);
 });
 test('missing agreement blocks settings, automatic license requests and every feature, including the owner build', async () => {
   for (const required of [true, false]) {
@@ -58,9 +58,9 @@ test('missing agreement blocks settings, automatic license requests and every fe
     assert.equal(f.settingsReads, 0); assert.equal(f.licenseReads, 0); assert.equal(f.starts.length, 0);
     f.setStatus({ active: true, validUntil: Date.now() + 50000 });
     f.setConsent({ accepted: true }); await f.consent(); await f.settle();
-    assert.equal(f.starts.length, 12);
+    assert.equal(f.starts.length, 13);
     f.setConsent({ accepted: false }); await f.consent();
-    assert.equal(f.stops.length, 12); assert.equal(f.timers.size, 0);
+    assert.equal(f.stops.length, 13); assert.equal(f.timers.size, 0);
     assert.equal(f.settings.bccAddress, 'archive@example.com', 'withdrawal preserves saved preferences');
   }
 });
@@ -72,9 +72,9 @@ test('withdrawal defeats an in-flight license response and failed consent reads 
   assert.equal(f.starts.length, 0);
   f.setStatus({ active: true, validUntil: Date.now() + 50000 });
   f.setConsent({ accepted: true }); await f.consent(); await f.settle();
-  assert.equal(f.starts.length, 12);
+  assert.equal(f.starts.length, 13);
   f.setConsent(() => Promise.reject(new Error('storage unavailable'))); await f.consent();
-  assert.equal(f.stops.length, 12);
+  assert.equal(f.stops.length, 13);
 });
 test('late settings and agreement reads cannot restart features after withdrawal or navigation', async () => {
   const f = fixture({ accepted: false }); await f.settle(); let settingsDone, consentDone;
@@ -91,8 +91,8 @@ test('free features start only after agreement, without license reads, leases or
   const f = fixture({ accepted: false, required: false }); await f.settle();
   assert.equal(f.starts.length, 0); assert.equal(f.licenseReads, 0);
   f.setConsent({ accepted: true }); await f.consent(); await f.settle();
-  assert.equal(f.starts.length, 12); assert.equal(f.licenseReads, 0); assert.equal(f.timers.size, 0);
+  assert.equal(f.starts.length, 13); assert.equal(f.licenseReads, 0); assert.equal(f.timers.size, 0);
   await f.focus(); assert.equal(f.licenseReads, 0);
   f.setConsent({ accepted: false }); await f.consent();
-  assert.equal(f.stops.length, 12); assert.equal(f.licenseReads, 0);
+  assert.equal(f.stops.length, 13); assert.equal(f.licenseReads, 0);
 });

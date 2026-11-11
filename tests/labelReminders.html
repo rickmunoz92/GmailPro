@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" class="gmail-pro-apple-mail-mode" data-gp-theme="light" data-gp-accent="blue">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gmail Pro — Label reminder checks</title>
+<link rel="stylesheet" href="../shared/theme.css"><link rel="stylesheet" href="../content/appleMail.css">
+<link rel="stylesheet" href="../content/labelOrder.css"><link rel="stylesheet" href="../content/labelReminders.css">
+<style>
+body{margin:0;background:var(--gp-bg-primary);color:var(--gp-text-primary);font:13px var(--gp-font)}
+.fixture-controls{padding:18px 24px;border-bottom:1px solid var(--gp-border)}.fixture-controls button{font:inherit;margin-left:10px}
+h1{font-size:16px;margin:0 0 8px}#workspace{width:260px;margin:24px;background:var(--gp-sidebar-bg);padding:12px 0;border-radius:9px}
+nav{width:260px}.aim{min-height:30px}.TO>.TN{display:flex;align-items:center;min-height:30px;padding:0 12px;gap:3px}
+.nU{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.n0{color:inherit;text-decoration:none}
+.nL{display:flex;align-items:center;gap:6px}.count{font-size:11px;color:var(--gp-sidebar-count)}[data-label-name]{width:12px;height:18px}
+#workspace h2{font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin:16px 12px 8px;color:var(--gp-text-muted)}
+#results{margin:24px;white-space:pre-wrap;max-width:1000px;font:11px/1.7 ui-monospace,monospace}.gmail-pro-label-recency-popover{z-index:1000}
+.fixture-label-title{display:flex;align-items:center;justify-content:space-between;padding-right:10px}
+</style>
+<div class="fixture-controls"><h1>Label cleanup reminders</h1><span>Synthetic mail metadata only</span><button id="theme-toggle" type="button">Switch theme</button></div>
+<div id="workspace"></div><pre id="results">Running…</pre>
+<script src="../shared/settings.js"></script><script src="../shared/labelRecency.js"></script>
+<script src="../content/gmailSelectors.js"></script><script src="../content/labelOrder.js"></script>
+<script src="../content/appearance.js"></script><script src="../content/labelReminders.js"></script>
+<script src="labelReminders.browser.js"></script>
+</html>

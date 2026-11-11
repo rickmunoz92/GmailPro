@@ -14,6 +14,7 @@
     <script src="../shared/entitlement.js" defer></script>
     <script src="../shared/settings.js" defer></script>
     <script src="popup.js" defer></script>
+    <script src="labelReminders.js" defer></script>
     <script src="subscription.js" defer></script>
     <script src="consent.js" defer></script>
   </head>
@@ -31,7 +32,7 @@
         <span class="eyebrow">BEFORE YOU ENABLE GMAIL PRO</span>
         <h2 id="consent-title">Your mail. Your choice.</h2>
         <form id="consent-form">
-          <p class="feature-description">Gmail Pro reads Gmail page content locally, including messages, senders, recipients, account addresses, labels and read status, to run the tools you enable. It does not send that mail data to our billing service.</p>
+          <p class="feature-description">Gmail Pro reads Gmail page content locally, including messages, senders, recipients, account addresses, labels and read status, to run the tools you enable. Label cleanup reminders use an optional, separate Google connection to read label and message-date metadata directly from Google. That connection is used only for label cleanup reminders; all other features work without it. The metadata cache stays in this browser. Mail data is not sent to our billing service.</p>
           <p class="field-hint">Settings include your BCC address, label names and Gmail account addresses. They can sync through Google Chrome Sync. The free release does not make automatic subscription checks. Optional management of an existing purchase sends its license to our service and Stripe. <a data-legal-link="privacyURL" href="https://gmail-pro.netlify.app/privacy" target="_blank" rel="noopener noreferrer">Read the Privacy Policy</a>.</p>
           <p class="field-hint">Shortcuts can send, archive or delete mail. Label and reading-layout changes can persist in Gmail. Auto BCC starts off; if enabled, its one synced address applies across Gmail accounts. Verify recipients and permissions before sending.</p>
           <label class="consent-choice"><input id="consent-adult" type="checkbox" required><span>I am an adult accepting for myself, or the parent/legal guardian accepting and permitting use for a child age 13 or older.</span></label>
@@ -86,6 +87,18 @@
             </div>
             <p class="feature-description" id="auto-paging-description">At either end of the list, keep scrolling until the indicator fills, or click Next/Previous page. Stop scrolling to stay and read. Each page replaces the current one; Gmail’s page arrows remain available.</p>
             <p class="field-hint">Requires Apple Mail Mode with the reading pane on the right. Pauses during selection or editing. Save preferences to apply.</p>
+          </section>
+          <section class="feature-card" aria-labelledby="label-cleanup-title">
+            <div class="feature-copy"><span class="eyebrow">LABELS</span><h2 id="label-cleanup-title">Label cleanup reminders</h2></div>
+            <p class="feature-description">A small zz beside an inactive label lets you hide it or dismiss the suggestion. Checks use existing email dates, including every child label. Empty labels without children get an immediate suggestion.</p>
+            <p id="label-reminders-connection" class="field-hint"><strong>Optional Google connection.</strong> Used only for label cleanup reminders. Every other Gmail Pro feature works without connecting Google.</p>
+            <div class="appearance-setting"><label for="label-reminder-3">After 3 months</label><label class="switch"><input id="label-reminder-3" type="checkbox" role="switch" aria-label="Label cleanup after 3 months"><span class="switch-track" aria-hidden="true"></span></label></div>
+            <div class="appearance-setting"><label for="label-reminder-6">After 6 months</label><label class="switch"><input id="label-reminder-6" type="checkbox" role="switch" aria-label="Label cleanup after 6 months"><span class="switch-track" aria-hidden="true"></span></label></div>
+            <div class="appearance-setting"><label for="label-reminder-12">After 12 months</label><label class="switch"><input id="label-reminder-12" type="checkbox" role="switch" aria-label="Label cleanup after 12 months"><span class="switch-track" aria-hidden="true"></span></label></div>
+            <p class="field-hint">All three start on. Save preferences to apply. Hiding only affects Gmail Pro’s sidebar; restore labels in Organize labels.</p>
+            <p class="field-hint">Connecting Google allows read-only Gmail API access for one account in this Chrome profile. Checks request label names, message IDs and dates, without message bodies or attachments. Results and dismissals stay in this browser; they are not sent to our service. Background checks are cached for 24 hours.</p>
+            <div class="label-actions"><button id="label-reminders-connect" type="button" aria-describedby="label-reminders-connection" disabled>Connect Google for reminders</button><button id="label-reminders-check" type="button" hidden>Check now</button><button id="label-reminders-disconnect" type="button" class="quiet-button" hidden>Disconnect reminders</button></div>
+            <p id="label-reminders-status" class="field-hint" role="status">Checking optional reminder connection…</p>
           </section>
           <section class="feature-card" aria-labelledby="compose-title">
             <div class="feature-copy"><span class="eyebrow">COMPOSE</span><h2 id="compose-title">Gmail floating composer</h2></div>
@@ -172,12 +185,12 @@
                 <span class="switch-track" aria-hidden="true"></span>
               </label>
             </div>
-            <p class="feature-description" id="label-order-description">Choose the visual order of top-level labels. The organizer also moves and hides individual sublabels.</p>
+            <p class="feature-description" id="label-order-description">Choose the visual order of top-level labels. The organizer also moves sublabels and hides labels or supported mailboxes.</p>
             <div class="label-actions">
               <button id="edit-label-order" type="button">Organize labels</button>
               <button id="reset-label-order" type="button">Reset label order</button>
             </div>
-            <p class="field-hint">Use the arrows beside Gmail’s Labels +, or open the organizer here. Parent moves save in Gmail. Sublabel menus also offer Hide from sidebar — Gmail Pro without editing; Gmail’s In message list → Hide controls email badges.</p>
+            <p class="field-hint">Use the arrows beside Gmail’s Labels +, or open the organizer here. Parent moves save in Gmail. Custom-label menus also offer Hide from sidebar — Gmail Pro without editing; Gmail’s In message list → Hide controls email badges.</p>
           </section>
           </details>
         </fieldset>

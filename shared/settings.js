@@ -29,6 +29,9 @@
     autoPagingEnabled: true,
     messageZoomEnabled: true,
     customLabelOrderEnabled: true,
+    labelReminder3MonthsEnabled: true,
+    labelReminder6MonthsEnabled: true,
+    labelReminder12MonthsEnabled: true,
     customLabelOrder: Object.freeze([]),
     sidebarHiddenSublabels: Object.freeze([])
   });
@@ -59,6 +62,9 @@
     autoPagingEnabled: "gmailPro.v1.autoPagingEnabled",
     messageZoomEnabled: "gmailPro.v1.messageZoomEnabled",
     customLabelOrderEnabled: "gmailPro.v1.customLabelOrderEnabled",
+    labelReminder3MonthsEnabled: "gmailPro.v1.labelReminder3MonthsEnabled",
+    labelReminder6MonthsEnabled: "gmailPro.v1.labelReminder6MonthsEnabled",
+    labelReminder12MonthsEnabled: "gmailPro.v1.labelReminder12MonthsEnabled",
     customLabelOrder: "gmailPro.v1.customLabelOrder",
     sidebarHiddenSublabels: "gmailPro.v1.sidebarHiddenSublabels"
   });
@@ -86,8 +92,10 @@
     return Array.isArray(value) && value.length <= 500 && value.every(entry =>
       entry && typeof entry === "object" && !Array.isArray(entry) &&
       Object.keys(entry).length === 2 && isValidEmail(entry.account) &&
-      typeof entry.path === "string" && entry.path.startsWith("label/") &&
-      entry.path.length > 6 && entry.path.length <= 1024) &&
+      typeof entry.path === "string" && entry.path.length <= 1024 &&
+      ((entry.path.startsWith("label/") && entry.path.length > 6) ||
+        ["inbox", "sent", "drafts", "starred", "important", "spam", "trash", "unread", "all", "snoozed", "scheduled",
+          "category/personal", "category/social", "category/promotions", "category/updates", "category/forums"].some(route => entry.path === "mailbox/" + route))) &&
       new TextEncoder().encode(JSON.stringify(value)).length <= 7500;
   }
 

@@ -12,7 +12,8 @@
     "https://gmail-pro.netlify.app/*"
   ],
   "permissions": [
-    "storage"
+    "storage",
+    "identity"
   ],
   "action": {
     "default_title": "Gmail Pro",
@@ -40,10 +41,12 @@
         "shared/billing-config.js",
         "shared/entitlement.js",
         "shared/settings.js",
+        "shared/labelRecency.js",
         "content/gmailSelectors.js",
         "content/reverseThreads.js",
         "content/messageList.js",
         "content/labelOrder.js",
+        "content/labelReminders.js",
         "content/messageZoom.js",
         "content/appearance.js",
         "content/headerLayout.js",
@@ -60,6 +63,7 @@
         "content/reverseThreads.css",
         "content/messageList.css",
         "content/labelOrder.css",
+        "content/labelReminders.css",
         "content/messageZoom.css",
         "shared/theme.css",
         "content/appleMail.css",
@@ -77,10 +81,12 @@
         "shared/billing-config.js",
         "shared/entitlement.js",
         "shared/settings.js",
+        "shared/labelRecency.js",
         "content/gmailSelectors.js",
         "content/reverseThreads.js",
         "content/messageList.js",
         "content/labelOrder.js",
+        "content/labelReminders.js",
         "content/messageZoom.js",
         "content/appearance.js",
         "content/headerLayout.js",
@@ -99,6 +105,7 @@
         "content/reverseThreads.css",
         "content/messageList.css",
         "content/labelOrder.css",
+        "content/labelReminders.css",
         "content/messageZoom.css",
         "shared/theme.css",
         "content/appleMail.css",
@@ -107,6 +114,15 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://gmail-pro.netlify.app; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://gmail-pro.netlify.app https://gmail.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  },
+  "optional_host_permissions": [
+    "https://gmail.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "265719417216-1m864kv1r8b0cr55iqcfmg8e4ik3ji1m.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
   }
 }

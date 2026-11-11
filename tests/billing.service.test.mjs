@@ -58,7 +58,7 @@ test('Checkout validates server prices and retries with exactly identical parame
   assert.equal(f.carts[0].data.subscription_data.trial_settings.end_behavior.missing_payment_method, 'cancel');
   assert.equal(f.carts[0].data.consent_collection.terms_of_service, 'required');
   assert.equal(f.carts[0].data.metadata.terms_version, '2026-11-07.1');
-  assert.equal(f.carts[0].data.subscription_data.metadata.privacy_version, '2026-11-07.1');
+  assert.equal(f.carts[0].data.subscription_data.metadata.privacy_version, '2026-11-10.1');
   assert.match(f.carts[0].data.custom_text.terms_of_service_acceptance.message, /legal\/terms-2026-11-07-1/);
   assert.match(f.carts[0].data.custom_text.submit.message, /US\$0\.99\/month.*automatically renewed/);
   assert.match(f.carts[0].data.integration_identifier, /^gmailpro_[a-z]{8}$/);

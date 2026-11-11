@@ -62,6 +62,43 @@
     assert(saved.floatingReplyEnabled && !saved.floatingReplyAllEnabled && saved.floatingForwardEnabled, "independent save");
     store.writes = 0;
   });
+  await test('three label milestones default on, save independently, and follow sync without other edits', async () => {
+    const three = byId('label-reminder-3'), six = byId('label-reminder-6'), twelve = byId('label-reminder-12');
+    assert(three.checked && six.checked && twelve.checked, 'all milestones start on');
+    edit(six, false); await submit();
+    const prefs = await GmailPro.settings.load();
+    assert(prefs.labelReminder3MonthsEnabled && !prefs.labelReminder6MonthsEnabled && prefs.labelReminder12MonthsEnabled, 'independent save');
+    store.emit({ [key('labelReminder6MonthsEnabled')]: true }); assert(six.checked, 'synced milestone restored');
+  });
+  await test('Google connection is optional, scoped to reminders and never blocks other features', async () => {
+    store.reminders = { configured: true, connected: false, enabled: true, results: [], pending: 0 };
+    store.remindersChanged(); await settle();
+    const hint = byId('label-reminders-connection').textContent;
+    assert(hint.includes('Optional Google connection') && hint.includes('Every other Gmail Pro feature works without'), 'optional feature scope is explicit');
+    assert(!store.connectionPermissionRequests && !store.reminderActions.includes('connect') && !store.reminderScans, 'no automatic Google permission or scan');
+    assert(!byId('settings-fields').disabled && !byId('message-zoom').disabled && !byId('label-reminders-connect').disabled, 'features available while disconnected');
+    byId('label-reminders-connect').click(); await settle();
+    assert(store.connectionPermissionRequests === 1 && !store.reminderActions.includes('connect'), 'declining the optional permission does not authorize Google');
+    assert(!byId('settings-fields').disabled && !byId('message-zoom').disabled && byId('label-reminders-status').textContent.includes('not granted'), 'other features remain usable after declining');
+    store.reminders = { configured: false, connected: false, results: [], pending: 0 }; store.remindersChanged(); await settle();
+  });
+  const preview = new URLSearchParams(location.search);
+  if (preview.get('preview') === 'label-cleanup') {
+    store.reminders = { configured: true, connected: false, enabled: true, results: [], pending: 0 };
+    store.remindersChanged();
+    await GmailPro.settings.save({ appearanceTheme: preview.get('theme') === 'dark' ? 'dark' : 'light' });
+    await settle(); result.textContent = 'Preview · optional connection for label reminders';
+    byId('label-cleanup-title').closest('section').scrollIntoView({ block: 'start' }); return;
+  }
+  await test('Google connection setup is explicit and disabling during a scan cannot loop', async () => {
+    assert(byId('label-reminders-connect').disabled && byId('label-reminders-status').textContent.includes('not configured'), 'no dummy OAuth connection');
+    store.reminders = { configured: true, connected: true, enabled: true, account: 'fixture@example.test', pending: 10, total: 10 };
+    store.remindersChanged(); await settle();
+    store.disableRemindersDuringScan = true; byId('label-reminders-check').click(); await settle(); await settle();
+    assert(store.reminderScans === 1 && byId('label-reminders-check').disabled, 'off response stops scan loop');
+    store.disableRemindersDuringScan = false; store.reminders = { configured: false, connected: false, results: [], pending: 0 };
+    store.remindersChanged(); await settle();
+  });
   await test("keyboard shortcuts default on, save independently, and follow sync", async () => {
     const archive=byId("archive-shortcut"), send=byId("send-shortcut"), undo=byId("undo-shortcut");
     assert(archive.checked && send.checked && undo.checked, "default on");

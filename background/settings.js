@@ -1,7 +1,8 @@
 "use strict";
 
 if (typeof importScripts === "function") {
-  importScripts("../shared/billing-config.js", "../shared/legal-config.js", "consent.js", "billing.js");
+  importScripts("../shared/billing-config.js", "../shared/legal-config.js", "../shared/settings.js",
+    "../shared/labelRecency.js", "consent.js", "billing.js", "labelReminders.js");
 }
 
 // First use shows the disclosure in an extension page, without reading Gmail.

@@ -35,7 +35,10 @@
     appleMailMessageListEnabled: document.getElementById("apple-mail-list"),
     autoPagingEnabled: document.getElementById("auto-paging"),
     messageZoomEnabled: document.getElementById("message-zoom"),
-    customLabelOrderEnabled: document.getElementById("custom-label-order")
+    customLabelOrderEnabled: document.getElementById("custom-label-order"),
+    labelReminder3MonthsEnabled: document.getElementById('label-reminder-3'),
+    labelReminder6MonthsEnabled: document.getElementById('label-reminder-6'),
+    labelReminder12MonthsEnabled: document.getElementById('label-reminder-12')
   };
   let saved = { ...app.settings.defaults };
   let loadingChanges = {};
@@ -67,7 +70,10 @@
       appleMailMessageListEnabled: controls.appleMailMessageListEnabled.checked,
       autoPagingEnabled: controls.autoPagingEnabled.checked,
       messageZoomEnabled: controls.messageZoomEnabled.checked,
-      customLabelOrderEnabled: controls.customLabelOrderEnabled.checked
+      customLabelOrderEnabled: controls.customLabelOrderEnabled.checked,
+      labelReminder3MonthsEnabled: controls.labelReminder3MonthsEnabled.checked,
+      labelReminder6MonthsEnabled: controls.labelReminder6MonthsEnabled.checked,
+      labelReminder12MonthsEnabled: controls.labelReminder12MonthsEnabled.checked
     };
   }
 

@@ -604,7 +604,7 @@
     assert(sequence.every((node,i)=>list.children[i]===node), 'native sequence retained');
     for (const node of sequence.slice(1,3)) equal(getComputedStyle(node).display, 'none');
     equal([...badgeHidden], []); equal([...model.values()], Array(5).fill(['synthetic-message']));
-    equal(menu.style.display, 'none'); assert(host.querySelector('.gmail-pro-label-notice [role="status"]').textContent.includes('Show hidden sublabels'), 'restoration explained');
+    equal(menu.style.display, 'none'); assert(host.querySelector('.gmail-pro-label-notice [role="status"]').textContent.includes('Show hidden labels'), 'restoration explained');
   });
   await test("revealed hidden branches can be restored from the menu and inherited descendants are disabled", async () => {
     const list = fixture(); on(); let opened = await labelMenuFor(list, 'Alpha/Child'); opened.action.click(); await settle();
@@ -616,13 +616,16 @@
     equal(opened.action.textContent, 'Show in sidebar — Gmail Pro'); opened.action.click(); await settle();
     equal(prefs.sidebarHiddenSublabels, []); assert(!list.querySelector('[data-gmail-pro-label-hidden]'), 'branch restored');
   });
-  await test("native badge Hide remains native and roots or unsupported menus receive no sidebar action", async () => {
+  await test("native badge Hide remains native, roots support sidebar hiding, and unsupported menus stay untouched", async () => {
     let list = fixture(); feature.start(prefs);
     let opened = await labelMenuFor(list, 'Alpha/Child');
     [...opened.menu.querySelectorAll('[role="menuitemcheckbox"]')].find(n=>n.textContent==='Hide').click(); await settle();
     assert(badgeHidden.has('Alpha/Child'), 'native badge action handled'); equal(prefs.sidebarHiddenSublabels, []);
     assert(getComputedStyle(list.children[1]).display !== 'none' && !document.querySelector('.gmail-pro-label-menu-action'), 'sidebar remains native');
-    opened = await labelMenuFor(list, 'Alpha'); assert(!opened.action, 'top-level native menu left alone');
+    opened = await labelMenuFor(list, 'Alpha'); assert(opened.action, 'verified root supports sidebar hiding');
+    opened.action.click(); await settle();
+    assert(prefs.sidebarHiddenSublabels.some(entry=>entry.path==='label/Alpha'), 'root visibility saved');
+    assert([...list.children].slice(0,3).every(node=>getComputedStyle(node).display==='none'), 'whole root branch hidden');
     list = fixture(); feature.start(prefs); unknownMenu = true;
     opened = await labelMenuFor(list, 'Alpha/Child'); assert(!opened.action, 'unknown menu skipped');
     feature.stop(); await settle(); assert(!document.querySelector('.gmail-pro-label-menu-action'), 'pending discovery retired');

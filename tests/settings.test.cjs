@@ -46,6 +46,7 @@ function fixture(initial = {}) {
   context.GmailPro.floatingCompose = { start() {}, update() {}, stop() {} };
   context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
+  context.GmailPro.labelReminders = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
   context.GmailPro.autoPaging = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageList = { start() {}, update() {}, stop() {} };
@@ -76,7 +77,7 @@ for (const mode of ['idle-only', 'early-and-idle', 'unaccepted']) test(`manifest
   const app=context.GmailPro;
   if(owners) for(const [key,value] of Object.entries(owners)) assert.equal(app[key],value,`${key} owner survives the idle replay`);
   assert.equal(typeof app.settings.load,'function');assert.equal(typeof app.startAutoBcc,'function');
-  const features=['autoBcc','reverseThreads','messageList','autoPaging','appearance','workspaceLayout','headerLayout','readingPane','floatingCompose','keyboardShortcuts','messageZoom','labelOrder'];
+  const features=['autoBcc','reverseThreads','messageList','autoPaging','appearance','workspaceLayout','headerLayout','readingPane','floatingCompose','keyboardShortcuts','messageZoom','labelOrder','labelReminders'];
   // Exercise the real manifest module constructors and lifecycle/gates. Feature
   // rendering itself has browser fixtures; these spies isolate startup ownership.
   for(const name of features) {assert.equal(typeof app[name]?.start,'function',`${name} initialized`);app[name]={...app[name],start:settings=>starts.push({name,settings}),stop(){}};}
@@ -96,7 +97,7 @@ for (const mode of ['idle-only', 'early-and-idle', 'unaccepted']) test(`manifest
 
 test("defaults are safe and startup neither persists nor subscribes", async () => {
   const f = fixture();
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: false, bccAddress: "", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, labelReminder3MonthsEnabled: true, labelReminder6MonthsEnabled: true, labelReminder12MonthsEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.writes, 0);
   assert.equal(f.listeners.size, 0);
 });
@@ -139,7 +140,7 @@ test('workspace choices save independently and account initialization markers ca
 test("partial saves trim the address and preserve unrelated preferences", async () => {
   const f = fixture({ [prefix + "newestEmailFirstEnabled"]: true, unrelated: "keep" });
   await f.settings.save({ autoBccEnabled: true, bccAddress: " Person+archive@example.com " });
-  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });
+  assert.deepEqual(plain(await f.settings.load()), { appleMailModeEnabled: true, headerCollapsed: true, leftRailCollapsed: true, rightRailCollapsed: true, appearanceTheme: "system", accentColor: "blue", floatingReplyEnabled: true, floatingReplyAllEnabled: true, floatingForwardEnabled: true, archiveShortcutEnabled: true, deleteShortcutEnabled: true, readShortcutEnabled: true, expandShortcutEnabled: true, sendShortcutEnabled: true, undoShortcutEnabled: true, replyAllShortcutEnabled: true, forwardShortcutEnabled: true, autoBccEnabled: true, bccAddress: "Person+archive@example.com", newestEmailFirstEnabled: true, appleMailMessageListEnabled: true, autoPagingEnabled: true, messageZoomEnabled: true, customLabelOrderEnabled: true, labelReminder3MonthsEnabled: true, labelReminder6MonthsEnabled: true, labelReminder12MonthsEnabled: true, customLabelOrder: [], sidebarHiddenSublabels: [] });
   assert.equal(f.data.unrelated, "keep");
   assert.equal(f.writes, 1);
   await f.settings.save({});
@@ -192,6 +193,14 @@ test("hidden sublabel sync deletion resets only visibility, and malformed data i
   for (const listener of f.listeners) listener({ [prefix + "sidebarHiddenSublabels"]: { oldValue: [] } }, "sync");
   assert.deepEqual(patches, [{ sidebarHiddenSublabels: [] }]);
   unsubscribe();
+});
+
+test('root and supported system visibility use the existing account-scoped setting', async () => {
+  const f = fixture(), hidden = [{ account: 'one@example.test', path: 'label/Parent' },
+    { account: 'one@example.test', path: 'mailbox/spam' }];
+  await f.settings.save({ sidebarHiddenSublabels: hidden });
+  assert.deepEqual(plain((await f.settings.load()).sidebarHiddenSublabels), hidden);
+  await assert.rejects(f.settings.save({ sidebarHiddenSublabels: [{ account: 'one@example.test', path: 'mailbox/aiinbox' }] }));
 });
 
 test("subscriptions deduplicate, ignore unrelated changes, normalize deletion, and clean up", () => {
@@ -577,7 +586,7 @@ test("appearance lifecycle deduplicates and removes delegated listeners without 
   f.run("content/appearance.js"); assert.equal(feature, f.context.GmailPro.appearance);
 });
 
-for (const name of ["floatingReplyEnabled", "floatingReplyAllEnabled", "floatingForwardEnabled", "archiveShortcutEnabled", "deleteShortcutEnabled", "readShortcutEnabled", "expandShortcutEnabled", "sendShortcutEnabled", "undoShortcutEnabled", "replyAllShortcutEnabled", "forwardShortcutEnabled"]) {
+for (const name of ["floatingReplyEnabled", "floatingReplyAllEnabled", "floatingForwardEnabled", "archiveShortcutEnabled", "deleteShortcutEnabled", "readShortcutEnabled", "expandShortcutEnabled", "sendShortcutEnabled", "undoShortcutEnabled", "replyAllShortcutEnabled", "forwardShortcutEnabled", "labelReminder3MonthsEnabled", "labelReminder6MonthsEnabled", "labelReminder12MonthsEnabled"]) {
   test(`${name} defaults on, saves independently, validates and resets on deletion`, async () => {
     const f = fixture();
     assert.equal((await f.settings.load())[name], true);

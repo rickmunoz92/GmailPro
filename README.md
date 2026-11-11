@@ -97,7 +97,7 @@ the dedicated billing host. See [native compose QA](tests/floatingCompose-QA.md)
 
 After updating the source, reload Gmail Pro in `chrome://extensions`, refresh
 Gmail, and reopen the popup. The repository contains the unpacked extension; no
-Chrome Web Store installation or OAuth sign-in is required.
+Chrome Web Store installation is required. Optional label cleanup reminders need a separate Google connection.
 
 Before reloading, open Gmail Pro's **Details** and verify **Source → Loaded from**.
 Chrome runs that folder, which may differ from the development workspace. Apply
@@ -670,8 +670,7 @@ updates. See [label organization QA](tests/labelOrder-QA.md).
 - The current free release makes no automatic subscription checks. Optional
   earlier-purchase management sends a saved license to our Netlify service and
   Stripe. No Gmail content is sent. New Checkout is blocked in this release.
-- Current features interact with Gmail's DOM, not the Gmail API. They do not intercept
-  Gmail network traffic or call undocumented Gmail APIs.
+- Existing mail tools interact with Gmail’s DOM. Optional label cleanup uses documented Google APIs in the background worker after a separate authorization. No feature intercepts Gmail network traffic or calls undocumented Gmail APIs.
 - Preferences are stored through **`chrome.storage.sync`**. This includes the configured
   BCC address, feature toggles, theme/accent choices, custom-label navigation paths/order,
   and verified Gmail account addresses paired with hidden sublabel paths. Chrome can
@@ -697,14 +696,17 @@ repository. Documentation and fixtures use synthetic examples only.
 | Capability | Purpose |
 | --- | --- |
 | `storage` | Save preferences, private local activation and cached subscription status. |
+| `identity` | Let Chrome manage the optional read-only Google connection for label cleanup. |
 | Content-script match: `https://mail.google.com/*` | Run only on Gmail over HTTPS, in the top-level frame. |
 | Host permission: `https://gmail-pro.netlify.app/*` | Allow optional earlier-purchase verification/recovery and Stripe customer-portal sessions. Free access makes no subscription check; new Checkout is blocked. No Gmail content is sent. |
+| Optional host permission: `https://gmail.googleapis.com/*` | Requested only from Connect Google; read label names and newest-message date metadata directly from Google. |
 
 This Manifest V3 extension uses a background service worker for consent, the
-settings bridge and optional earlier-purchase management. It has no Gmail OAuth scopes,
+settings bridge, optional label checks and optional earlier-purchase management.
+Label cleanup adds a separate read-only Gmail OAuth scope. There is no
 `tabs`, `activeTab`, `scripting`, `webRequest`, or all-sites host permission.
 The extension CSP permits bundled executable code and connections only to the
-dedicated billing host. Stripe credentials never ship in the extension.
+dedicated billing host and Google's documented Gmail API host. Stripe credentials never ship in the extension.
 
 ## Free access and release builds
 
@@ -953,3 +955,18 @@ Released under the [MIT License](LICENSE).
 Gmail Pro is an independent project and is not affiliated with, endorsed by, or
 sponsored by Apple or Google. Gmail is a trademark of Google LLC; Apple Mail and
 macOS are trademarks of Apple Inc. “Apple Mail-inspired” describes visual inspiration.
+
+
+### Label cleanup reminders
+
+Three independent 3-, 6-, and 12-month switches default on. The Google connection is optional and used only for label cleanup reminders; every other Gmail Pro feature works without it. Authorization starts only when the user clicks **Connect Google for reminders**. After connecting Google, existing label dates are checked retroactively and a small monochrome zz control opens Hide label / Dismiss. Checks use the newest email date, not the date a label was applied. Parent recency includes every descendant at any nesting depth. Only empty leaves receive immediate suggestions. Unknown or failed descendants prevent an inactive-parent suggestion.
+
+Supported custom labels and native Inbox, Sent, Drafts, Starred, Important, Spam, Trash, category rows and supported All Mail/Snoozed/Scheduled views can be hidden only in Gmail Pro’s sidebar. Unknown/virtual destinations such as AI Inbox are excluded. Organize labels → Show hidden labels restores them. Existing hidden-sublabel preferences are preserved. Native nodes, unread counts, ordering and message-label assignments are retained.
+
+The worker uses one verified Google account per Chrome profile, newest-message queries (`maxResults=1`) and date-only metadata reads. Four concurrent requests maximum, 20-label resumable chunks, a shared cross-tab queue, bounded retries and 24-hour caching limit work. Failed label results retry after five minutes when Gmail is visible. No checks run in the scrolling/rendering path or with every reminder switched off. Only nearby sidebar rows receive controls, from cached results, in short animation-frame batches. Hide always verifies the selected branch again before saving. Hiding a parent hides every descendant; restoring the parent restores the branch, preserving any child that was separately hidden.
+
+Recency and dismissals use trusted local storage, keyed by the verified account and stable label IDs. The three switches and existing hidden-label paths use the shared Sync settings adapter. No Google token or mail metadata reaches Netlify/Stripe. Clearing the connection clears the local reminder cache; native Gmail mail and label definitions are unchanged.
+
+**Local setup is required:** see [Google OAuth setup](release/google-oauth-setup.md). No dummy OAuth client is shipped. The settings UI reports an unconfigured build until real public Chrome Extension client IDs are configured. Publish the new versioned privacy notice before distributing/enabling the updated consent version. This source change does not submit a store release or publish the website.
+
+Focused checks: `node scripts/validate.cjs`, `node --test tests/labelReminders.test.cjs tests/consent.test.cjs`, and the label reminder/label organizer/popup/startup sidebar fixtures. The reminder fixture supports `?preview=light` and `?preview=dark`. Synthetic results do not establish live Google access or zero Gmail performance impact.
