@@ -124,4 +124,18 @@
     threadRow: '[role="row"]',
     threadFixed: 'button, [role="button"], [role="toolbar"], [role="region"], h1, h2, h3'
   });
+
+  // Gmail sets/restores the document cursor when native message dragging
+  // starts/ends. That inherited paint change cannot change our chrome layout.
+  // Callers must request attributeOldValue; keep every other style declaration
+  // (including priorities) so visibility, geometry and account UI still update.
+  app.isNativeCursorMutation = record => {
+    if (record.type !== 'attributes' || record.attributeName !== 'style' ||
+        (record.target !== document.body && record.target !== document.documentElement)) return false;
+    const before = document.createElement('span').style, after = document.createElement('span').style;
+    before.cssText = record.oldValue || '';
+    after.cssText = record.target.getAttribute('style') || '';
+    before.removeProperty('cursor'); after.removeProperty('cursor');
+    return before.cssText === after.cssText;
+  };
 })();

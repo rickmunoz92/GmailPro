@@ -53,10 +53,13 @@
     // event without toggling twice; ordinary right-click stays Gmail's.
     const controlMenu = event.type === "contextmenu" && event.ctrlKey;
     if (!current.appleMailModeEnabled || (event.type === "contextmenu" && !controlMenu) || (!controlMenu && event.button !== 0) || event.altKey || !(event.target instanceof Element)) return;
+    const modified = event.shiftKey || event.ctrlKey || event.metaKey;
+    // Native opening/drag pickup needs no selection discovery on either press
+    // phase. Only the eventual click establishes our modifier-selection anchor.
+    if (!modified && event.type !== "click") return;
     if (event.target.closest(excluded)) return;
     const row = event.target.closest(rowSelector);
     if (!row) return clearFromBlankArea(event);
-    const modified = event.shiftKey || event.ctrlKey || event.metaKey;
     if (!modified) {
       if (event.type === "click") remember(row);
       return; // Ordinary opening, dragging and keyboard navigation stay native.
@@ -96,6 +99,11 @@
     return node instanceof Element && node.matches(scrollSelector) && !node.closest('.a3s, [contenteditable], [role="dialog"], [role="region"]');
   }
   function rememberScroll(event) {
+    // Scrollbar presses target the scroller itself. A press on row text or a
+    // control cannot scroll it; reading pane geometry there can stall native drag
+    // pickup when Gmail has just invalidated styles. Wheel/key paths still
+    // capture ancestor positions before their native scrolling default action.
+    if (event.type === "pointerdown" && !event.target.matches?.('.Nu, .Nr, .ii, .Tm, .nH, .V3')) return;
     // Capture positions before wheel/keyboard/scrollbar input. No DOM scans.
     for (let node = event.target; node instanceof Element; node = node.parentElement) {
       if (scrollPane(node)) scrollPositions.set(node, { x: node.scrollLeft, y: node.scrollTop });

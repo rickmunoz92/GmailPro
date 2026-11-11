@@ -1,5 +1,19 @@
 # Gmail Pro release
 
+## November 10, 2026 — 1.0.8 drag pickup fix
+
+Prepares the owner-authorized public update for responsive native message drag
+pickup. Document cursor changes no longer trigger label, header or workspace
+layout refreshes. Ordinary presses and native label feedback avoid unnecessary
+scans. Existing appearance, settings and label-click filing are preserved.
+
+Validation: 47 repository checks and 250 focused browser checks passed. Standalone
+Gmail reported 63 ms interaction latency in the final capture, and the owner
+confirmed responsive pickup. Exact drag-image timing and a complete
+extension-disabled recording were not measured. See `tests/messageList-QA.md`.
+Permissions, free access and consent versions are unchanged. Store submission
+status will be recorded after upload; preparation is not public availability.
+
 ## November 9, 2026 — 1.0.7 recipient and startup fixes
 
 Prepared from the canonical checkout for the owner-authorized public update.

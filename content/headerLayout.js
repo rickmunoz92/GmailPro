@@ -861,7 +861,7 @@
       ...document.querySelectorAll(S.headerComposeSource)].filter(Boolean) : [document.body]) {
       for (let parent = node; parent; parent = parent.parentElement) spine.add(parent);
     }
-    for (const node of spine) observer.observe(node, { childList: true, attributes: true,
+    for (const node of spine) observer.observe(node, { childList: true, attributes: true, attributeOldValue: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
     ancestorSpine = spine;
     watchMailboxLoading(ctx);
@@ -1078,6 +1078,8 @@
       enabled = true; generation++;
       rememberSearchMailbox();
       observer = new MutationObserver(records => {
+        records = records.filter(record => !app.isNativeCursorMutation(record));
+        if (!records.length) return;
         if (mailboxLoading) {
           const state = mailboxLoading;
           state.sawBusy ||= nativeMailboxBusy(current?.list);

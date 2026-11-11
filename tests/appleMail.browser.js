@@ -658,6 +658,42 @@
     node.blur(); feature.stop();
     assert(rect(box).width > 0 && rect(node.querySelector('[role="toolbar"]')).width > 0, "native controls restore on OFF");
   });
+  await test("ordinary message presses reach Gmail without selection scans or scroll layout reads", () => {
+    const node = row(), pane = document.createElement('div'); pane.className = 'Nu tf';
+    workspace.append(pane); pane.append(node.closest('table')); enable();
+    const closest = Element.prototype.closest, matches = Element.prototype.matches;
+    let rowChecks = 0, scrollChecks = 0, scrollReads = 0, received = 0, pressWork;
+    for (const type of ['pointerdown', 'mousedown']) node.addEventListener(type, () => received++);
+    for (const property of ['scrollLeft', 'scrollTop']) {
+      const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, property);
+      Object.defineProperty(pane, property, {configurable:true, get() { scrollReads++; return descriptor.get.call(this); }});
+    }
+    Element.prototype.closest = function(selector) {
+      if (selector.includes('table[role="grid"]')) rowChecks++;
+      return closest.call(this, selector);
+    };
+    Element.prototype.matches = function(selector) {
+      if (selector.includes('.Tm:has(')) scrollChecks++;
+      return matches.call(this, selector);
+    };
+    try {
+      for (const target of [node.querySelector('.sender'), node.querySelector('.bog span'), node.querySelector('.PF')]) {
+        for (const type of ['pointerdown', 'mousedown']) {
+          const event = new MouseEvent(type, {bubbles:true,cancelable:true,button:0});
+          target.dispatchEvent(event); assert(!event.defaultPrevented, 'native press remains uncanceled');
+        }
+      }
+      pressWork = {rowChecks,scrollChecks,scrollReads}; scrollReads = 0;
+      pane.dispatchEvent(new MouseEvent('pointerdown', {bubbles:true,cancelable:true,button:0}));
+      assert(scrollReads === 2, 'direct scrollbar press still captures both axes');
+    } finally {
+      Element.prototype.closest = closest; Element.prototype.matches = matches;
+      for (const property of ['scrollLeft', 'scrollTop']) delete pane[property];
+    }
+    result.dataset.messagePressWork = JSON.stringify(pressWork);
+    assert(received === 6, 'all native press phases delivered');
+    assert(Object.values(pressWork).every(count => count === 0), 'no row validation or scroll geometry on drag pickup');
+  });
   await test("Ctrl/Command-click toggles native selection without opening or marking read", () => {
     const nodes = selectableRows(); let opened = 0;
     nodes.forEach(node => node.addEventListener("click", () => opened++)); enable(); enable();

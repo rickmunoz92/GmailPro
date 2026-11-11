@@ -261,6 +261,23 @@
     await start(defaultSettings.headerCollapsed); results.hidden=true; return;
   }
   results.textContent = '';
+  await test('document cursor updates do not refresh header geometry; layout updates still do', async () => {
+    fixture(); await start(); await settle();
+    const original = document.body.getAttribute('style'), query = document.querySelectorAll; let refreshes = 0;
+    document.querySelectorAll = function(selector) {
+      if (selector === GmailPro.selectors.headerBanner) refreshes++;
+      return query.call(this,selector);
+    };
+    try {
+      for (let i=0;i<4;i++) { document.body.style.cursor = i % 2 ? '' : 'grabbing'; await settle(); }
+      assert(refreshes === 0, 'native drag cursor does not trigger header discovery or geometry reads');
+      document.body.style.paddingLeft = '1px'; await settle();
+      assert(refreshes > 0, 'real document layout changes still refresh the header');
+    } finally {
+      delete document.querySelectorAll;
+      if (original === null) document.body.removeAttribute('style'); else document.body.setAttribute('style',original);
+    }
+  });
   await test('native Refresh stays beside Select all with original pointer and keyboard handlers', async () => {
     const f = refreshFixture(), nativeParent = f.refreshGroup.parentElement;
     let calls = 0;

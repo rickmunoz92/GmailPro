@@ -266,6 +266,63 @@
     equal(ids(list), names.slice().reverse()); await settle(); feature.stop(); equal(ids(list), names);
     assert(list.childNodes.length === 300 && !list.hasAttribute("style") && [...list.children].every(n => !n.hasAttribute("style")), "native styles restored");
   });
+  await test("cursor filtering preserves other document styles, priorities and local changes", () => {
+    fixture(); const original = document.body.getAttribute('style');
+    const record = oldValue => ({type:'attributes',attributeName:'style',target:document.body,oldValue});
+    try {
+      document.body.style.cssText = 'display:block!important;cursor:grabbing';
+      assert(GmailPro.isNativeCursorMutation(record('display:block!important;cursor:default')), 'only the native cursor changed');
+      assert(!GmailPro.isNativeCursorMutation(record('display:block;cursor:default')), 'priority changes remain relevant');
+      assert(!GmailPro.isNativeCursorMutation(record('display:none!important;cursor:default')), 'visibility changes remain relevant');
+      assert(!GmailPro.isNativeCursorMutation(record('display:block!important;--native-size:1;cursor:default')), 'unknown properties remain relevant');
+      assert(!GmailPro.isNativeCursorMutation({...record(''),target:host}), 'local control style changes remain relevant');
+      assert(!GmailPro.isNativeCursorMutation({...record(''),attributeName:'class'}), 'class changes remain relevant');
+    } finally { if (original === null) document.body.removeAttribute('style'); else document.body.setAttribute('style',original); }
+  });
+  await test("native drag feedback across 300 labels does not rescan or rewrite the label list", async () => {
+    const names = Array.from({length:300}, (_, i) => `Label ${String(i).padStart(3, '0')}`);
+    const list = fixture(names); on(names.slice().reverse().map(name => 'label/' + name)); await settle();
+    const witness = list.firstElementChild, query = witness.querySelectorAll, documentQuery = document.querySelectorAll;
+    let scans = 0, accountReads = 0, styleWrites = 0, delivered = 0;
+    const watch = new MutationObserver(records => { styleWrites += records.filter(record => record.attributeName === 'style').length; });
+    watch.observe(list, {subtree:true,attributes:true,attributeFilter:['style']});
+    witness.querySelectorAll = function(selector) { if (selector === GmailPro.selectors.labelLink) scans++; return query.call(this,selector); };
+    document.querySelectorAll = function(selector) { if (selector === GmailPro.selectors.labelAccount) accountReads++; return documentQuery.call(this,selector); };
+    const start = performance.now();
+    const originalCursor = document.body.style.getPropertyValue('cursor'), cursorPriority = document.body.style.getPropertyPriority('cursor');
+    try {
+      for (let i = 0; i < 8; i++) {
+        const target = list.children[150]; target.classList.toggle('nY'); target.classList.toggle('NQ');
+        document.body.style.cursor = i % 2 ? '' : 'grabbing';
+        await new Promise(resolve => queueMicrotask(() => queueMicrotask(resolve)));
+      }
+      for (const type of ['dragover','drop']) {
+        list.lastElementChild.addEventListener(type, () => delivered++, {once:true});
+        const event = new DragEvent(type, {bubbles:true,cancelable:true});
+        list.lastElementChild.dispatchEvent(event); assert(!event.defaultPrevented, 'native drag event remains uncanceled');
+      }
+    } finally {
+      delete witness.querySelectorAll; delete document.querySelectorAll; watch.disconnect();
+      results.dataset.dragFeedbackWork = JSON.stringify({scans,accountReads,styleWrites,elapsedMs:performance.now()-start});
+      if (originalCursor) document.body.style.setProperty('cursor',originalCursor,cursorPriority); else document.body.style.removeProperty('cursor');
+    }
+    equal(ids(list),names.slice().reverse()); equal(delivered,2);
+    assert(scans === 0 && accountReads === 0 && styleWrites === 0, 'feedback does not trigger label-wide work');
+    feature.stop(); assert(!list.hasAttribute('style') && [...list.children].every(node => !node.hasAttribute('style')), 'cleanup restores all 300 rows');
+  });
+  await test("native drag feedback in a structural batch still discovers replacement labels", async () => {
+    const list = fixture(['Alpha','Beta','Gamma']); on();
+    list.firstElementChild.classList.add('nY','NQ');
+    list.lastElementChild.replaceWith(row('Replacement')); list.append(row('New'));
+    await settle(); equal(ids(list),['Alpha','Beta','Replacement','New']);
+    assert(list.lastElementChild.style.order === '3', 'new row ordered in the same batch');
+  });
+  await test("removing and restoring a native row class releases and recovers ordering", async () => {
+    const list = fixture(['Alpha','Beta','Gamma']); on(); const target = list.firstElementChild;
+    target.classList.remove('aim'); await settle();
+    assert(!list.hasAttribute('style') && [...list.children].every(node => !node.hasAttribute('style')), 'unsupported rows restore native layout');
+    target.classList.add('aim'); await settle(); equal(ids(list),['Gamma','Alpha','Beta']);
+  });
   await test("delayed initial sidebar discovery", async () => {
     feature.stop(); host.innerHTML = ""; on();
     const section = document.createElement("div"); section.innerHTML = '<div gh="cl"><div class="TK"></div></div>';
@@ -501,7 +558,7 @@
     equal(escapes, 1); assert(!host.querySelector('.gmail-pro-label-toolbar'), 'editing exited');
   });
   await test("native menu hides a branch outside editing with ordering off and no badge or assignment changes", async () => {
-    const list = fixture(); feature.start(prefs); const sequence = [...list.children], before = writes;
+    const list = fixture(); prefs.customLabelOrderEnabled = false; feature.start(prefs); const sequence = [...list.children], before = writes;
     const {action, menu} = await labelMenuFor(list, 'Alpha/Child');
     assert(action?.textContent === 'Hide from sidebar — Gmail Pro', 'separate sidebar action');
     equal(getComputedStyle(action).color, getComputedStyle(menu.querySelector('[role="menuitemcheckbox"]')).color);

@@ -1,5 +1,53 @@
 # Apple Mail-style Message List QA
 
+## Message drag pickup — November 10, 2026
+
+Native Gmail changes `body.style.cursor` to its closed-hand cursor when message
+dragging begins. A focused DevTools attribute breakpoint confirmed that change
+inside Gmail's native drag handler. Gmail Pro's label, header and workspace
+observers treated it as a layout update and performed unnecessary reconciliation
+and geometry work during pickup.
+
+Those controllers now ignore document cursor-only style changes through a shared
+native-DOM helper. Other style declarations, custom properties, priorities,
+visibility, structural changes and account updates remain relevant. Ordinary
+message presses also skip modifier-selection discovery and scroll-position
+reads; direct scrollbar presses retain position capture. Known label hover/drop
+feedback no longer reparses the complete label list. Gmail continues to own
+drag thresholds, movement, dropping and label-click filing.
+
+| Check | Result |
+| --- | --- |
+| `node scripts/validate.cjs` | Manifest/assets/syntax/permissions and 47/47 checks passed |
+| Apple Mail appearance fixture | 81/81 passed, including selection, native drop feedback and direct scrollbar capture |
+| Label ordering fixture, dark appearance | 54/54 passed, including 300-label cursor/feedback bursts, mixed structural batches and style-filter negative cases |
+| Header fixture, `case=document cursor` | 1/1 passed; cursor changes skip discovery, real layout changes still refresh |
+| Workspace fixture | 17/17 passed, including cursor and real-layout changes |
+| Label filing fixture | 97/97 passed |
+
+Synthetic message presses changed from 6 row checks, 32 scroll-owner checks and
+6 scroll-position reads to zero for each. Eight feedback deliveries across 300
+labels now produce zero full-list scans, account queries or ordering writes;
+the final fixture also changes the document cursor and measured about 1.1 ms.
+
+After reloading the unpacked extension and refreshing standalone Gmail, a
+three-drag capture reported **63 ms INP** (0 ms input delay, 1 ms processing,
+62 ms presentation), compared with roughly 1,036–1,119 ms before the cursor
+filter. The final full capture attributed 9.6 ms of aggregate JavaScript work to
+Gmail Pro. CPU/network throttling, screenshots, selector statistics and advanced
+paint instrumentation were disabled for these timing captures. The user then
+confirmed pickup felt responsive in standalone Gmail.
+
+These captures include automation and state inspection; INP is an interaction
+measure, not a direct video measurement from Gmail's movement threshold to the
+first drag-image frame. Inbox arrivals changed rendered rows from 14 to 16 while
+the sidebar retained 128 custom labels, so no controlled percentage improvement
+is claimed. A full extension-disabled comparison was not recorded. Temporary
+appearance/list comparisons were restored to the original enabled settings.
+An experimental CSS scope change showed no useful improvement and was reverted;
+the retained change has no CSS or manifest edits. No live conversation was filed
+during verification. Changes remain local and uncommitted.
+
 ## Mailbox navigation styling — September 30, 2026
 
 The existing message-list controller now owns `data-gp-message-row=""` after

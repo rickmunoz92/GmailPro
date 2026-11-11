@@ -235,6 +235,17 @@
     await f.start();
     assert(width(f.mailboxes)>0&&!f.mailboxes.hasAttribute('data-gp-app-rail')&&!document.querySelector('.gmail-pro-app-rail-toggle'),'only verified Mail/Chat/Meet controls can be hidden');
   });
+  await test('document cursor updates do not refresh workspace geometry; layout updates still do',async()=>{
+    const f=fixture();await f.start();await frames();
+    const original=document.body.getAttribute('style'),query=document.querySelectorAll;let refreshes=0;
+    document.querySelectorAll=function(selector){if(selector===app.selectors.appRail)refreshes++;return query.call(this,selector);};
+    try{
+      for(let i=0;i<4;i++){document.body.style.cursor=i%2?'':'grabbing';await frames(2);}
+      assert(refreshes===0,'native drag cursor does not rediscover or measure the workspace');
+      document.body.style.paddingLeft='1px';await frames();
+      assert(refreshes>0,'real document layout changes still refresh the workspace');
+    }finally{delete document.querySelectorAll;if(original===null)document.body.removeAttribute('style');else document.body.setAttribute('style',original);}
+  });
   await test('initialized workspace stays idle without writes, resizes or ongoing message observation',async()=>{
     const f=fixture();await f.start();let mutations=0,resizes=0;
     const observer=new MutationObserver(records=>mutations+=records.length);observer.observe(workspace,{attributes:true,childList:true,subtree:true});

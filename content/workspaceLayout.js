@@ -327,7 +327,7 @@
     const next = new Set([...spine].filter(node=>node.isConnected));
     for (const node of [document.body,...nodes].filter(Boolean)) for (let parent=node; parent; parent=parent.parentElement) next.add(parent);
     spine = next;
-    for (const node of spine) observer.observe(node,{childList:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden','aria-label']});
+    for (const node of spine) observer.observe(node,{childList:true,attributes:true,attributeOldValue:true,attributeFilter:['class','style','hidden','aria-hidden','aria-label']});
   }
   function refresh() {
     observer.disconnect();
@@ -380,7 +380,7 @@
     if (options.appleMailModeEnabled !== true) { if (running) stop(); return; }
     if (!running) {
       running=true; generation++; setupAllowed=true; lifecycle=new AbortController(); rightAttempts=new WeakMap();
-      observer=new MutationObserver(schedule); bootstrap=new MutationObserver(schedule);
+      observer=new MutationObserver(records=>{if(records.some(record=>!app.isNativeCursorMutation(record)))schedule();}); bootstrap=new MutationObserver(schedule);
       // Initial Gmail shell discovery only; stable watches are shallow chrome
       // spines, never conversation rows, messages, editors or label contents.
       bootstrap.observe(document,{childList:true,subtree:true});

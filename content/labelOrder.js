@@ -134,7 +134,7 @@
       for (let node = section.parentElement; node; node = node.parentElement) {
         if (ancestors.has(node)) break;
         ancestors.add(node);
-        observer.observe(node, { childList: true, attributes: true,
+        observer.observe(node, { childList: true, attributes: true, attributeOldValue: true,
           attributeFilter: ["style", "class", "hidden", "aria-hidden"] });
       }
     }
@@ -214,18 +214,27 @@
       if (list && !states.has(list) && read(list)) states.set(list, { list, styles: new Map() });
     }
   }
-  const nativeClasses = value => (value || "").split(/\s+/).filter(x => !x.startsWith("gmail-pro-label-")).join(" ");
+  const nativeClasses = (value, feedback = false) => (value || "").split(/\s+/).filter(x =>
+    x && !x.startsWith("gmail-pro-label-") && !(feedback && (x === "nY" || x === "NQ"))).sort().join(" ");
   function mutations(records) {
     if (!active) return;
     if (labelMenu?.menu && !labelMenu.menu.isConnected) clearLabelMenu();
     let changed = false;
     for (const record of records) {
+      if (app.isNativeCursorMutation(record)) continue;
       const target = record.target;
       if (target.closest?.("[data-gmail-pro-label-ui]")) continue;
       if (record.type === "attributes") {
         if (record.attributeName === "aria-label") { changed = true; continue; }
-        if (record.attributeName === "class" && nativeClasses(record.oldValue) === nativeClasses(target.className)) continue;
-        const relevant = states.has(target) || target.matches(S.labelRow) ||
+        const ownedRow = states.has(target.parentElement);
+        if (record.attributeName === "class") {
+          // Gmail paints native hover/drop feedback in CSS. Only ignore these
+          // tokens on an already-known row that remains structurally a row;
+          // ancestor/list visibility and row-class removal must still reconcile.
+          const feedback = ownedRow && target.matches(S.labelRow) && (record.oldValue || "").split(/\s+/).includes("aim");
+          if (nativeClasses(record.oldValue, feedback) === nativeClasses(target.getAttribute("class"), feedback)) continue;
+        }
+        const relevant = states.has(target) || ownedRow || target.matches(S.labelRow) ||
           (record.attributeName !== "class" && target.matches(`${S.labelLine}, ${S.labelLink}, ${S.labelMenu}`)) ||
           [...states.keys()].some(list => target.contains(list));
         if (!relevant) continue;
@@ -233,7 +242,11 @@
         if (record.attributeName === "class" || record.attributeName === "hidden" || record.attributeName === "aria-hidden") {
           for (const state of states.values()) if (target === state.list) restoreNode(state, target);
         }
-        register(target); changed = true;
+        // Attribute updates on known rows/lists/ancestors cannot add a new
+        // container. apply() revalidates identity/visibility; child-list changes
+        // retain discovery, including replacements and Gmail's More section.
+        if (!states.size || (target.matches(S.labelRow) && !ownedRow)) register(target);
+        changed = true;
       } else {
         for (const node of [...record.addedNodes, ...record.removedNodes]) {
           if (!(node instanceof Element) || node.matches("[data-gmail-pro-label-ui]")) continue;
