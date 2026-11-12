@@ -173,6 +173,7 @@
     if (!(focus instanceof Element)) return;
     app.readingPane?.cancelFilingForShortcut?.();
     const action = binding[1];
+    if (action !== "archive") app.archiveRead?.cancel();
     const target = action === "archive" || action === "toggleRead" || action === "delete" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
       action === "undo" ? undoTarget : conversationButton(action, focus);
     activate(target); // One native gesture, synchronously; no queued send or retry.

@@ -31,6 +31,7 @@
       app.workspaceLayout.update(patch);
       app.headerLayout.update(patch);
       app.readingPane.update(patch);
+      app.archiveRead.update(patch);
       app.floatingCompose.update(patch);
       app.keyboardShortcuts.update(patch);
       app.messageZoom.update(patch);
@@ -54,6 +55,7 @@
     app.workspaceLayout.start(current);
     app.headerLayout.start(current);
     app.readingPane.start(current);
+    app.archiveRead.start(current);
     app.floatingCompose.start(current);
     app.keyboardShortcuts.start(current);
     app.messageZoom.start(current);
@@ -68,6 +70,7 @@
     app.messageList.stop();
     app.autoPaging.stop();
     app.readingPane.stop();
+    app.archiveRead.stop();
     app.floatingCompose.stop();
     app.keyboardShortcuts.stop();
     app.workspaceLayout.stop();

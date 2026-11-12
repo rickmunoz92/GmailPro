@@ -45,6 +45,7 @@ function fixture(initial = {}) {
   context.GmailPro.keyboardShortcuts = { start() {}, update() {}, stop() {} };
   context.GmailPro.floatingCompose = { start() {}, update() {}, stop() {} };
   context.GmailPro.readingPane = { start() {}, update() {}, stop() {} };
+  context.GmailPro.archiveRead = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelOrder = { start() {}, update() {}, stop() {} };
   context.GmailPro.labelReminders = { start() {}, update() {}, stop() {} };
   context.GmailPro.messageZoom = { start() {}, update() {}, stop() {} };
@@ -77,7 +78,7 @@ for (const mode of ['idle-only', 'early-and-idle', 'unaccepted']) test(`manifest
   const app=context.GmailPro;
   if(owners) for(const [key,value] of Object.entries(owners)) assert.equal(app[key],value,`${key} owner survives the idle replay`);
   assert.equal(typeof app.settings.load,'function');assert.equal(typeof app.startAutoBcc,'function');
-  const features=['autoBcc','reverseThreads','messageList','autoPaging','appearance','workspaceLayout','headerLayout','readingPane','floatingCompose','keyboardShortcuts','messageZoom','labelOrder','labelReminders'];
+  const features=['autoBcc','reverseThreads','messageList','autoPaging','appearance','workspaceLayout','headerLayout','readingPane','archiveRead','floatingCompose','keyboardShortcuts','messageZoom','labelOrder','labelReminders'];
   // Exercise the real manifest module constructors and lifecycle/gates. Feature
   // rendering itself has browser fixtures; these spies isolate startup ownership.
   for(const name of features) {assert.equal(typeof app[name]?.start,'function',`${name} initialized`);app[name]={...app[name],start:settings=>starts.push({name,settings}),stop(){}};}

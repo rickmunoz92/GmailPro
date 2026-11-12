@@ -136,12 +136,13 @@
     app.appearance.start({appleMailModeEnabled:enabled,appearanceTheme:theme});
     app.messageList.start({appleMailModeEnabled:enabled});
     app.readingPane.start({appleMailModeEnabled:enabled});
+    app.archiveRead.start({appleMailModeEnabled:enabled});
     const badge = (index=0) => rows()[index]?.querySelector('.at');
     function click(index=0, options={}) {
       const target = badge(index)?.querySelector('.av');
       for (const type of ['pointerdown','mousedown','mouseup','click']) target?.dispatchEvent(new MouseEvent(type,{bubbles:true,cancelable:true,button:0,detail:1,...options}));
     }
-    cleanup = () => { document.removeEventListener('keypress', nativeUndo); timers.forEach(clearTimeout); app.keyboardShortcuts.stop(); app.readingPane.stop(); app.messageList.stop(); app.appearance.stop(); app.reverseThreads.stop(); workspace.replaceChildren(); };
+    cleanup = () => { document.removeEventListener('keypress', nativeUndo); timers.forEach(clearTimeout); app.archiveRead.stop(); app.keyboardShortcuts.stop(); app.readingPane.stop(); app.messageList.stop(); app.appearance.stop(); app.reverseThreads.stop(); workspace.replaceChildren(); };
     return { main, navigation, labelOwners, addLabel, grid, first, second, box, rows, id, badge, click, read, unreadControl, archive, pane, actions, draft,
       open, toolbar, toast, notice, later, openCount:()=>openCount, fallbackCount:()=>fallbackCount, reads:()=>readAttempts, archives:()=>archiveAttempts, closed:()=>closed, archiveClosed:()=>archiveClosed };
   }

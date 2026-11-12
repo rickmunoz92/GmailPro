@@ -28,6 +28,12 @@ browser using bundled HTML, CSS, and JavaScript. The current Chrome Web Store ca
   an Inbox conversation row to mark the conversation read and archive it. You
   stay in Inbox, all existing labels remain, and Gmail supplies Archive Undo.
   Enter or Space works on a focused badge. Clear checked conversations first.
+- **Mark read when archiving:** in Apple Mail Mode, Archive (including row hover
+  actions and ⌘⇧A) marks the targeted conversation or checked rows read first.
+  Gmail must confirm the read state before Archive runs. Gmail’s Archive Undo
+  stays available; undoing Archive does not restore the previous unread state.
+  Gmail’s native E shortcut and Send & archive keep their current behavior.
+  See [archive/read checks](tests/archiveRead-QA.md).
 - **Auto BCC:** automatically add a configured address to new messages, replies,
   reply-all messages, and forwards. Each composition is handled independently.
 - **Newest Email First:** show the newest message at the top of an opened Gmail
@@ -835,6 +841,7 @@ Open these pages in Chrome:
 - `http://127.0.0.1:8765/tests/appleMail.html`
 - `http://127.0.0.1:8765/tests/readingPane.html`
 - `http://127.0.0.1:8765/tests/autoRead.html`
+- `http://127.0.0.1:8765/tests/archiveRead.html`
 - `http://127.0.0.1:8765/tests/headerLayout.html`
 - `http://127.0.0.1:8765/tests/headerReadingPane.html`
 - `http://127.0.0.1:8765/tests/workspaceLayout.html`

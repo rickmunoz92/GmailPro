@@ -1119,5 +1119,5 @@
     unsubscribe = app.reverseThreads.subscribeConversation(schedule);
     refresh();
   }
-  app.readingPane = Object.freeze({ start: update, update, stop, cancelFilingForShortcut });
+  app.readingPane = Object.freeze({ start: update, update, stop, cancelFilingForShortcut, cancelAutomaticRead: cancelRead });
 })();
