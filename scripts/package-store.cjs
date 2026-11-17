@@ -6,8 +6,9 @@ const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const billing = require('../shared/billing-config.js');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json')));
+const reminders = require('../shared/labelRecency.js');
 const google = JSON.parse(fs.readFileSync(path.join(root, 'google-oauth.json')));
-if (!/^[\w-]+\.apps\.googleusercontent\.com$/.test(google.storeClientId || '')) {
+if (reminders.available && !/^[\w-]+\.apps\.googleusercontent\.com$/.test(google.storeClientId || '')) {
   throw new Error('Configure the store Google OAuth client before packaging label reminders. See release/google-oauth-setup.md.');
 }
 const dist = path.join(root, 'dist');
@@ -27,8 +28,15 @@ function copy(relative) {
 try {
   for (const relative of ['manifest.json', 'LICENSE', 'background', 'shared', 'content', 'popup', 'icons']) copy(relative);
   // Keep the canonical unpacked identity and its settings; only the staged package uses the store client.
-  const storeManifest = { ...manifest, oauth2: { client_id: google.storeClientId,
-    scopes: ['https://www.googleapis.com/auth/gmail.readonly'] } };
+  const storeManifest = { ...manifest };
+  if (reminders.available) storeManifest.oauth2 = { client_id: google.storeClientId,
+    scopes: ['https://www.googleapis.com/auth/gmail.readonly'] };
+  else {
+    delete storeManifest.oauth2; delete storeManifest.optional_host_permissions;
+    storeManifest.permissions = storeManifest.permissions.filter(name => name !== 'identity');
+    storeManifest.content_security_policy = { ...manifest.content_security_policy, extension_pages:
+      manifest.content_security_policy.extension_pages.replace(' https://gmail.googleapis.com', '') };
+  }
   fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify(storeManifest, null, 2) + '\n');
   for (const group of manifest.content_scripts || []) for (const relative of [...(group.js || []), ...(group.css || [])]) {
     if (!files.includes(relative)) throw new Error('Non-production content script cannot ship: ' + relative);

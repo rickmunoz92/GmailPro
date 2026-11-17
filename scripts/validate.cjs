@@ -12,10 +12,12 @@ assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.name, "Gmail Pro");
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
 assert.ok(manifest.description.length <= 132, 'Chrome Web Store description is at most 132 characters');
-assert.deepEqual(manifest.permissions, ["storage", "identity"]);
+const reminders = require('../shared/labelRecency.js');
+assert.deepEqual(manifest.permissions, reminders.available ? ['storage', 'identity'] : ['storage']);
 assert.deepEqual(manifest.background, { service_worker: 'background/settings.js' });
 assert.deepEqual(manifest.host_permissions, ['https://gmail-pro.netlify.app/*']);
-assert.deepEqual(manifest.optional_host_permissions, ['https://gmail.googleapis.com/*']);
+assert.deepEqual(manifest.optional_host_permissions, reminders.available ? ['https://gmail.googleapis.com/*'] : undefined);
+if (!reminders.available) assert.equal(manifest.oauth2, undefined);
 if (manifest.oauth2) {
   assert.match(manifest.oauth2.client_id, /^[\w-]+\.apps\.googleusercontent\.com$/);
   assert.deepEqual(manifest.oauth2.scopes, ['https://www.googleapis.com/auth/gmail.readonly']);
@@ -38,7 +40,7 @@ assert.deepEqual(manifest.content_scripts[1].js, [...manifest.content_scripts[0]
   'Idle startup must include its early dependencies in the same order');
 assert.deepEqual(manifest.content_scripts[1].css, manifest.content_scripts[0].css,
   'Idle recovery must include the same local styles');
-assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/gmail-pro\.netlify\.app https:\/\/gmail\.googleapis\.com;/);
+assert.ok(manifest.content_security_policy.extension_pages.includes(reminders.available ? 'connect-src https://gmail-pro.netlify.app https://gmail.googleapis.com;' : 'connect-src https://gmail-pro.netlify.app;'));
 
 const references = [manifest.background.service_worker, 'background/billing.js', 'background/consent.js', manifest.action.default_popup, ...manifest.content_scripts.flatMap(content => [...content.js, ...(content.css || [])]),
   ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)];

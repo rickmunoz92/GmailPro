@@ -62,6 +62,7 @@
     assert(saved.floatingReplyEnabled && !saved.floatingReplyAllEnabled && saved.floatingForwardEnabled, "independent save");
     store.writes = 0;
   });
+  if (GmailPro.labelRecency.available) {
   await test('three label milestones default on, save independently, and follow sync without other edits', async () => {
     const three = byId('label-reminder-3'), six = byId('label-reminder-6'), twelve = byId('label-reminder-12');
     assert(three.checked && six.checked && twelve.checked, 'all milestones start on');
@@ -99,6 +100,16 @@
     store.disableRemindersDuringScan = false; store.reminders = { configured: false, connected: false, results: [], pending: 0 };
     store.remindersChanged(); await settle();
   });
+  } else {
+    await test('coming-soon reminders have no controls, permission request or worker traffic', async () => {
+      const controls = byId('label-reminders-controls');
+      assert(controls.hidden && controls.disabled && !controls.checkVisibility(), 'reminder controls are hidden and disabled');
+      assert(byId('label-reminders-coming-soon').textContent.includes('Coming soon'), 'availability stated plainly');
+      byId('label-reminders-connect').click(); byId('label-reminders-check').click(); await settle();
+      assert(!store.reminderActions.length && !store.connectionPermissionRequests && !store.reminderScans, 'no hidden action can connect or scan');
+      assert(!byId('settings-fields').disabled && !byId('message-zoom').disabled, 'other features stay usable');
+    });
+  }
   await test("keyboard shortcuts default on, save independently, and follow sync", async () => {
     const archive=byId("archive-shortcut"), send=byId("send-shortcut"), undo=byId("undo-shortcut");
     assert(archive.checked && send.checked && undo.checked, "default on");

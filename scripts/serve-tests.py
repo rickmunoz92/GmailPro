@@ -33,6 +33,8 @@ class Handler(SimpleHTTPRequestHandler):
         html = (ROOT / "popup/popup.html").read_text()
         html = html.replace("<head>", '<head><base href="/popup/">'
                             '<script src="/tests/popup.storage.js"></script>', 1)
+        if 'reminders=enabled' in self.path:
+            html = html.replace('<script src="labelReminders.js"', '<script src="/tests/enable-label-reminders.js" defer></script><script src="labelReminders.js"', 1)
         html = html.replace("</head>", '<script src="/tests/popup.browser.js" defer></script></head>', 1)
         data = html.encode()
         self.send_response(200)

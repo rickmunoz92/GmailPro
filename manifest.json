@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Pro",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "background": {
     "service_worker": "background/settings.js"
   },
@@ -12,8 +12,7 @@
     "https://gmail-pro.netlify.app/*"
   ],
   "permissions": [
-    "storage",
-    "identity"
+    "storage"
   ],
   "action": {
     "default_title": "Gmail Pro",
@@ -116,15 +115,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://gmail-pro.netlify.app https://gmail.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
-  },
-  "optional_host_permissions": [
-    "https://gmail.googleapis.com/*"
-  ],
-  "oauth2": {
-    "client_id": "265719417216-1m864kv1r8b0cr55iqcfmg8e4ik3ji1m.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/gmail.readonly"
-    ]
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://gmail-pro.netlify.app; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   }
 }

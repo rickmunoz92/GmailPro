@@ -1,5 +1,21 @@
 # Label cleanup reminder validation
 
+## November 16 release gate
+
+The owner deferred public reminders because they would consume the operator's
+shared Google API quota. The feature is retained in source but unavailable:
+popup controls are hidden/disabled, the content module stays inert, and worker
+actions return unavailable without token acquisition or API requests. The
+release manifest also omits Google identity, OAuth and Gmail API permissions.
+
+`npm test` passed 51 repository and 68 consent/reminder/billing checks, including
+the saved-preferences/cached-metadata negative case (zero token/API calls).
+Chrome fixtures passed public popup 26/26 and inert sidebar 1/1. Explicit
+synthetic-only availability overrides retain future-feature coverage: popup
+28/28, reminder UI 13/13, worker/recency 24/24. The override never ships.
+Coming-soon wording is published on the website and included in the submitted
+1.0.9 Store listing. See `release/README.md` for receipt and policy versions.
+
 Local implementation checked November 10, 2026. The privacy update was
 subsequently published and an unbilled Google development project configured
 for the authorized local test. No extension release, commit or push occurred.

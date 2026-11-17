@@ -1,5 +1,9 @@
 (() => {
   'use strict';
+  if (globalThis.GmailPro.labelRecency.available !== true) return;
+  document.getElementById('label-reminders-coming-soon').hidden = true;
+  const controls = document.getElementById('label-reminders-controls');
+  controls.hidden = controls.disabled = false;
   const status = document.getElementById('label-reminders-status');
   const connect = document.getElementById('label-reminders-connect'), check = document.getElementById('label-reminders-check');
   const disconnect = document.getElementById('label-reminders-disconnect');

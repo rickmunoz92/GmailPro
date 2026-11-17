@@ -253,6 +253,7 @@
   }
   async function handle(message, sender) {
     if (!popup(sender) && !gmail(sender)) throw new Error('Unauthorized request.');
+    if (R.available !== true) return { available: false, configured: false, connected: false, enabled: false, results: [], pending: 0 };
     const entryRevision = revision;
     if (!(await globalThis.GmailProConsentWorker.status()).accepted) throw new Error('Open Gmail Pro and review the current disclosure first.');
     if (entryRevision !== revision) throw new DOMException('Cancelled', 'AbortError');

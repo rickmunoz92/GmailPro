@@ -31,6 +31,9 @@ Make an email easier to read with message-only zoom from 80% to 200%. Your toolb
 ORGANIZE GMAIL YOUR WAY
 Reorder mailbox and top-level label shortcuts. Move sublabels to another parent or hide a sidebar branch in Gmail Pro. In Apple Mail Mode, click an existing custom-label badge in Inbox to mark the conversation read and archive it, keeping its labels. Gmail’s Archive Undo stays available.
 
+COMING SOON: LABEL CLEANUP REMINDERS
+Label cleanup reminders are disabled in this release. No Google connection controls or Gmail API checks for reminders are available. Other Gmail Pro features work without connecting Google.
+
 KEEP REPLIES AND ACTIONS IN REACH
 Open Reply, Reply All and Forward in Gmail’s floating composer. Keep supported message actions in the reading toolbar. Add individually configurable macOS shortcuts for common actions, and keep Gmail’s Undo Send notice visible with the header collapsed.
 

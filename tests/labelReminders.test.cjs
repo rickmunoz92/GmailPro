@@ -59,7 +59,7 @@ test('catalog preserves full names and stable IDs, distinguishes branches, and r
   assert.throws(() => R.catalog([rawLabel('../bad', 'A')]));
 });
 
-function workerFixture(raw = [rawLabel('a', 'Parent'), rawLabel('b', 'Parent/Child')], initial) {
+function workerFixture(raw = [rawLabel('a', 'Parent'), rawLabel('b', 'Parent/Child')], initial, available = true) {
   const data = {}, calls = [], changes = new Set(), listeners = new Set(), sync = {}, responses = new Map();
   let labels = raw, accepted = true, account = 'one@example.test', failWrite = false, failLabel, failStatus = 404, current = 0, peak = 0, tokenCalls = 0;
   let consentGate, settingsGate, tokenError;
@@ -104,6 +104,7 @@ function workerFixture(raw = [rawLabel('a', 'Parent'), rawLabel('b', 'Parent/Chi
     }
   });
   for (const file of ['shared/settings.js', 'shared/labelRecency.js', 'background/labelReminders.js']) {
+    if (file === 'background/labelReminders.js') context.GmailPro.labelRecency = Object.freeze({ ...context.GmailPro.labelRecency, available });
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   const popup = { id: 'ours', url: chrome.runtime.getURL('popup/popup.html') };
@@ -284,4 +285,15 @@ test('a switch change arriving during a settings read defeats the older settings
   const checking = f.send('status'); await new Promise(setImmediate); f.setMilestone(3, false); resume();
   const result = await checking; assert.equal(result.ok, true); assert.equal(result.connected, true); assert.equal(result.enabled, true);
   assert.ok(!result.results.some(row => row.path === 'label/A')); assert.equal(f.calls.length, 0);
+});
+
+test('public release cannot connect or scan despite enabled preferences and cached metadata', async () => {
+  assert.equal(R.available, false);
+  const f = workerFixture(undefined, undefined, false);
+  for (const action of ['status', 'connect', 'scan', 'review', 'dismiss']) {
+    const result = await f.send(action, {}, action === 'connect' ? f.popup : f.gmail);
+    assert.equal(result.ok, true); assert.equal(result.available, false); assert.equal(result.enabled, false);
+    assert.equal(result.connected, false); assert.equal(result.results.length, 0);
+  }
+  assert.equal(f.tokenCalls, 0); assert.equal(f.calls.length, 0);
 });

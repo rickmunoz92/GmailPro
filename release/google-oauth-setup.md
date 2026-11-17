@@ -4,6 +4,26 @@ Development setup is configured for local testing. Production OAuth setup and
 public verification remain pending.
 Never enter a client secret, access token, or refresh token in the source tree.
 
+## Public release status — November 16, 2026
+
+At the owner's request, reminders are **coming soon and unavailable**. The
+shared release gate (`labelRecency.available`) is false; the popup hides and
+disables its controls, Gmail starts no reminder watcher, and the worker refuses
+all reminder actions before authorization or network work. Store packaging
+requires no production OAuth client while this gate is false and ships without
+`identity`, a Gmail API host permission, or an `oauth2` manifest entry.
+Saved milestone preferences do not bypass the gate. Future release requires
+an explicit source change, renewed validation and the Google setup below.
+
+A separate production project, `gmail-pro-production` (936588215864), was
+created with Gmail API enabled. Billing was verified disabled with no linked
+billing account. The owner completed Google's API User Data Policy agreement
+and External/Testing app identity setup. No production OAuth client or
+restricted-scope verification was created/submitted; no quota increase, paid
+service, mailbox authorization or public activation followed. This unused
+project stays unbilled. Future public reminders would consume this shared
+project's quota, rather than giving every user an independent project quota.
+
 ## Local setup status
 
 - Development project: `gmail-pro-dev-514403`, with Gmail API enabled and billing

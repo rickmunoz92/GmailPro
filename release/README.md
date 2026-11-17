@@ -1,5 +1,46 @@
 # Gmail Pro release
 
+## November 16, 2026 — 1.0.9 submitted; reminders coming soon
+
+The owner authorized the Store update, website/legal updates, and GitHub push.
+After reviewing shared Google API quota implications, the owner chose to keep
+label cleanup reminders unavailable. The package includes the committed drag
+pickup fix, current label-menu compatibility and archive-as-read behavior.
+
+- `labelRecency.available` is false. Reminder controls are hidden and disabled,
+  the content feature starts no watcher, and the worker returns unavailable
+  before token or Gmail API work, even with enabled saved preferences/cache.
+- The ZIP has **49 production files** and no `identity`, `oauth2`, optional
+  Gmail API host permission or Gmail API CSP destination. Its permissions match
+  the public 1.0.8 package. Retained reminder implementation cannot be enabled
+  through preferences. No production Google OAuth client was configured.
+- `npm test`: **51/51** repository checks and **68/68** consent/reminder/billing
+  checks passed. The lifecycle fixture now includes the archive-as-read module.
+  Public popup **26/26**, disabled-sidebar **1/1**, synthetic future-feature
+  popup **28/28** and reminder **13/13** checks passed. The earlier drag fixtures
+  and live evidence remain in `tests/labelOrder-QA.md`; residual jank and the
+  unverified exact pickup threshold are not represented as resolved.
+- SHA-256: `fc9534c45c048ccde17b69b51dd979c6355ac3129cda6a810474b964169f5cc3`.
+  Manifest capabilities and every packaged source file were inspected against
+  the canonical checkout. Tests, captures and developer-only files are excluded.
+- The dashboard showed **Draft 1.0.9**, **Published 1.0.8** before submission.
+  The saved listing adds the coming-soon reminder notice; other copy, images,
+  promo video and privacy categories remain intact. Automatic publication was
+  checked. Google confirmed **Your extension was submitted for review**.
+  This is a review receipt, not proof that 1.0.9 is publicly available.
+- Website production deploy `6afbb4d5c104b34bedbccf60` publishes matching
+  coming-soon wording and Terms/Privacy **2026-11-16.2**, with permanent copies.
+  Current and archived legal routes returned HTTP 200 and matched local article
+  content; the homepage matched too. Existing immutable versions are preserved,
+  including the earlier same-day .1 disclosure. Extension agreement versions
+  reference .2, requiring fresh affirmative acceptance after upgrade.
+  Public configuration remains `free:true`, `salesEnabled:false`.
+- An unused `gmail-pro-production` Cloud project was created while preparing
+  reminders. Billing was verified disabled and no billing account linked.
+  The owner accepted Google's API User Data Policy; no production OAuth client,
+  mailbox authorization, paid quota, or reminder activation followed. The
+  deferred feature's production setup is documented in `google-oauth-setup.md`.
+
 ## November 10, 2026 — 1.0.8 drag pickup fix
 
 Prepares the owner-authorized public update for responsive native message drag

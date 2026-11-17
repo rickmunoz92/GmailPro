@@ -88,7 +88,9 @@
     return candidate.kind === 'empty' ? { empty: true, latestAt: null, through: 0 } :
       { empty: false, latestAt: candidate.latestAt, through: candidate.milestone };
   }
-  const api = Object.freeze({ months, setting, enabled, validPath, sidebarPath, catalog, rollup, anniversary,
+  // Release gate: changing saved preferences cannot enable the unreleased feature.
+  const available = false;
+  const api = Object.freeze({ available, months, setting, enabled, validPath, sidebarPath, catalog, rollup, anniversary,
     suggestion, dismissal, mailboxPaths });
   app.labelRecency = api;
   if (typeof module === 'object' && module.exports) module.exports = api;

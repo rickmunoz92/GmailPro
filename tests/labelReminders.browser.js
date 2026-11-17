@@ -97,6 +97,18 @@
     app.labelOrder.start(prefs); if (startReminders) app.labelReminders.start(prefs); return { list, accountButton };
   }
   const sleepButton = name => [...host.querySelectorAll('.aim')].find(node => node.querySelector('a')?.textContent === name)?.querySelector('.gmail-pro-label-sleep');
+  if (!R.available) {
+    await test('disabled release stays inert with saved reminder switches enabled', async () => {
+      setup(0, false); const listenerCount = runtime.size;
+      app.labelReminders.start(prefs); await settle();
+      app.labelReminders.update(prefs); await settle();
+      assert(statusCalls === 0 && !host.querySelector('.gmail-pro-label-sleep'), 'no worker checks or suggestion controls');
+      assert(runtime.size === listenerCount, 'no reminder listener starts');
+      app.labelReminders.stop(); app.labelOrder.stop();
+    });
+    result.dataset.failures = String(reports.filter(line => line.startsWith('FAIL')).length);
+    return;
+  }
   if (previews.has('benchmark')) {
     if (previews.has('plain')) document.querySelector('link[href="../content/appleMail.css"]').disabled = true;
     setup(500, false);

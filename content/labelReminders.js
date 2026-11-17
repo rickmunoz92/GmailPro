@@ -226,6 +226,7 @@
     disconnected = false; needsRefresh = !!task; watchSidebar(); void refresh();
   };
   function start(options) {
+    if (R.available !== true) return;
     update(options);
     if (active) return;
     active = true;
