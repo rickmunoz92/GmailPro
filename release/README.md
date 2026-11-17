@@ -1,5 +1,76 @@
 # Gmail Pro release
 
+## November 16, 2026 — 1.0.11 submitted; native thread terminology
+
+The owner identified Gmail's remaining native empty-pane wording and requested
+**No thread selected**, plus thread/threads throughout the interface.
+
+- The reading-pane controller now renames known native empty states, mailbox
+  headings, search-tab labels, load errors and status notices. It changes text
+  nodes while preserving native illustrations, controls and handlers. Existing
+  bounded chrome observers handle native redraws; mode OFF restores owned text.
+- Native read/archive acknowledgements accept original and displayed wording.
+  Notice aliases preserve user label names and nested destination links. Received
+  mail, drafts and third-party notifications stay outside the native-copy gate.
+- Repository/settings checks passed **52/52**, with the final validator rerun
+  after the native-copy changes. The unchanged consent/reminder/billing checks
+  passed **68/68** earlier in this change set. Browser fixtures passed **253/253**:
+  reading pane 61, automatic read 72, label filing 97, archive/read 23. New cases
+  cover initial/late placeholders, redraws, replacement, ownership restoration,
+  idle writes, singular/plural notices, capitalization and destination names.
+- Live Gmail with local 1.0.11 showed **No thread selected** and **Threads**.
+  The inspected interface contained no remaining conversation wording outside
+  message content, and no extension warnings/errors were reported. This was
+  read-only live verification; real mail actions were exercised only synthetically.
+- ZIP: `dist/Gmail-Pro-1.0.11.zip`, **49 production files**, SHA-256
+  `57544bf5505d005c1a7af933aa5542bac19bd42bedf20c67f01b7c4bd6ad5687`.
+  Sources match the canonical checkout. Compared with 1.0.10, only selectors,
+  reading-pane behavior and manifest version changed. Capabilities, free access
+  and consent versions are unchanged.
+- The pending 1.0.10 review was canceled and verified **Draft 1.0.11** uploaded.
+  Existing Store copy/assets/privacy settings remain saved. **Published 1.0.8**
+  was still shown before submission. Automatic publication remained checked;
+  Google confirmed **Your extension was submitted for review**. Approval and
+  Store-installed runtime verification remain pending.
+
+Evidence is under ignored `artifacts/store/1.0.11/`. Changes remain uncommitted;
+no GitHub push was requested.
+
+## November 16, 2026 — 1.0.10 submitted; startup recovery and thread wording
+
+The owner authorized replacing the pending Store update with the crash fix and
+consistent singular/plural thread wording.
+
+- Startup, settings updates and cleanup now tolerate a missing archive-as-read
+  controller. A cached unpacked-extension manifest can omit the new module;
+  the other features continue running instead of stopping at that controller.
+  The missing-module regression reproduced the startup failure before the fix.
+- Mailbox counts, popup hints, accessibility labels, filing/error notices, the
+  package summary and Store description now use **thread/threads**. Gmail-native
+  acknowledgement strings remain exact so read/archive confirmation still works.
+- `npm test` passed **52/52** repository/settings checks and **68/68**
+  consent/reminder/billing checks. Chrome synthetic fixtures passed **64/64**:
+  startup 4, archive/read 23, popup 26, and focused caption/count cases 11.
+  The startup fixture now accounts for disabled reminders. Final diff checks passed.
+  The canonical unpacked extension was reloaded as 1.0.10; live Gmail showed
+  `Inbox • 6 threads`, Apple Mail Mode active and no new extension warnings/errors.
+  Real mail was not archived or sent during verification; Store-installed runtime
+  behavior remains unverified.
+- ZIP: `dist/Gmail-Pro-1.0.10.zip`, **49 production files**. SHA-256:
+  `6d24385b9e6a491bef81de2a328722efc845038173ed505a82ee6cf8fa79b168`.
+  Packaged sources match the canonical checkout. Only the manifest, bootstrap,
+  popup and four copy-bearing content controllers differ from the 1.0.9 ZIP.
+  Permissions, free access, legal versions and disabled reminders are unchanged.
+- The pending 1.0.9 review was canceled, then the verified **Draft 1.0.10**
+  package and 4,740-character thread-worded listing were saved. Existing images,
+  video, reviewer notes and privacy settings were preserved. The dashboard still
+  showed **Published 1.0.8** before submission. Automatic publication was checked,
+  and Google confirmed **Your extension was submitted for review**. Approval and
+  public rollout remain pending; this receipt does not establish public availability.
+
+Local submission evidence is under ignored `artifacts/store/1.0.10/`.
+Changes remain uncommitted; no GitHub push was requested for this release.
+
 ## November 16, 2026 — 1.0.9 submitted; reminders coming soon
 
 The owner authorized the Store update, website/legal updates, and GitHub push.

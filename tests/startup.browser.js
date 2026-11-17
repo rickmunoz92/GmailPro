@@ -4,7 +4,7 @@
   const result=document.getElementById('results'),workspace=document.getElementById('workspace'),reports=[];
   const assert=(value,message)=>{if(!value)throw Error(message);};
   const settle=()=>new Promise(resolve=>setTimeout(resolve,50));
-  for(const mode of ['idle-only','early-and-idle','unaccepted']) {
+  for(const mode of ['idle-only','early-and-idle','unaccepted','stale-manifest']) {
     const frame=document.createElement('iframe');frame.title='Synthetic '+mode;workspace.append(frame);
     const target=frame.contentWindow,doc=target.document,errors=[],messages=new Set(),changes=new Set();
     let accepted=mode!=='unaccepted',reads=0,writes=0;
@@ -25,12 +25,16 @@
         for(const file of block.css||[]) {
           const link=doc.createElement('link');link.rel='stylesheet';link.href=location.origin+'/'+file;doc.head.append(link);
         }
-        for(const file of block.js)await load(file);
+        for(const file of block.js) {
+          if(mode==='stale-manifest'&&file==='content/archiveRead.js')continue;
+          await load(file);
+        }
       };
       let owners;
       if(mode==='early-and-idle'){await registration(GmailProStartupManifest[0]);owners={...target.GmailPro};}
       await registration(GmailProStartupManifest[1]);await settle();
       const app=target.GmailPro;
+      if(mode==='stale-manifest')assert(!app.archiveRead,'old manifest omits the archive controller');
       if(owners)for(const [name,owner] of Object.entries(owners))assert(app[name]===owner,name+' owner replaced');
       assert(typeof app.autoBcc?.start==='function'&&typeof app.startAutoBcc==='function','complete idle startup');
       if(!accepted) {
@@ -38,10 +42,11 @@
         accepted=true;for(const listener of messages)listener({type:'gmail-pro-consent-changed'});await settle();
       }
       assert(doc.documentElement.classList.contains('gmail-pro-apple-mail-mode'),'real appearance controller started');
-      // Consent, native label menus, and reminder status each own one runtime listener.
-      assert(reads===1&&writes===0&&changes.size===1&&messages.size===3,`single startup owners, no writes (${reads}/${writes}/${changes.size}/${messages.size})`);
+      // Consent and native label menus always listen; reminder status is optional.
+      const messageOwners=2+(app.labelRecency.available===true?1:0);
+      assert(reads===1&&writes===0&&changes.size===1&&messages.size===messageOwners,`single startup owners, no writes (${reads}/${writes}/${changes.size}/${messages.size})`);
       await registration(GmailProStartupManifest[1]);await settle();
-      assert(reads===1&&writes===0&&changes.size===1&&messages.size===3,'replay is idempotent');
+      assert(reads===1&&writes===0&&changes.size===1&&messages.size===messageOwners,'replay is idempotent');
       target.dispatchEvent(new target.PageTransitionEvent('pagehide'));
       assert(changes.size===0&&messages.size===0,'cleanup releases both subscriptions');
       assert(!errors.length,errors.join('; '));reports.push('PASS '+mode);

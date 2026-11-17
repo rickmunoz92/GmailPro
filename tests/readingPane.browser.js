@@ -67,6 +67,53 @@
     f.footer.addEventListener('click',()=>{ result.textContent='Native action invoked: '+clicks.at(-1)?.key; });
     start(); result.textContent='Synthetic visual preview — no Gmail connection.'; return;
   }
+  function emptyPane() {
+    const main=document.createElement('main');main.setAttribute('role','main');
+    main.innerHTML='<div class="Nu S3"><div class="apa"><div class="apb">No conversations selected<div class="apc"><button>Native illustration</button></div></div></div></div>';
+    workspace.append(main);return {main,host:main.querySelector('.apa'),label:main.querySelector('.apb')};
+  }
+  await test('empty reading pane uses singular thread text and restores native chrome',async()=>{
+    const f=emptyPane(), native=f.main.innerHTML, text=f.label.firstChild, illustration=f.label.firstElementChild;
+    const body=document.createElement('div');body.className='a3s';body.innerHTML=native;
+    const draft=document.createElement('form');draft.innerHTML=native;f.main.append(body,draft);
+    let clicks=0;illustration.querySelector('button').addEventListener('click',()=>clicks++);
+    app.readingPane.start({appleMailModeEnabled:false});await settle();assert(text.data==='No conversations selected','mode OFF leaves native wording');
+    start();await settle();
+    assert(text.data==='No thread selected'&&f.label.firstElementChild===illustration,'singular label preserves illustration identity');
+    illustration.querySelector('button').click();assert(clicks===1,'native handlers retained');
+    assert(body.innerHTML===native&&draft.innerHTML===native,'received content and drafts remain untouched');
+    text.data='No conversations selected';await settle();assert(text.data==='No thread selected','Gmail text redraw is normalized');
+    const replacement=f.label.cloneNode(true);replacement.firstChild.data='No conversations selected';f.label.replaceWith(replacement);await settle();
+    assert(replacement.firstChild.data==='No thread selected'&&text.data==='No conversations selected','replacement adopted and detached label released');
+    let changes=0;const observer=new MutationObserver(records=>changes+=records.length);observer.observe(replacement,{subtree:true,characterData:true,childList:true});
+    window.dispatchEvent(new Event('resize'));await settle();observer.disconnect();assert(changes===0,'settled label has no mutation loop');
+    app.readingPane.stop();assert(replacement.firstChild.data==='No conversations selected','OFF restores the current native label');
+  });
+  await test('empty reading pane handles delayed labels and preserves later Gmail changes',async()=>{
+    const f=emptyPane();f.label.remove();start();await settle();
+    f.label.firstChild.data='Loading…';f.host.append(f.label);await settle();
+    f.label.firstChild.data='No conversations selected';await settle();assert(f.label.firstChild.data==='No thread selected','late placeholder text is observed');
+    f.label.firstChild.data='Mailbox temporarily unavailable';await settle();
+    app.readingPane.stop();assert(f.label.firstChild.data==='Mailbox temporarily unavailable','native takeover is never overwritten');
+  });
+  await test('native interface headings and notices consistently use thread wording',async()=>{
+    const f=emptyPane(), chrome=document.createElement('div');
+    chrome.innerHTML='<div class="a0V"><h2 tabindex="-1">Conversations</h2></div><div class="biW"><div class="Th"><div class="T-I"><span class="Bn">Conversations</span></div></div></div><div class="Aitr4c">Couldn’t load your conversations</div><div class="b8" role="alert"><div class="J-J5-Ji"><div class="vh"><span class="aT"><span class="bAq">Conversation archived.</span><span class="bAo"><button>Undo</button></span></span></div></div></div>';
+    f.main.append(chrome);const notice=chrome.querySelector('.bAq'), undo=chrome.querySelector('button');
+    let undone=0;undo.addEventListener('click',()=>undone++);
+    const sdk=chrome.querySelector('.b8').cloneNode(true);sdk.querySelector('.vh').classList.add('inboxsdk__butterbar');f.main.append(sdk);
+    start();await settle();
+    assert(chrome.querySelector('h2').textContent==='Threads'&&chrome.querySelector('.Bn').textContent==='Threads','headings and search labels updated');
+    assert(chrome.querySelector('.Aitr4c').textContent==='Couldn’t load your threads'&&notice.textContent==='Thread archived.','errors and singular notices updated');
+    assert(sdk.querySelector('.bAq').textContent==='Conversation archived.','third-party notification is not treated as Gmail chrome');
+    undo.click();assert(undone===1,'native Undo handler retained');
+    notice.firstChild.data='2 conversations marked as unread.';await settle();assert(notice.textContent==='2 threads marked as unread.','plural native redraw is updated');
+    notice.firstChild.data='CONVERSATION';await settle();assert(notice.textContent==='THREAD','native capitalization retained');
+    notice.textContent='Conversation moved to Conversations.';await settle();assert(notice.textContent==='Thread moved to Conversations.','user label names are not renamed');
+    const destination=document.createElement('span');destination.textContent='Conversations';notice.replaceChildren(document.createTextNode('Conversation labeled '),destination);await settle();
+    assert(notice.textContent==='Thread labeled Conversations'&&notice.lastChild===destination,'nested destination labels retain their text and identity');
+    app.readingPane.stop();assert(chrome.querySelector('h2').textContent==='Conversations'&&notice.textContent==='Conversation labeled Conversations','OFF restores the latest native labels');
+  });
   await test('mode OFF leaves native controls and markup untouched', async () => {
     const f=fixture(), before=f.main.innerHTML; app.readingPane.start({appleMailModeEnabled:false}); await settle();
     assert(f.main.innerHTML===before && !button('reply'), 'OFF inert');

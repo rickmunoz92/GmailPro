@@ -265,9 +265,9 @@
       };
       const [first, last, count] = numbers.map(numeric);
       if (numbers.length === 3 && first > 0 && last >= first && count >= last) {
-        total = (/\babout\b/i.test(text) ? 'about ' : '') + count.toLocaleString() + (count === 1 ? ' message' : ' messages');
+        total = (/\babout\b/i.test(text) ? 'about ' : '') + count.toLocaleString() + (count === 1 ? ' thread' : ' threads');
       } else if (!range && visible(empty) && !ctx.list.querySelector('tr[role="row"]')) {
-        total = '0 messages';
+        total = '0 threads';
       }
     }
     // Read layout before caption/list mutations to avoid forcing another layout.

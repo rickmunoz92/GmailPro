@@ -26,7 +26,7 @@
     cancel(); clearNotice();
     notice = document.createElement('div'); notice.className = 'gmail-pro-filing-notice';
     notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite');
-    notice.textContent = 'Couldn’t confirm this conversation is read, so it wasn’t archived. Try again.';
+    notice.textContent = 'Couldn’t confirm this thread is read, so it wasn’t archived. Try again.';
     const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.textContent = 'Dismiss';
     dismiss.addEventListener('click', clearNotice); notice.append(dismiss); document.body.append(notice);
     noticeTimer = setTimeout(clearNotice, 6000);

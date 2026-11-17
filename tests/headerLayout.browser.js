@@ -1406,7 +1406,7 @@
   await test('mailbox caption uses the native total and occupies only 22px in the list', async () => {
     const f = captionFixture(), paneTop = rect(workspace.querySelector('.Nu.S3')).top;
     await start(true);
-    assert(caption().textContent === 'Inbox • 500 messages', 'total rather than 50 visible conversations');
+    assert(caption().textContent === 'Inbox • 500 threads', 'total rather than 50 visible threads');
     assert(!f.list.contains(caption()) && f.list.hasAttribute('data-gp-mailbox-caption') && rect(caption()).height === 22, 'slim caption outside native scroll surface');
     assert(Math.abs(rect(caption()).top - rect(f.toolbar).bottom) < 1, 'directly below toolbar border');
     assert(rect(workspace.querySelector('.Nu.S3')).top < paneTop && rect(workspace.querySelector('.Nu.S3')).top === rect(f.list).top, 'reading pane receives no caption gap');
@@ -1435,7 +1435,7 @@
       }
     }
   });
-  await test('long lists keep native scrolling with no gap before conversations', async () => {
+  await test('long lists keep native scrolling with no gap before threads', async () => {
     const f = spacedListFixture(); f.content.style.height = '1500px'; await start(true);
     assert(Math.abs(rect(f.content).top - rect(caption()).bottom) < 1, 'overflowing list immediately follows caption');
     const scrollHeight = f.list.scrollHeight, top = rect(caption()).top;
@@ -1486,22 +1486,22 @@
   await test('nested labels show a decoded final name, including literal markup characters', async () => {
     const f = captionFixture('#label/Projects%2FCustomers%2FFlowserve', 'Projects/Customers/Flowserve', '231');
     f.link.href = '#label/Projects/Customers/Flowserve'; await start();
-    assert(caption().textContent === 'Flowserve • 231 messages', 'last label component');
+    assert(caption().textContent === 'Flowserve • 231 threads', 'last label component');
     feature.stop(); captionFixture('#label/Projects%2F%3Cb%3E%20%26%20Co', '<b> & Co', '1,250'); await start();
-    assert(caption().textContent === '<b> & Co • 1,250 messages' && !caption().querySelector('b'), 'safe text and formatted total');
+    assert(caption().textContent === '<b> & Co • 1,250 threads' && !caption().querySelector('b'), 'safe text and formatted total');
   });
   await test('caption follows all native mailboxes and search results', async () => {
     for (const [route, name] of [['sent','Sent'],['starred','Starred'],['snoozed','Snoozed'],['drafts','Drafts'],['all','All Mail'],['important','Important'],['spam','Spam'],['trash','Trash'],['scheduled','Scheduled']]) {
-      feature.stop(); captionFixture('#' + route, name); await start(); assert(caption().textContent === name + ' • 500 messages', name);
+      feature.stop(); captionFixture('#' + route, name); await start(); assert(caption().textContent === name + ' • 500 threads', name);
     }
     feature.stop(); const f = captionFixture('#search/subject%3Asynthetic', ''); f.link.parentElement.remove(); await start();
-    assert(caption().textContent === 'Search results • 500 messages', 'search title');
+    assert(caption().textContent === 'Search results • 500 threads', 'search title');
   });
   await test('caption persists through floating draft URL changes for Reply, Reply All and Forward', async () => {
     for (const [hash, name] of [['#inbox','Inbox'],['#sent','Sent'],['#label/Projects%2FFlowserve/p2','Flowserve'],['#search/subject%3Asynthetic/p2','Search results']]) {
       for (const action of ['Reply', 'Reply All', 'Forward']) {
         const f = captionFixture(hash, name); f.link.href = hash.replace(/\/p[1-9]\d*$/, ''); await start(true);
-        const original = caption(), bounds = rect(original).toJSON(), expected = name + ' • 500 messages';
+        const original = caption(), bounds = rect(original).toJSON(), expected = name + ' • 500 threads';
         const draft = document.createElement('div'); draft.setAttribute('role', 'dialog');
         draft.innerHTML = `<form><input name="composeid" value="synthetic"><textarea aria-label="${action} draft"></textarea></form>`;
         workspace.append(draft); await settle();
@@ -1519,32 +1519,32 @@
     const label = '#label/Projects%2FQuestions%3Fcompose%3Dliteral';
     captionFixture(label, 'Questions?compose=literal', '231');
     history.replaceState(null, '', label + '?compose=synthetic'); await start();
-    assert(caption()?.textContent === 'Questions?compose=literal • 231 messages', 'only the actual URL parameter is removed');
+    assert(caption()?.textContent === 'Questions?compose=literal • 231 threads', 'only the actual URL parameter is removed');
     feature.stop();
     const search = '#search/subject%3Aquestions%3Fcompose%3Dliteral'; captionFixture(search, 'Search results');
     history.replaceState(null, '', search + '?compose=synthetic'); await start();
     history.replaceState(null, '', search + '?compose=saved'); window.dispatchEvent(new Event('hashchange')); await settle();
-    assert(caption()?.textContent === 'Search results • 500 messages', 'draft identity changes never invalidate an unchanged search count');
+    assert(caption()?.textContent === 'Search results • 500 threads', 'draft identity changes never invalidate an unchanged search count');
   });
   await test('native totals update and mailbox navigation stays conservative while a draft is open', async () => {
     const f = captionFixture(); history.replaceState(null, '', '#inbox?compose=synthetic'); await start();
-    assert(caption()?.textContent === 'Inbox • 500 messages', 'startup with an open draft retains the total');
+    assert(caption()?.textContent === 'Inbox • 500 threads', 'startup with an open draft retains the total');
     f.range.querySelectorAll('.ts')[2].firstChild.data = '501'; await settle();
-    assert(caption()?.textContent === 'Inbox • 501 messages', 'live native total remains the source of truth');
+    assert(caption()?.textContent === 'Inbox • 501 threads', 'live native total remains the source of truth');
     const label = '#label/Projects%2FFlowserve'; f.link.href = label; f.link.textContent = 'Flowserve';
     history.replaceState(null, '', label + '?compose=synthetic'); window.dispatchEvent(new Event('hashchange')); await settle();
     assert(caption()?.textContent === 'Flowserve', 'a different mailbox never inherits the previous total');
     f.range.querySelectorAll('.ts')[2].firstChild.data = '231'; await settle();
-    assert(caption()?.textContent === 'Flowserve • 231 messages', 'the new native count completes navigation');
+    assert(caption()?.textContent === 'Flowserve • 231 threads', 'the new native count completes navigation');
   });
   await test('native count edits update singular, approximate and unavailable totals', async () => {
     const f = captionFixture(); await start();
     f.range.innerHTML = '<span class="ts">1</span>–<span class="ts">1</span> of <span class="ts">1</span>'; await settle();
-    assert(caption().textContent === 'Inbox • 1 message', 'singular');
+    assert(caption().textContent === 'Inbox • 1 thread', 'singular');
     f.range.querySelectorAll('.ts')[2].firstChild.data = '2,013'; await settle();
-    assert(caption().textContent === 'Inbox • 2,013 messages', 'in-place native text mutation');
+    assert(caption().textContent === 'Inbox • 2,013 threads', 'in-place native text mutation');
     f.range.innerHTML = '<span class="ts">1</span>–<span class="ts">50</span> of about <span class="ts">2,013</span>'; await settle();
-    assert(caption().textContent === 'Inbox • about 2,013 messages', 'approximation preserved');
+    assert(caption().textContent === 'Inbox • about 2,013 threads', 'approximation preserved');
     f.range.innerHTML = '<span class="ts">1</span>–<span class="ts">50</span> of <span class="ts">many</span>'; await settle();
     assert(caption().textContent === 'Inbox', 'unknown total is never invented');
   });
@@ -1554,21 +1554,21 @@
     window.dispatchEvent(new Event('hashchange')); await settle();
     assert(caption().textContent === 'Flowserve', 'new name does not use Inbox total');
     f.range.querySelectorAll('.ts')[2].firstChild.data = '500'; await settle();
-    assert(caption().textContent === 'Flowserve • 500 messages', 'equal native count still completes transition');
+    assert(caption().textContent === 'Flowserve • 500 threads', 'equal native count still completes transition');
     history.replaceState(null, '', location.hash + '/p2'); window.dispatchEvent(new Event('hashchange')); await settle();
-    assert(caption().textContent === 'Flowserve • 500 messages', 'pagination retains mailbox identity');
+    assert(caption().textContent === 'Flowserve • 500 threads', 'pagination retains mailbox identity');
   });
   await test('explicit native empty state shows zero and missing structure stays conservative', async () => {
     const f = captionFixture('#snoozed', 'Snoozed'); f.range.remove();
     f.list.innerHTML = '<div class="ae4"><table role="grid"><tbody></tbody></table><table><tbody><tr><td class="TC" style="height:28px">No snoozed conversations</td></tr></tbody></table></div>';
-    await start(); assert(caption().textContent === 'Snoozed • 0 messages', 'confirmed empty');
+    await start(); assert(caption().textContent === 'Snoozed • 0 threads', 'confirmed empty');
     f.list.querySelector('.TC').remove(); window.dispatchEvent(new Event('hashchange')); await settle();
     assert(caption().textContent === 'Snoozed', 'missing native count is not zero');
   });
   await test('caption recovers from replaced and cloned list roots without duplicates', async () => {
     const f = captionFixture(); await start();
     f.list.replaceWith(f.list.cloneNode(true)); await settle();
-    assert(document.querySelectorAll('.gmail-pro-mailbox-caption').length === 1 && caption().textContent === 'Inbox • 500 messages', 'one caption in replacement list');
+    assert(document.querySelectorAll('.gmail-pro-mailbox-caption').length === 1 && caption().textContent === 'Inbox • 500 threads', 'one caption in replacement list');
     assert(!f.list.hasAttribute('data-gp-mailbox-caption') && workspace.querySelector('.Nu.tf').hasAttribute('data-gp-mailbox-caption'), 'reserved space follows replacement owner');
     caption().remove(); await settle(); assert(caption()?.isConnected, 'native removal recovered');
     await start(); assert(document.querySelectorAll('.gmail-pro-mailbox-caption').length === 1, 'repeated start');

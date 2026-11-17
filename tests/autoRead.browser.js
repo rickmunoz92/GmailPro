@@ -315,9 +315,9 @@
   });
   await test('archive, delete, unread and error notifications retain their Undo controls', async () => {
     const f=fixture(), n=notice(); f.click(); await wait(390);
-    for (const text of ['Conversation archived.','Conversation moved to Trash.','Conversation marked as unread.','Unable to mark conversation as read.','Conversation marked as read. Please retry.']) {
+    for (const [text,expected] of [['Conversation archived.','Thread archived.'],['Conversation moved to Trash.','Thread moved to Trash.'],['Conversation marked as unread.','Thread marked as unread.'],['Unable to mark conversation as read.','Unable to mark thread as read.'],['Conversation marked as read. Please retry.','Thread marked as read. Please retry.']]) {
       n.show(text); await settle();
-      assert(n.closed()===0 && n.root.textContent.includes(text),'unrelated notification retained');
+      assert(n.closed()===0 && n.root.textContent.includes(expected),'unrelated notification retained with thread wording');
       n.root.querySelector('[role="link"]').click();
     }
     assert(n.undone()===5,'all native Undo handlers remain usable');

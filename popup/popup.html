@@ -79,7 +79,7 @@
             <p class="feature-description" id="appearance-description">A cleaner macOS-inspired Gmail. Appearance changes save and apply immediately.</p>
             <div class="appearance-setting"><label for="appearance-theme">Theme</label><select id="appearance-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></div>
             <div class="appearance-setting"><label for="accent-color">Accent color</label><select id="accent-color"><option value="blue">Blue</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="red">Red</option><option value="orange">Orange</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="graphite">Graphite</option></select></div>
-            <p class="field-hint">Starts with a right-hand reading pane and about 25% of the mail area for the conversation list. Drag Gmail’s divider to resize. Both app rails start collapsed; edge arrows reopen them.</p>
+            <p class="field-hint">Starts with a right-hand reading pane and about 25% of the mail area for the thread list. Drag Gmail’s divider to resize. Both app rails start collapsed; edge arrows reopen them.</p>
           </section>
           <section class="feature-card" aria-labelledby="auto-paging-title">
             <div class="feature-heading">
@@ -115,20 +115,20 @@
           <section class="feature-card" aria-labelledby="keyboard-shortcuts-title">
             <div class="feature-copy"><span class="eyebrow">KEYBOARD</span><h2 id="keyboard-shortcuts-title">Keyboard shortcuts</h2></div>
             <div class="appearance-setting"><label for="archive-shortcut">⌘⇧A — Archive</label><label class="switch"><input id="archive-shortcut" type="checkbox" role="switch" aria-label="Command Shift A to archive"><span class="switch-track" aria-hidden="true"></span></label></div>
-            <p class="field-hint">Archives the selected conversations or the open conversation, just like Gmail’s Archive button.</p>
-            <div class="appearance-setting"><label for="delete-shortcut">Delete — Move to Trash</label><label class="switch"><input id="delete-shortcut" type="checkbox" role="switch" aria-label="Delete key to move conversations to Trash" aria-describedby="delete-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
-            <p class="field-hint" id="delete-shortcut-hint">Moves selected conversations or the open conversation to Trash. Both Mac delete keys work without modifiers; Gmail’s Undo stays available. While typing, Delete still edits text.</p>
+            <p class="field-hint">Archives the selected threads or the open thread, just like Gmail’s Archive button.</p>
+            <div class="appearance-setting"><label for="delete-shortcut">Delete — Move to Trash</label><label class="switch"><input id="delete-shortcut" type="checkbox" role="switch" aria-label="Delete key to move threads to Trash" aria-describedby="delete-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
+            <p class="field-hint" id="delete-shortcut-hint">Moves selected threads or the open thread to Trash. Both Mac delete keys work without modifiers; Gmail’s Undo stays available. While typing, Delete still edits text.</p>
             <div class="appearance-setting"><label for="read-shortcut">⌘⇧U — Toggle read/unread</label><label class="switch"><input id="read-shortcut" type="checkbox" role="switch" aria-label="Command Shift U to toggle read or unread" aria-describedby="read-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
-            <p class="field-hint" id="read-shortcut-hint">Marks read conversations unread and unread conversations read. In Apple Mail Mode, the open reading-pane message stays selected.</p>
+            <p class="field-hint" id="read-shortcut-hint">Marks read threads unread and unread threads read. In Apple Mail Mode, the open reading-pane message stays selected.</p>
             <div class="appearance-setting"><label for="expand-shortcut">⌘⇧O — Expand/collapse all</label><label class="switch"><input id="expand-shortcut" type="checkbox" role="switch" aria-label="Command Shift O to expand or collapse all messages" aria-describedby="expand-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
-            <p class="field-hint" id="expand-shortcut-hint">Toggles all messages in the open conversation using Gmail’s Expand all or Collapse all button. Opening a conversation keeps Gmail’s normal default.</p>
+            <p class="field-hint" id="expand-shortcut-hint">Toggles all messages in the open thread using Gmail’s Expand all or Collapse all button. Opening a thread keeps Gmail’s normal default.</p>
             <div class="appearance-setting"><label for="send-shortcut">⌘⇧D — Send</label><label class="switch"><input id="send-shortcut" type="checkbox" role="switch" aria-label="Command Shift D to send" aria-describedby="send-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
             <p class="field-hint" id="send-shortcut-hint">Sends only the draft you’re editing. Replaces Gmail’s discard shortcut; turning this off restores that shortcut.</p>
             <div class="appearance-setting"><label for="undo-shortcut">Z — Undo</label><label class="switch"><input id="undo-shortcut" type="checkbox" role="switch" aria-label="Z to undo" aria-describedby="undo-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
             <p class="field-hint" id="undo-shortcut-hint">Undoes Gmail’s latest available action. Without an Undo link, enable Gmail keyboard shortcuts. While editing, Z still types text and ⌘Z still undoes text.</p>
             <div class="appearance-setting"><label for="reply-all-shortcut">⇧⌘R — Reply All</label><label class="switch"><input id="reply-all-shortcut" type="checkbox" role="switch" aria-label="Command Shift R to reply all" aria-describedby="reply-shortcut-hint"><span class="switch-track" aria-hidden="true"></span></label></div>
             <div class="appearance-setting"><label for="forward-shortcut">⇧⌘F — Forward</label><label class="switch"><input id="forward-shortcut" type="checkbox" role="switch" aria-label="Command Shift F to forward"><span class="switch-track" aria-hidden="true"></span></label></div>
-            <p class="field-hint" id="reply-shortcut-hint">Uses the open conversation and your floating composer preferences. ⌘R still refreshes Gmail. Reply All replaces Chrome’s ⇧⌘R hard reload shortcut; turn it off to restore that shortcut.</p>
+            <p class="field-hint" id="reply-shortcut-hint">Uses the open thread and your floating composer preferences. ⌘R still refreshes Gmail. Reply All replaces Chrome’s ⇧⌘R hard reload shortcut; turn it off to restore that shortcut.</p>
             <p class="field-hint">New message: Gmail’s C shortcut works when Gmail keyboard shortcuts are on. Chrome reserves ⌘N for New Window.</p>
             <p class="field-hint">Save preferences to apply. Active only in Gmail on Mac. Gmail’s E, Z and ⌘Enter shortcuts remain available.</p>
           </section>
@@ -158,7 +158,7 @@
                 <span class="switch-track" aria-hidden="true"></span>
               </label>
             </div>
-            <p class="feature-description" id="thread-description">Show the latest message at the top of a conversation. Turn off to restore Gmail’s normal order.</p>
+            <p class="feature-description" id="thread-description">Show the latest message at the top of a thread. Turn off to restore Gmail’s normal order.</p>
           </section>
           <section class="feature-card" aria-labelledby="message-zoom-title">
             <div class="feature-heading">
@@ -169,7 +169,7 @@
               </label>
             </div>
             <p class="feature-description" id="message-zoom-description">Enlarge message content with ⌘+ or reduce it with ⌘−. Reset with ⌘0. Gmail’s surrounding interface stays the same size.</p>
-            <p class="field-hint">Resets to 100% when you open another conversation.</p>
+            <p class="field-hint">Resets to 100% when you open another thread.</p>
           </section>
           <section class="feature-card" aria-labelledby="message-list-title">
             <div class="feature-heading">

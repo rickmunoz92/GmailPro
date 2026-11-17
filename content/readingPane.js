@@ -22,6 +22,7 @@
   const readTimeout = 10000;
   const readExcluded = 'a, button, input, textarea, select, [contenteditable], [role="button"], [role="checkbox"], [role="menu"], [role="dialog"], .at';
   const markedFooters = new Set();
+  const nativeThreadLabels = new Map();
   const recipientSummaries = new Map();
   const recipientStates = new Map();
   let recipientTables = new WeakMap(), retiredRecipients = new WeakMap();
@@ -32,6 +33,46 @@
   const visible = node => !!node?.isConnected && node.checkVisibility({ visibilityProperty: true }) && !node.closest('[hidden], [aria-hidden="true"], [inert]');
   const usable = node => node && !node.matches('[disabled], [aria-disabled="true"]');
   const ownsChrome = node => !node.closest(S.readingExcluded);
+
+  function threadWording(value) {
+    return value.replace(/\bconversation(s?)\b/gi, (word, plural) => {
+      const replacement = plural ? 'threads' : 'thread';
+      return word === word.toUpperCase() ? replacement.toUpperCase() :
+        /^[A-Z]/.test(word) ? replacement[0].toUpperCase() + replacement.slice(1) : replacement;
+    }).replace(/\bNo threads selected\b/g, 'No thread selected');
+  }
+
+  function noticeThreadWording(value) {
+    // Notice destinations can contain user label names. Only rename the action's
+    // leading noun, preserving destinations and any nested native links.
+    return value.replace(/^\s*(?:(?:\d+\s+)?conversations?\b|(?:Unable|Couldn’t|Couldn't|Failed) to (?:mark|archive|delete) (?:the )?conversations?\b)/i, threadWording);
+  }
+
+  function updateThreadLabels() {
+    const labels = new Set([...document.querySelectorAll(S.nativeThreadLabels)].filter(ownsChrome));
+    for (const [text, state] of nativeThreadLabels) {
+      if (labels.has(text.parentElement?.closest(S.nativeThreadLabels)) && text.data === state.after) continue;
+      if (text.data === state.after) text.data = state.before;
+      nativeThreadLabels.delete(text);
+    }
+    // Only known Gmail chrome, preserving nested illustrations and handlers.
+    for (const label of labels) {
+      const notice = label.closest(S.nativeNotice);
+      for (const node of notice ? [label] : [label, ...label.querySelectorAll('*')]) for (const text of node.childNodes) {
+        if (text.nodeType !== 3 || !ownsChrome(node)) continue;
+        const before = text.data, after = notice ? noticeThreadWording(before) : threadWording(before);
+        if (before === after) continue;
+        nativeThreadLabels.set(text, { before, after });
+        text.data = after;
+      }
+    }
+    return labels;
+  }
+
+  function restoreThreadLabels() {
+    for (const [text, state] of nativeThreadLabels) if (text.data === state.after) text.data = state.before;
+    nativeThreadLabels.clear();
+  }
 
   function nativeGesture(target, guard = () => true) {
     const bounds = target.getBoundingClientRect();
@@ -59,7 +100,7 @@
     nativeNoticeObserver = new MutationObserver(() => {
       for (const root of roots) {
         for (const message of root.querySelectorAll(S.nativeNoticeMessage)) {
-          if (message.textContent.trim() !== "Conversation marked as read.") continue;
+          if (threadWording(message.textContent.trim()) !== "Thread marked as read.") continue;
           const close = message.closest('.vh').querySelector(':scope > .bBe[role="button"][aria-label="Close"]');
           if (!visible(close) || !usable(close)) continue;
           // Disconnect before Gmail dismisses/reuses the node. Archive,
@@ -156,7 +197,7 @@
     nativeNoticeObserver = new MutationObserver(records => {
       if (pendingFiling !== pending || !pending.archiveSubmitted || !filingHealthy(pending)) return;
       for (const root of roots) for (const message of root.querySelectorAll(S.nativeNoticeMessage)) {
-        if (!visible(message) || message.textContent.trim() !== "Conversation archived.") continue;
+        if (!visible(message) || threadWording(message.textContent.trim()) !== "Thread archived.") continue;
         // An already-visible acknowledgement from a previous action is not
         // confirmation. Only new content inside this native message qualifies.
         const fresh = records.some(record =>
@@ -232,7 +273,7 @@
   function filingFailure(pending) {
     if (pending.archiveSubmitted && !filingRow(pending)) return "Gmail hasn’t confirmed this move. Check the folder before trying again.";
     return pending.readConfirmed ? "Marked read, but couldn’t file. Try again." :
-      "Couldn’t mark this conversation read, so it wasn’t filed. Try again.";
+      "Couldn’t mark this thread read, so it wasn’t filed. Try again.";
   }
 
   function nativeToolbarAction(main, selector) {
@@ -318,7 +359,7 @@
 
   function startFiling(target) {
     if (pendingFiling || document.hidden) return;
-    if (checkedBoxes(target.main).length) return filingFeedback("Clear your selection to file one conversation.");
+    if (checkedBoxes(target.main).length) return filingFeedback("Clear your selection to file one thread.");
     const pending = readCandidate(target.row);
     if (!pending || !["zE", "yO"].some(name => target.row.classList.contains(name))) return;
     if (!filingNoticeContext) clearFilingNotice();
@@ -948,7 +989,10 @@
     queueMicrotask(() => { queued = false; if (enabled) refresh(); });
   }
 
-  function watch(current) {
+  function watch(current, threadLabels) {
+    for (const label of [...threadLabels, ...document.querySelectorAll(S.nativeNotice)]) if (ownsChrome(label)) {
+      observer.observe(label, { childList: true, subtree: true, characterData: true });
+    }
     if (current) observedContext = { shell: current.shell, toolbar: current.toolbar, toolbarHost: current.toolbarHost };
     // Keep the small shell/toolbar spine alive while Gmail temporarily hides
     // the thread or removes its toolbar, so restoration needs no polling.
@@ -1003,9 +1047,10 @@
   function refresh() {
     if (!enabled) return;
     observer.disconnect();
-    let current;
+    let current, threadLabels = [];
     try {
       restore();
+      threadLabels = updateThreadLabels();
       refreshRead();
       refreshFiling();
       if (!enabled) return;
@@ -1055,7 +1100,7 @@
       // Watch toolbar readiness only after our own control writes. Otherwise a
       // hidden optional action can perpetually enqueue microtask refreshes.
       if (enabled) {
-        watch(current);
+        watch(current, threadLabels);
         if (pendingFiling) watchFiling(pendingFiling);
         positionFilingNotice();
       }
@@ -1085,6 +1130,7 @@
     for (const type of ["hashchange", "popstate", "blur"]) window.removeEventListener(type, cancelRead);
     unsubscribe?.(); unsubscribe = undefined;
     observer?.disconnect(); observer = undefined;
+    restoreThreadLabels();
     updateRecipientLabels(null);
     recipientTables = new WeakMap(); retiredRecipients = new WeakMap();
     updateEmailContacts(null);

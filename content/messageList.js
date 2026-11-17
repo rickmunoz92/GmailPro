@@ -72,7 +72,7 @@
       let state = filingBadges.get(badge);
       if (!state) { state = { row, attributes: new Map() }; filingBadges.set(badge, state); }
       const attributes = { "data-gp-file-label": "", role: "button", tabindex: "0",
-        "aria-label": `Mark conversation as read and file under ${badge.getAttribute("title")}` };
+        "aria-label": `Mark thread as read and file under ${badge.getAttribute("title")}` };
       for (const [name, after] of Object.entries(attributes)) {
         const previous = state.attributes.get(name);
         // Do not overwrite a native/third-party change to an attribute we owned.

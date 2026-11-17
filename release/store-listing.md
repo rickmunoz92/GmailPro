@@ -6,7 +6,7 @@ Gmail Pro
 
 ## Short description
 
-A cleaner Gmail with themes, Auto BCC, newest-first conversations, label organization, message-only zoom, and keyboard shortcuts.
+A cleaner Gmail with themes, Auto BCC, newest-first threads, label organization, message-only zoom, and keyboard shortcuts.
 
 ## Detailed description
 
@@ -14,22 +14,22 @@ A cleaner, better way to use Gmail.
 
 Less clutter. More room to read. The latest reply right where you need it.
 
-Gmail Pro turns your existing Gmail inbox into a clean, desktop-style workspace. A compact conversation list sits beside a large reading pane, while search and message actions stay within reach. Collapse the header and side panels, choose your theme, and make the inbox feel like yours.
+Gmail Pro turns your existing Gmail inbox into a clean, desktop-style workspace. A compact thread list sits beside a large reading pane, while search and message actions stay within reach. Collapse the header and side panels, choose your theme, and make the inbox feel like yours.
 
 Preview the actual interface and explore the features:
 https://gmail-pro.netlify.app/
 
 A BETTER VIEW OF YOUR INBOX
-Read sender and subject on separate lines, spot unread mail with clear dots, and keep the conversation list beside your open message. New setups start with roughly 25% of the mail area for conversations and 75% for reading. Drag Gmail’s divider to find your preferred balance; saved layout choices stay yours.
+Read sender and subject on separate lines, spot unread mail with clear dots, and keep the thread list beside your open message. New setups start with roughly 25% of the mail area for threads and 75% for reading. Drag Gmail’s divider to find your preferred balance; saved layout choices stay yours.
 
 THE LATEST REPLY, FIRST
-Open a conversation and start with its newest message, without scrolling through the whole thread. Gmail Pro changes the presentation; Gmail keeps your original conversation history.
+Open a thread and start with its newest message, without scrolling through the whole thread. Gmail Pro changes the presentation; Gmail keeps your original thread history.
 
 ZOOM THE MESSAGE, KEEP YOUR WORKSPACE
-Make an email easier to read with message-only zoom from 80% to 200%. Your toolbar and sidebar keep their size, and each new conversation starts at 100%. Zoom shortcuts require macOS.
+Make an email easier to read with message-only zoom from 80% to 200%. Your toolbar and sidebar keep their size, and each new thread starts at 100%. Zoom shortcuts require macOS.
 
 ORGANIZE GMAIL YOUR WAY
-Reorder mailbox and top-level label shortcuts. Move sublabels to another parent or hide a sidebar branch in Gmail Pro. In Apple Mail Mode, click an existing custom-label badge in Inbox to mark the conversation read and archive it, keeping its labels. Gmail’s Archive Undo stays available.
+Reorder mailbox and top-level label shortcuts. Move sublabels to another parent or hide a sidebar branch in Gmail Pro. In Apple Mail Mode, click an existing custom-label badge in Inbox to mark the thread read and archive it, keeping its labels. Gmail’s Archive Undo stays available.
 
 COMING SOON: LABEL CLEANUP REMINDERS
 Label cleanup reminders are disabled in this release. No Google connection controls or Gmail API checks for reminders are available. Other Gmail Pro features work without connecting Google.
@@ -72,13 +72,13 @@ website's feature titles/icons and the actual extension screenshots containing
 fictional mail. No personal inbox capture or generated marketing asset ships in
 the extension ZIP.
 
-1. **A cleaner way to use Gmail:** newest-first conversations, message-only zoom,
+1. **A cleaner way to use Gmail:** newest-first threads, message-only zoom,
    desktop layout, system/light/dark themes.
 2. **Your inbox. Your organization:** custom label order, one-click filing,
    automatic page changes.
 3. **Keep your momentum:** floating replies, macOS keyboard shortcuts, toolbar
    message actions, visible native Undo Send notice.
-4. **See what matters. Skip the clutter:** two-line conversations, readable search,
+4. **See what matters. Skip the clutter:** two-line threads, readable search,
    dates and times.
 5. **The details make the difference:** optional Auto BCC, clear recipients,
    click-to-copy addresses, immediate read state.
@@ -121,7 +121,7 @@ Remove obsolete reviewer credentials from the private dashboard field.
 3. Most features start enabled; appearance starts at System with Blue accents.
    Switch Dark/Light and observe the inbox. Auto BCC remains off.
 4. On a fresh account, verify the native right reading pane starts at about 25/75 and both app rails are collapsed. Use the visible right-edge arrow to toggle the Workspace panel. Existing saved layout choices remain respected.
-5. Open a multi-message conversation and verify newest-first presentation and
+5. Open a multi-message thread and verify newest-first presentation and
    message-only zoom. These start enabled and can be disabled independently.
 6. Auto BCC defaults off. Test only in a fictional draft addressed to a review
    account and inspect the BCC field before sending any test mail.
