@@ -1,5 +1,65 @@
 # Label organization QA — 0.9.37
 
+## Message drag pickup — November 16, 2026
+
+Native Gmail debugging identified its hidden-element size helper measuring
+Gmail Pro's hidden `.aim` label rows during message pickup. For each row whose
+computed display was `none`, Gmail temporarily wrote visibility, position and
+display, measured its offsets, then restored those styles. The work inbox had
+46 user-hidden rows plus collapsed system mailboxes on this path.
+
+Hidden rows now retain an invisible, noninteractive 0 × 0 block. Their native
+`.TO`/`.TN` contents remain `display:none` so links also retain zero geometry.
+This keeps Gmail's measured row out of its reveal/measure/restore branch without
+changing native row identity, ordering, drag thresholds, movement or dropping.
+The same collapse rule covers Mailboxes More content; revealing rows, changing
+mode and stopping the feature restore the existing native presentation.
+
+Reading-pane observation also ignores cursor-only mutations using the existing
+shared filter, and ordinary input no longer refreshes exhausted recipient
+fallbacks. Synthetic regressions verify that real style changes still refresh.
+There is no production instrumentation or mailbox-content recording.
+
+### Automated validation
+
+- `node scripts/validate.cjs`: resource/syntax/permission checks and **51/51**
+  repository tests passed; `git diff --check` passed.
+- Label ordering with dark Apple Mail appearance: **57/57** passed. Three
+  synthetic pickups across 300 hidden labels caused **zero reveal/restore
+  writes**; rows and their links had zero geometry and could not take focus.
+  Existing transient-feedback instrumentation reported **zero full scans,
+  account reads and style writes**. Replacement, native visibility, account
+  changes and cleanup regressions also passed.
+- Header/sidebar: **128/128** passed, including More/Less, native hidden-link
+  geometry and system-mailbox measurement without reveal writes.
+- Apple Mail appearance: **81/81**; label reminders: **13/13**;
+  badge filing: **97/97**; reading pane: **58/58** passed.
+
+### Live work inbox and limits
+
+Reloaded the existing unpacked extension from `/Users/rmunoz/Documents/GmailPro`
+and refreshed the user's standalone work Gmail app. The final rule produced
+zero-size hidden rows and links, with no `.aim` row using `display:none`.
+More/Less revealed and restored the native system rows. Meta-click selection
+toggled on and off, and three message drags ended in blank reading-pane space
+without filing messages; the cursor and selection returned to their idle state.
+The user's original appearance and settings remain enabled.
+
+The final short native Performance recording of three drags showed 1,859 ms of
+aggregate rendering work, a longest `mousemove` event of **47.606 ms**, and a
+longest `mouseout` event of **129.130 ms**. A comparable earlier full-appearance
+three-drag recording showed 6,712 ms of aggregate style recalculation. These
+aggregate totals include other rendering work and are not exact pickup times.
+The recording does not establish time from Gmail's movement threshold to the
+first drag image, or attribute all remaining tasks to the extension.
+
+The user reported pickup feels more prompt, with some lag while moving toward a
+label. The 100 ms pickup criterion remains unverified, and the 50 ms task target
+is not fully met. Native label highlighting and badge filing have fixture
+coverage; no real message was deliberately dropped/filed during this diagnosis.
+A multi-hour idle soak and screen-reader verification were not performed.
+Changes remain local; no commit, push or store update was performed.
+
 ## Gmail menu compatibility — November 10, 2026
 
 The work inbox now marks native label-menu triggers with `aria-haspopup="menu"`.

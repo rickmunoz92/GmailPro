@@ -223,10 +223,10 @@
     sleepButton('Clients').click(); await settle(); document.querySelector('.gmail-pro-label-recency-actions button:last-child').click();
     await eventually(() => prefs.sidebarHiddenSublabels.some(entry => entry.path === 'label/Clients'));
     const branch = [...fixture.list.children].slice(0, 3);
-    assert(branch.every(node => getComputedStyle(node).display === 'none'), 'parent, child and grandchild hidden');
+    assert(branch.every(node => !node.checkVisibility({visibilityProperty:true}) && node.getBoundingClientRect().height === 0), 'parent, child and grandchild hidden');
     assert(app.labelOrder.edit(), 'organizer opens'); host.querySelector('.gmail-pro-label-toolbar input').click(); await settle();
     branch[0].querySelector('.gmail-pro-label-eye').click(); await settle();
-    assert(branch.every(node => getComputedStyle(node).display !== 'none') && !prefs.sidebarHiddenSublabels.length, 'whole branch restored');
+    assert(branch.every(node => node.checkVisibility({visibilityProperty:true}) && node.getBoundingClientRect().height > 0) && !prefs.sidebarHiddenSublabels.length, 'whole branch restored');
   });
   await test('account changes and all-off remove controls without further scans', async () => {
     const fixture = setup(); await eventually(() => sleepButton('Unused'));

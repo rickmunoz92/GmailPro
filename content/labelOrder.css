@@ -38,7 +38,32 @@
   transform: rotate(-45deg);
   pointer-events: none;
 }
-[data-gmail-pro-label-hidden="hidden"] { display: none !important; }
+[data-gmail-pro-label-hidden="hidden"],
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) [data-gp-system-section] .byl > .TK > .aim:not([data-gp-inbox]),
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) > .yJ > .ajl > .wT > :not(.n3, .n6),
+html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) > .yJ > .ajl > .wT > :not(.n3, .n6) .aim {
+  /* Gmail measures every label when picking up a message. display:none makes
+     its measurement helper repeatedly reveal and restore each hidden row.
+     Keep an empty, noninteractive box so that measurement needs no DOM writes. */
+  display: block !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-width: 0 !important;
+  overflow: clip !important;
+  content-visibility: hidden !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  /* Preserve native zero-size link geometry too, without hiding the row that
+     Gmail's drag controller measures. */
+  & > :is(.TO, .TN),
+  & .aim > :is(.TO, .TN) { display: none !important; }
+}
 [data-gmail-pro-label-hidden="revealed"] { opacity: .65; }
 .gmail-pro-label-toolbar {
   color: inherit;

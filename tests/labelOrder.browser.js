@@ -27,6 +27,7 @@
   }
   const assert = (value, message) => { if (!value) throw new Error(message); };
   const equal = (a, b) => assert(JSON.stringify(a) === JSON.stringify(b), `${JSON.stringify(a)} != ${JSON.stringify(b)}`);
+  const collapsed = node => !node.checkVisibility({visibilityProperty:true}) && node.getBoundingClientRect().height === 0;
   const ids = list => [...list.querySelectorAll('a[href*="#label/"]')]
     .sort((a, b) => (Number(a.closest('.aim').style.order) || 0) - (Number(b.closest('.aim').style.order) || 0))
     .map(a => decodeURIComponent(a.hash.slice(7).replace(/\+/g, " ")));
@@ -188,7 +189,7 @@
       const before = structuredClone(prefs), beforeWrites = writes;
       feature.start(prefs); await settle();
       equal(ids(list), ['Gamma', 'Alpha', 'Alpha/Child', 'Alpha/Child/Grandchild', 'Beta']);
-      for (const node of [...list.children].slice(1, 3)) equal(getComputedStyle(node).display, 'none');
+      for (const node of [...list.children].slice(1, 3)) assert(collapsed(node), 'hidden branch has no visible or hittable box');
       equal(prefs, before); equal(writes, beforeWrites);
       assert(feature.edit(), kind + ' organizer opens');
       host.querySelector('.gmail-pro-label-toolbar input').click(); await settle();
@@ -302,6 +303,37 @@
     equal(ids(list), names.slice().reverse()); await settle(); feature.stop(); equal(ids(list), names);
     assert(list.childNodes.length === 300 && !list.hasAttribute("style") && [...list.children].every(n => !n.hasAttribute("style")), "native styles restored");
   });
+  await test("300 hidden labels need no native reveal/measure/restore writes during pickup", async () => {
+    const names = Array.from({length:300},(_,i)=>`Hidden ${i}`), list = fixture(names);
+    prefs.sidebarHiddenSublabels = names.map(name=>({account:'one@example.test',path:'label/'+name}));
+    on(names.map(name=>'label/'+name));await settle();
+    const nodes=[...list.children], nativeOrder=nodes.slice();
+    const before=nodes.map(node=>node.getAttribute('style'));
+    let revealWrites=0;
+    // Gmail's native size helper temporarily reveals display:none elements.
+    // Keep this instrumentation synthetic; it never runs in the extension.
+    const measure=node=>{
+      if(getComputedStyle(node).display!=='none')return [node.offsetWidth,node.offsetHeight];
+      const {display,position,visibility}=node.style;
+      node.style.visibility='hidden';node.style.position='absolute';node.style.display='inline';revealWrites+=3;
+      const size=[node.offsetWidth,node.offsetHeight];
+      node.style.display=display;node.style.position=position;node.style.visibility=visibility;revealWrites+=3;
+      return size;
+    };
+    const started=performance.now();
+    for(let pass=0;pass<3;pass++)for(const node of nodes){
+      assert(collapsed(node), 'hidden label stays invisible with zero hit height');
+      equal(measure(node),[0,0]);
+      equal(node.querySelector('a').getBoundingClientRect().height,0);
+    }
+    results.dataset.hiddenLabelMeasurements=JSON.stringify({labels:nodes.length,pickups:3,revealWrites,elapsedMs:performance.now()-started});
+    equal(revealWrites,0);equal(nodes.map(node=>node.getAttribute('style')),before);
+    const link=nodes[0].querySelector('a');link.tabIndex=0;host.querySelector('header button').focus();link.focus();
+    assert(document.activeElement!==link,'hidden label cannot take keyboard focus');link.removeAttribute('tabindex');
+    assert(nodes.every((node,i)=>list.children[i]===nativeOrder[i]),'native identity and sequence retained');
+    feature.stop();
+    assert(nodes.every(node=>!collapsed(node)&&!node.hasAttribute('data-gmail-pro-label-hidden')),'cleanup restores visible native rows');
+  });
   await test("cursor filtering preserves other document styles, priorities and local changes", () => {
     fixture(); const original = document.body.getAttribute('style');
     const record = oldValue => ({type:'attributes',attributeName:'style',target:document.body,oldValue});
@@ -411,11 +443,11 @@
     eye(list, "Alpha/Child").click(); await settle();
     equal(prefs.sidebarHiddenSublabels, [{ account: "one@example.test", path: "label/Alpha/Child" }]);
     const child = handle(list, "Alpha/Child").closest(".aim"), grandchild = handle(list, "Alpha/Child/Grandchild").closest(".aim");
-    equal(getComputedStyle(child).display, "none"); equal(getComputedStyle(grandchild).display, "none");
+    assert(collapsed(child) && collapsed(grandchild), "hidden branch has no visible or hittable box");
     assert([...list.children].every((node,i) => node === sequence[i]), "native nodes unchanged");
     assert(child.querySelector(".unread").textContent === "6", "badge untouched");
     const reveal = host.querySelector('.gmail-pro-label-toolbar input'); reveal.click(); await settle();
-    assert(getComputedStyle(child).display !== "none" && eye(list, "Alpha/Child/Grandchild").disabled, "reveal marks inherited hiding");
+    assert(!collapsed(child) && eye(list, "Alpha/Child/Grandchild").disabled, "reveal marks inherited hiding");
     eye(list, "Alpha/Child").click(); await settle(); equal(prefs.sidebarHiddenSublabels, []);
     assert(!child.hasAttribute("data-gmail-pro-label-hidden") && !grandchild.hasAttribute("data-gmail-pro-label-hidden"), "branch restored");
   });
@@ -432,9 +464,9 @@
   await test("visibility persists independently of ordering and is isolated by verified account", async () => {
     const list = fixture(); on(); feature.edit(); eye(list, "Alpha/Child").click(); await settle();
     feature.update({ customLabelOrderEnabled: false }); await settle();
-    const child = handle(list, "Alpha/Child").closest(".aim"); equal(getComputedStyle(child).display, "none");
+    const child = handle(list, "Alpha/Child").closest(".aim"); assert(collapsed(child), "row stays collapsed");
     feature.stop(); assert(!child.hasAttribute("data-gmail-pro-label-hidden"), "stop restores native display");
-    feature.start(prefs); await settle(); equal(getComputedStyle(child).display, "none");
+    feature.start(prefs); await settle(); assert(collapsed(child), "row stays collapsed");
     host.querySelector('header button').setAttribute("aria-label", "Google Account: Second (two@example.test)"); await settle();
     assert(!child.hasAttribute("data-gmail-pro-label-hidden"), "other account unaffected");
     host.querySelector('header button').setAttribute("aria-label", "Unknown account"); await settle(); feature.edit();
@@ -602,7 +634,7 @@
     equal(writes, before + 1); equal(prefs.sidebarHiddenSublabels, [{account:'one@example.test',path:'label/Alpha/Child'}]);
     assert(!prefs.customLabelOrderEnabled && !host.querySelector('.gmail-pro-label-toolbar'), 'normal mode and ordering off retained');
     assert(sequence.every((node,i)=>list.children[i]===node), 'native sequence retained');
-    for (const node of sequence.slice(1,3)) equal(getComputedStyle(node).display, 'none');
+    for (const node of sequence.slice(1,3)) assert(collapsed(node), 'hidden branch stays collapsed');
     equal([...badgeHidden], []); equal([...model.values()], Array(5).fill(['synthetic-message']));
     equal(menu.style.display, 'none'); assert(host.querySelector('.gmail-pro-label-notice [role="status"]').textContent.includes('Show hidden labels'), 'restoration explained');
   });
@@ -625,7 +657,7 @@
     opened = await labelMenuFor(list, 'Alpha'); assert(opened.action, 'verified root supports sidebar hiding');
     opened.action.click(); await settle();
     assert(prefs.sidebarHiddenSublabels.some(entry=>entry.path==='label/Alpha'), 'root visibility saved');
-    assert([...list.children].slice(0,3).every(node=>getComputedStyle(node).display==='none'), 'whole root branch hidden');
+    assert([...list.children].slice(0,3).every(collapsed), 'whole root branch hidden');
     list = fixture(); feature.start(prefs); unknownMenu = true;
     opened = await labelMenuFor(list, 'Alpha/Child'); assert(!opened.action, 'unknown menu skipped');
     feature.stop(); await settle(); assert(!document.querySelector('.gmail-pro-label-menu-action'), 'pending discovery retired');

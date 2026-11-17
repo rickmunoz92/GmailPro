@@ -495,6 +495,26 @@
     more.click(); await settle(); assert(rect(starred).height === 0 && rect(f.labels.querySelector('.extra a')).height === 0, 'Less collapses all extras');
     feature.stop(); assert(f.toggles.every(node => node.getAttribute('aria-label') === 'More labels'), 'extension-owned disclosure restored');
   });
+  await test('collapsed system mailboxes measure without native reveal writes and restore through More', async () => {
+    const f=mailboxFixture(true);await start();
+    const hidden=[...f.system.querySelectorAll('.aim')].filter(node=>node!==f.inbox);
+    const before=hidden.map(node=>node.getAttribute('style'));
+    let revealWrites=0;
+    for(let pass=0;pass<3;pass++)for(const node of hidden){
+      if(getComputedStyle(node).display==='none'){
+        const {display,position,visibility}=node.style;
+        node.style.visibility='hidden';node.style.position='absolute';node.style.display='inline';revealWrites+=3;
+        void node.offsetWidth;
+        node.style.display=display;node.style.position=position;node.style.visibility=visibility;revealWrites+=3;
+      } else void node.offsetWidth;
+      assert(rect(node).width===0&&rect(node).height===0&&!node.checkVisibility({visibilityProperty:true}),'no hidden hit area or accessible content');
+    }
+    assert(revealWrites===0 && hidden.every((node,i)=>node.getAttribute('style')===before[i]),'native measurement needs no reveal/restore writes');
+    const more=f.root.querySelector('.gmail-pro-mailboxes-more');more.click();await settle();
+    assert(hidden.every(node=>rect(node).height>0&&node.checkVisibility({visibilityProperty:true})),'More restores native rows');
+    more.click();await settle();assert(hidden.every(node=>rect(node).height===0),'Less restores collapsed boxes');
+    feature.stop();assert(hidden.every(node=>rect(node).height>0),'OFF restores the initial native expanded state');
+  });
   await test('saved label ordering, nested branches and organizer coexist with Inbox', async () => {
     const f = mailboxFixture(), nodes = [...f.list.children];
     GmailPro.labelOrder.start({customLabelOrderEnabled:true, customLabelOrder:['label/Mgr','label/Internal','label/Projects'], sidebarHiddenSublabels:[]});

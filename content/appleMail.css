@@ -839,10 +839,6 @@ html.gmail-pro-apple-mail-mode [data-gp-label-section] > .ajl > .wT > .n3 > [gh=
 }
 html.gmail-pro-apple-mail-mode [data-gp-system-section] > .ajl > .wT > :not(.n3, .n6) { order: 5; }
 html.gmail-pro-apple-mail-mode [data-gp-label-section] > .ajl > .wT > :not(.n3, .n6) { order: 6; }
-html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) [data-gp-system-section] .byl > .TK > .aim:not([data-gp-inbox]),
-html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open]) > .yJ > .ajl > .wT > :not(.n3, .n6) {
-  display: none !important;
-}
 /* Gmail uses .qj for its native Inbox glyph; older layouts use .KCRnif. */
 html.gmail-pro-apple-mail-mode [data-gp-inbox] .TN > :is(.qj, .KCRnif) { display: none !important; }
 html.gmail-pro-apple-mail-mode [data-gp-inbox] .TN::before {

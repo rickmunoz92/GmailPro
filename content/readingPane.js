@@ -661,13 +661,17 @@
 
   function interruptRecipientProbe() {
     // Real input takes ownership immediately, including during a retry delay.
+    let interrupted = !!recipientProbe;
     for (const state of recipientStates.values()) if (recipientProbe?.state === state || state.retryTimer) {
+      interrupted = true;
       state.suppressed = true;
       clearTimeout(state.retryTimer); state.retryTimer = undefined;
     }
     if (recipientProbe) clearTimeout(recipientProbe.timer);
     recipientProbe = undefined;
-    wakeRecipientFields();
+    // Exhausted/unresolved headers need no reconciliation on an ordinary press.
+    // Native details, focus and navigation retain their explicit wake paths.
+    if (interrupted) wakeRecipientFields();
   }
 
   function wakeRecipientFields() {
@@ -929,6 +933,7 @@
   }
 
   function observeMutations(records) {
+    records = records.filter(record => !app.isNativeCursorMutation(record));
     // Ignore list hover/focus/presentation classes. Only native selected/read
     // transitions can start or finish a visit; chrome keeps its existing watch.
     if (records.some(record => record.type !== "attributes" || record.attributeName !== "class" ||
@@ -953,7 +958,7 @@
     const watchNode = node => {
       if (!node || watched.has(node) || !ownsChrome(node)) return;
       watched.add(node);
-      observer.observe(node, { childList: true, attributes: true,
+      observer.observe(node, { childList: true, attributes: true, attributeOldValue: true,
         attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
     };
     // Observe chrome and its ancestor spine, never received message documents
@@ -969,27 +974,27 @@
       watchNode(parent); if (parent.matches(S.main)) break;
     }
     for (const header of shell.querySelectorAll('.gE')) if (ownsChrome(header)) {
-      observer.observe(header, { childList: true, subtree: true, characterData: true, attributes: true,
+      observer.observe(header, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true,
         attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "email", "data-hovercard-id"] });
     }
     for (const details of shell.querySelectorAll('.gs > .ajA')) if (ownsChrome(details)) {
-      observer.observe(details, { childList: true, subtree: true, characterData: true, attributes: true,
+      observer.observe(details, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true,
         attributeFilter: ["email", "data-hovercard-id", "style", "class", "hidden", "aria-hidden"] });
     }
     if ([...recipientStates.values()].some(state => !state.suppressed && state.attempts < 2 && !recipientSummaries.has(state.summary))) {
       for (const blocker of recipientBlockers()) for (let node = blocker; node; node = node.parentElement) {
         // Do not replace the richer subtree watches for headers/Details.
         if (shell.contains(node) && node.matches('.gE, .gs > .ajA')) continue;
-        observer.observe(node, { childList: true, attributes: true,
+        observer.observe(node, { childList: true, attributes: true, attributeOldValue: true,
           attributeFilter: ["style", "class", "hidden", "aria-hidden"] });
         if (node === document.body) break;
       }
     }
-    observer.observe(toolbar, { childList: true, subtree: true, attributes: true,
+    observer.observe(toolbar, { childList: true, subtree: true, attributes: true, attributeOldValue: true,
       attributeFilter: ["style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
     for (let parent = toolbarHost; parent; parent = parent.parentElement) {
       watchNode(parent);
-      if (parent === toolbarHost) observer.observe(parent, { childList: true, attributes: true,
+      if (parent === toolbarHost) observer.observe(parent, { childList: true, attributes: true, attributeOldValue: true,
         attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "data-gp-message-actions-overflow"] });
       if (parent.matches(S.main)) break;
     }

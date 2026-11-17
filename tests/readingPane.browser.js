@@ -217,6 +217,14 @@
     assert(secondToggles===2 && !unresolved(secondSummary),'second message progresses without unrelated changes');
     await wait(1350);
     assert(attempts===2 && status(summary)==='View recipient details','two attempts then actionable fallback');
+    let geometryReads=0;
+    const toolbarBounds=f.toolbar.getBoundingClientRect.bind(f.toolbar);
+    f.toolbar.getBoundingClientRect=()=>{geometryReads++;return toolbarBounds();};
+    document.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0}));
+    document.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'Escape'}));
+    await settle();
+    delete f.toolbar.getBoundingClientRect;
+    assert(geometryReads===0,'exhausted recipient fallback does not refresh chrome during ordinary presses');
     summary.nextElementSibling.querySelector('button').click();await settle();assert(attempts===3,'prompt delegates to current native Details');
     app.readingPane.stop();assert(!summary.hasAttribute('data-gp-recipients-unresolved') && !f.main.querySelector('.gmail-pro-recipient-status'),'OFF reveals native summary and removes status');
   });
@@ -231,6 +239,26 @@
     start();await settle();assert(toggles===0 && status(summary)==='View recipient details','no automatic gesture while editing');
     input.blur();await settle();assert(toggles===0,'unrelated dialog still blocks');
     dialog.remove();await settle();assert(toggles===2 && !unresolved(summary),'popup removal wakes deferred work');
+  });
+  await test('deferred recipient blocker ignores native cursor changes but follows real body styling',async()=>{
+    const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
+    f.main.querySelector('.ajy').setAttribute('role','button');
+    const dialog=document.createElement('div');dialog.setAttribute('role','dialog');dialog.textContent='Synthetic blocker';workspace.append(dialog);
+    const before=document.body.getAttribute('style');
+    let geometryReads=0;
+    const toolbarBounds=f.toolbar.getBoundingClientRect.bind(f.toolbar);
+    start();await settle();
+    f.toolbar.getBoundingClientRect=()=>{geometryReads++;return toolbarBounds();};
+    try {
+      document.body.style.cursor='move';await settle();
+      document.body.style.removeProperty('cursor');await settle();
+      assert(geometryReads===0,'native drag cursor does not wake deferred recipient layout');
+      document.body.style.paddingTop='1px';await settle();
+      assert(geometryReads>0 && unresolved(summary),'other body style changes still reconcile the blocked header');
+    } finally {
+      delete f.toolbar.getBoundingClientRect;
+      if(before===null)document.body.removeAttribute('style');else document.body.setAttribute('style',before);
+    }
   });
   await test('user input relinquishes owned popup and suppresses reopening',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
