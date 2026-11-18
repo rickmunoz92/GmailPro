@@ -148,7 +148,7 @@ article a { overflow-wrap:anywhere; }
 .release-intro { padding-bottom:clamp(32px,5vw,58px); }
 .release-intro h1 { margin:0 0 16px; font-size:clamp(40px,6vw,64px); letter-spacing:-.045em; }
 .release-intro p { font-size:clamp(16px,2vw,19px); }
-.release-group + .release-group { margin-top:42px; }
+.release-group:not([hidden]) ~ .release-group { margin-top:42px; }
 .release-group > h2 { margin:0 0 13px; font-size:15px; line-height:1.4; letter-spacing:0; }
 .release-list { margin:0; padding:0; list-style:none; }
 .release-entry { display:grid; grid-template-columns:155px minmax(0,1fr); gap:24px; padding:24px 0; border-top:1px solid var(--line); scroll-margin-block-start:24px; }

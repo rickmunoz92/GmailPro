@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Release notes date rollover fixture</title>
+  <link rel="stylesheet" href="../website/public/site.css">
+  <script>
+    const RealDate = Date;
+    let now = '2026-11-18T06:59:59Z';
+    window.Date = class extends RealDate {
+      constructor(...args) { super(...(args.length ? args : [now])); }
+    };
+    let nextCheck;
+    window.setTimeout = (run, delay) => { nextCheck = { run, delay }; return 1; };
+    window.clearTimeout = () => { nextCheck = undefined; };
+  </script>
+  <script defer src="../website/public/release-notes.js"></script>
+</head>
+<body>
+  <pre id="results">Running…</pre>
+  <section class="release-group" aria-labelledby="upcoming-releases">
+    <h2 id="upcoming-releases">Upcoming</h2>
+    <ol class="release-list">
+      <li id="scheduled"><div class="release-meta"><a href="#scheduled">1.0.12</a><time datetime="2026-11-18">November 18</time></div></li>
+      <li id="past"><div class="release-meta"><time datetime="2026-11-16">November 16</time></div></li>
+      <li id="pending"><div class="release-meta">Awaiting a date</div></li>
+      <li id="invalid"><div class="release-meta"><time datetime="2026-02-30">Invalid date</time></div></li>
+    </ol>
+  </section>
+  <section class="release-group" aria-labelledby="store-releases">
+    <h2 id="store-releases">Chrome Web Store</h2>
+    <ol class="release-list" reversed>
+      <li id="previous"><div class="release-meta"><time datetime="2026-11-17">November 17</time></div></li>
+      <li id="next"><div class="release-meta"><time datetime="2026-11-19">November 19</time></div></li>
+    </ol>
+  </section>
+  <section class="release-group" aria-labelledby="source-releases">
+    <h2 id="source-releases">Source releases</h2>
+    <ol class="release-list"><li id="source">Historic source release</li></ol>
+  </section>
+  <script>
+    const keepPending = new URLSearchParams(location.search).has('pending');
+    if (!keepPending) {
+      document.getElementById('pending').remove();
+      document.getElementById('invalid').remove();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const group = name => document.querySelector(`[aria-labelledby="${name}-releases"]`);
+      const ids = name => [...group(name).querySelector('.release-list').children].map(note => note.id).join(',');
+      const results = document.getElementById('results');
+      const assert = (condition, reason) => { if (!condition) throw new Error(reason); };
+      const pending = keepPending ? ',pending,invalid' : '';
+
+      try {
+        assert(ids('upcoming') === 'scheduled,next' + pending && ids('store') === 'previous,past', 'Dates in either list follow the Mountain calendar');
+        assert(nextCheck?.delay === 1000, 'The open page checks again at the minute boundary');
+        const link = document.querySelector('#scheduled a');
+        link.focus();
+        now = '2026-11-18T07:00:00Z';
+        nextCheck.run();
+        assert(ids('upcoming') === 'next' + pending && ids('store') === 'scheduled,previous,past', 'A release moves at Mountain midnight');
+        assert(document.activeElement === link && link.hash === '#scheduled', 'Focus and the version link survive the move');
+
+        now = '2026-11-19T07:00:00Z';
+        window.dispatchEvent(new Event('pageshow'));
+        assert(ids('store') === 'next,scheduled,previous,past' && ids('source') === 'source', 'Returning to the page catches up in release-date order');
+        assert(group('upcoming').hidden === !keepPending && ids('upcoming') === pending.slice(1), 'Upcoming stays visible only while notes remain');
+        assert(keepPending || getComputedStyle(group('store')).marginTop === '0px', 'A hidden group leaves no gap');
+        assert(!nextCheck, 'The timer stops when no dated releases are upcoming');
+        results.textContent = 'PASS release notes rollover';
+        results.dataset.failures = '0';
+      } catch (error) {
+        results.textContent = `FAIL ${error.message}`;
+        results.dataset.failures = '1';
+      }
+    });
+  </script>
+</body>
+</html>
