@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Gmail Pro — retained inbox drag styling</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<script>
+// Optional baseline is a local, ignored copy of the pre-change stylesheet.
+const params = new URLSearchParams(location.search), baseline = params.has('baseline');
+const stylesReady = Promise.all((baseline
+  ? [['current','../content/appleMail.css'],['baseline','../artifacts/appleMail-before.css']]
+  : [['current','../content/appleMail.css']]).map(async ([name,url]) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Cannot load ${name} stylesheet (${response.status})`);
+    const node = document.createElement('style'); node.textContent = await response.text();
+    document.head.append(node); node.sheet.disabled = true;
+    return [name,node.sheet];
+  })).then(entries => Object.fromEntries(entries));
+</script>
+<style>
+body { margin:16px; font:14px system-ui; }
+#shell { display:flex; height:300px; overflow:hidden; }
+[role=navigation] { width:210px; flex:none; }
+[role=main] { flex:1; }
+.aim { height:24px; }
+.Nu { height:260px; overflow:auto; }
+#retained { position:absolute; top:400px; width:800px; visibility:hidden; }
+.lE { display:none; position:absolute; padding:8px; border:1px solid; }
+</style>
+<h1>Retained inbox drag styling</h1>
+<p>Synthetic content only. Emulates inherited cursor changes and Gmail's reveal/measure/restore of its drag preview; no native Gmail drag handlers.</p>
+<button id="run">Run growing inbox comparison</button>
+<pre id="results">Ready</pre>
+<div id="shell"><div role="navigation"><div class="V3" id="labels"></div></div><div class="nH"><div role="main"><div class="Nu"><table><tbody id="rows"></tbody></table></div><div id="retained"></div></div></div></div>
+<div class="lE">Synthetic thread</div>
+<script src="dragStyle.browser.js"></script>

@@ -498,9 +498,10 @@
   await test('collapsed system mailboxes measure without native reveal writes and restore through More', async () => {
     const f=mailboxFixture(true);await start();
     const hidden=[...f.system.querySelectorAll('.aim')].filter(node=>node!==f.inbox);
-    const before=hidden.map(node=>node.getAttribute('style'));
+    const targets=hidden.flatMap(node=>[node,node.querySelector('.TO'),node.querySelector('.TN')]);
+    const before=targets.map(node=>node.getAttribute('style'));
     let revealWrites=0;
-    for(let pass=0;pass<3;pass++)for(const node of hidden){
+    for(let pass=0;pass<3;pass++)for(const node of targets){
       if(getComputedStyle(node).display==='none'){
         const {display,position,visibility}=node.style;
         node.style.visibility='hidden';node.style.position='absolute';node.style.display='inline';revealWrites+=3;
@@ -509,7 +510,7 @@
       } else void node.offsetWidth;
       assert(rect(node).width===0&&rect(node).height===0&&!node.checkVisibility({visibilityProperty:true}),'no hidden hit area or accessible content');
     }
-    assert(revealWrites===0 && hidden.every((node,i)=>node.getAttribute('style')===before[i]),'native measurement needs no reveal/restore writes');
+    assert(revealWrites===0 && targets.every((node,i)=>node.getAttribute('style')===before[i]),'native measurement needs no reveal/restore writes');
     const more=f.root.querySelector('.gmail-pro-mailboxes-more');more.click();await settle();
     assert(hidden.every(node=>rect(node).height>0&&node.checkVisibility({visibilityProperty:true})),'More restores native rows');
     more.click();await settle();assert(hidden.every(node=>rect(node).height===0),'Less restores collapsed boxes');

@@ -59,10 +59,18 @@ html.gmail-pro-apple-mail-mode [data-gp-mailboxes]:not([data-gp-mailboxes-open])
   content-visibility: hidden !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  /* Preserve native zero-size link geometry too, without hiding the row that
-     Gmail's drag controller measures. */
-  & > :is(.TO, .TN),
-  & .aim > :is(.TO, .TN) { display: none !important; }
+  /* Gmail registers .TO drop targets, not just .aim owners. Its size helper
+     must never see display:none on those targets. Collapse their layout boxes
+     too; scale the hidden subtree so native link rectangles remain zero-size. */
+  transform: scale(0) !important;
+  & > .TO, & > .TN, & > .TO > .TN,
+  & .aim > .TO, & .aim > .TN, & .aim > .TO > .TN {
+    display: block !important;
+    width: 0 !important; min-width: 0 !important; max-width: 0 !important;
+    height: 0 !important; min-height: 0 !important; max-height: 0 !important;
+    margin: 0 !important; padding: 0 !important; border-width: 0 !important;
+    overflow: clip !important;
+  }
 }
 [data-gmail-pro-label-hidden="revealed"] { opacity: .65; }
 .gmail-pro-label-toolbar {

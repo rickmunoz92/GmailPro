@@ -360,6 +360,25 @@
     }
     feature.stop(); assert(css(shell).borderRadius==='16px','native corner restored');
   });
+  await test("class-qualified scope roots preserve all six native scroller types and reject unrelated lookalikes", () => {
+    const panes = document.createElement('div');
+    panes.innerHTML = '<div class="Nu"></div><div class="Nr"></div><div class="ii"><div class="a3s">Authored content</div></div><div class="Tm"><main role="main"></main></div><div class="nH"><main role="main"></main></div><div class="V3"><div class="aim"></div></div>';
+    workspace.append(panes);
+    const native = [...panes.children], unrelated = document.createElement('div');
+    unrelated.innerHTML = '<div class="Nu"></div><div class="Nr"></div><div class="V3"></div>';
+    workspace.after(unrelated);
+    const width = node => getComputedStyle(node, '::-webkit-scrollbar').width;
+    const before = native.map(width), excluded = [...unrelated.children].map(width);
+    try {
+      for (const appearanceTheme of ['dark','light']) {
+        enable({appearanceTheme});
+        assert(native.every(node => width(node) === '8px'), 'each valid native root keeps its 8px scrollbar');
+        assert([...unrelated.children].every((node,i) => width(node) === excluded[i]), 'classes alone do not qualify a scroller');
+        assert(width(panes.querySelector('.a3s')) !== '8px', 'authored descendant retains its native scrollbar');
+      }
+      feature.stop(); assert(native.every((node,i) => width(node) === before[i]), 'OFF restores all native roots');
+    } finally { unrelated.remove(); }
+  });
   await test("unsplit inbox viewport themes its scrollbar track and corner in both themes", () => {
     const viewport=document.createElement('div');viewport.className='Tm';
     viewport.style.cssText='width:180px;height:100px;overflow:scroll;border-radius:16px;background:white';

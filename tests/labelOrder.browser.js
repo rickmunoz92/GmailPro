@@ -305,6 +305,12 @@
   });
   await test("300 hidden labels need no native reveal/measure/restore writes during pickup", async () => {
     const names = Array.from({length:300},(_,i)=>`Hidden ${i}`), list = fixture(names);
+    // Work Gmail registers the inner .TO as its drop target. Keep the native
+    // .aim > .TO > .TN shape; measuring only .aim missed the expensive path.
+    for(const row of list.children) {
+      const target=document.createElement('div');target.className='TO';
+      target.append(row.firstElementChild);row.append(target);
+    }
     prefs.sidebarHiddenSublabels = names.map(name=>({account:'one@example.test',path:'label/'+name}));
     on(names.map(name=>'label/'+name));await settle();
     const nodes=[...list.children], nativeOrder=nodes.slice();
@@ -323,8 +329,11 @@
     const started=performance.now();
     for(let pass=0;pass<3;pass++)for(const node of nodes){
       assert(collapsed(node), 'hidden label stays invisible with zero hit height');
-      equal(measure(node),[0,0]);
-      equal(node.querySelector('a').getBoundingClientRect().height,0);
+      for(const target of [node,node.querySelector('.TO'),node.querySelector('.TN')]) {
+        equal(measure(target),[0,0]);
+        const box=target.getBoundingClientRect();equal([box.width,box.height],[0,0]);
+      }
+      const linkBox=node.querySelector('a').getBoundingClientRect();equal([linkBox.width,linkBox.height],[0,0]);
     }
     results.dataset.hiddenLabelMeasurements=JSON.stringify({labels:nodes.length,pickups:3,revealWrites,elapsedMs:performance.now()-started});
     equal(revealWrites,0);equal(nodes.map(node=>node.getAttribute('style')),before);

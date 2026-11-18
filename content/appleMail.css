@@ -10,8 +10,14 @@
 @scope (html.gmail-pro-apple-mail-mode) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
   body, body > .tVu25 { background: var(--gp-bg-primary) !important; }
   .nH:has(> [role="main"]) { border-radius: 0 !important; background: var(--gp-bg-primary) !important; }
-  [role="banner"], [role="main"], :is(.AO, .aeF, .bkK, .Tm):has([role="main"]), .bAw, [gh="tm"], [gh="tl"],
-  [role="main"] :is(.AO, .aeF, .Nu, .ae4, .Cp, .iY) {
+  [role="banner"], [role="main"], .AO:has([role="main"]), .aeF:has([role="main"]),
+  .bkK:has([role="main"]), .Tm:has([role="main"]), .bAw, [gh="tm"], [gh="tl"],
+  [role="main"] .AO,
+  [role="main"] .aeF,
+  [role="main"] .Nu,
+  [role="main"] .ae4,
+  [role="main"] .Cp,
+  [role="main"] .iY {
     background: var(--gp-bg-primary) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -175,7 +181,7 @@
   /* Thread surroundings/headers only. No descendant wildcard, inversion, or
      typography changes on the message envelope or its .ii/.a3s document. */
   [role="main"] .iY:has(h2[data-thread-perm-id]) { margin: 0 !important; border: 0 !important; }
-  [role="main"] :is(.gE, .ha, .hj) {
+  [role="main"] .gE, [role="main"] .ha, [role="main"] .hj {
     background: var(--gp-bg-primary) !important;
     color: var(--gp-text-primary) !important;
     font-family: var(--gp-font) !important;
@@ -194,7 +200,7 @@
 }
 /* Limit mailbox selectors to navigation rather than every Gmail descendant. */
 @scope (html.gmail-pro-apple-mail-mode :is([role="navigation"]:not(:has(> .Xa > .V6[role="link"])), .aBO:has(> .aic > .z0 > .T-I-KE[role="button"])):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *)) to (.ii, .a3s, [contenteditable], [role="region"], [role="dialog"], [role="menu"], [role="listbox"]) {
-  :scope {
+  [role="navigation"]:where(:scope), .aBO:where(:scope) {
     background: var(--gp-sidebar-bg) !important;
     box-sizing: border-box !important;
     color: var(--gp-text-primary) !important;
@@ -202,7 +208,7 @@
     border-radius: 0 !important;
     box-shadow: none !important;
   }
-  :scope { border-inline-end: 1px solid var(--gp-border); }
+  [role="navigation"]:where(:scope), .aBO:where(:scope) { border-inline-end: 1px solid var(--gp-border); }
   /* Gmail paints this edge when mailboxes scroll beneath the wordmark.
      Retain its border width so the native scroll geometry stays stable. */
   :scope > .V3 {
@@ -214,8 +220,8 @@
     color: var(--gp-text-secondary) !important;
     font-size: 13px !important;
   }
-  :scope :is(.aAv, .aio, .nU) { color: var(--gp-text-secondary) !important; }
-  :scope :is(.TN, .n0, .nU, .aio) {
+  :scope .aAv, :scope .aio, :scope .nU { color: var(--gp-text-secondary) !important; }
+  :scope .TN, :scope .n0, :scope .nU, :scope .aio {
     font-weight: 400 !important;
     text-shadow: none !important;
   }
@@ -278,7 +284,11 @@
   :scope .aim.nY:has(a[href*="#"]) > .TO {
     background: var(--gp-accent) !important;
   }
-  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) :is(.TN, .n0, .nU, .aio, .bsU) {
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .TN,
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .n0,
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .nU,
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .aio,
+  :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .bsU {
     color: var(--gp-accent-contrast) !important;
   }
   :scope .aim:has(a[href*="#"]):is(.nY, :has(.nY)) .TN svg {
@@ -371,12 +381,14 @@ html.gmail-pro-apple-mail-mode:not([data-darkreader-mode]) [role="main"] .ii:has
   /* Gmail keeps a 240px minimum on each .wT label section and a fixed .TO
      width. Let both follow our narrower expanded sidebar so counts and native
      label menus stay inside its scroll viewport. Collapsed flyouts stay native. */
-  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) :is([role="navigation"].aeN:not(:has(> .Xa > .V6[role="link"])), .aBO:has(> .aic > .z0 > .T-I-KE[role="button"])):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *) .wT {
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) [role="navigation"].aeN:not(:has(> .Xa > .V6[role="link"])):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *) .wT,
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) .aBO:has(> .aic > .z0 > .T-I-KE[role="button"]):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *) .wT {
     width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
   }
-  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) :is([role="navigation"].aeN:not(:has(> .Xa > .V6[role="link"])), .aBO:has(> .aic > .z0 > .T-I-KE[role="button"])):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *) .aim > .TO {
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) [role="navigation"].aeN:not(:has(> .Xa > .V6[role="link"])):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *) .aim > .TO,
+  html.gmail-pro-apple-mail-mode:has([role="banner"] [aria-label="Main menu"][aria-expanded="true"]) .aBO:has(> .aic > .z0 > .T-I-KE[role="button"]):not(.ii *, .a3s *, [contenteditable] *, [role="region"] *, [role="dialog"] *, [role="menu"] *, [role="listbox"] *) .aim > .TO {
     width: auto !important;
   }
 }
@@ -941,27 +953,65 @@ html.gmail-pro-apple-mail-mode .gmail-pro-toolbar-compose svg {
 
 /* Fixed-size transparent tracks avoid layout jumps. Activity belongs to each
    pane and axis; hovering or scrolling another pane never reveals a thumb. */
+/* Concrete subjects let the style engine reject unrelated cached content
+   before resolving the relational scope. :where keeps the original specificity
+   and :scope identity, including native scrollbar geometry and exclusions. */
 @scope (html.gmail-pro-apple-mail-mode :is([role="main"] .Nu, [role="main"] .Nr, [role="main"] .ii:has(> .a3s), .Tm:has([role="main"]), .nH:has(> [role="main"]), .V3:has(.aim)):not(.a3s *, [contenteditable] *, [role="dialog"] *, [role="region"] *)) to (.a3s, [contenteditable], [role="dialog"], [role="region"]) {
-  :scope {
+  .Nu:where(:scope),
+  .Nr:where(:scope),
+  .ii:where(:scope),
+  .Tm:where(:scope),
+  .nH:where(:scope),
+  .V3:where(:scope) {
     scrollbar-color: auto !important;
     scrollbar-width: auto !important;
   }
-  :scope::-webkit-scrollbar {
+  .Nu:where(:scope)::-webkit-scrollbar,
+  .Nr:where(:scope)::-webkit-scrollbar,
+  .ii:where(:scope)::-webkit-scrollbar,
+  .Tm:where(:scope)::-webkit-scrollbar,
+  .nH:where(:scope)::-webkit-scrollbar,
+  .V3:where(:scope)::-webkit-scrollbar {
     width: 8px; height: 8px; background: transparent;
   }
-  :scope::-webkit-scrollbar-thumb {
+  .Nu:where(:scope)::-webkit-scrollbar-thumb,
+  .Nr:where(:scope)::-webkit-scrollbar-thumb,
+  .ii:where(:scope)::-webkit-scrollbar-thumb,
+  .Tm:where(:scope)::-webkit-scrollbar-thumb,
+  .nH:where(:scope)::-webkit-scrollbar-thumb,
+  .V3:where(:scope)::-webkit-scrollbar-thumb {
     background: transparent !important;
     border: 2px solid transparent; background-clip: padding-box !important;
     border-radius: 8px; box-shadow: none !important;
   }
-  :scope::-webkit-scrollbar-track {
+  .Nu:where(:scope)::-webkit-scrollbar-track,
+  .Nr:where(:scope)::-webkit-scrollbar-track,
+  .ii:where(:scope)::-webkit-scrollbar-track,
+  .Tm:where(:scope)::-webkit-scrollbar-track,
+  .nH:where(:scope)::-webkit-scrollbar-track,
+  .V3:where(:scope)::-webkit-scrollbar-track {
     background: transparent !important; border: 0 !important; box-shadow: none !important;
   }
-  :scope::-webkit-scrollbar-corner {
+  .Nu:where(:scope)::-webkit-scrollbar-corner,
+  .Nr:where(:scope)::-webkit-scrollbar-corner,
+  .ii:where(:scope)::-webkit-scrollbar-corner,
+  .Tm:where(:scope)::-webkit-scrollbar-corner,
+  .nH:where(:scope)::-webkit-scrollbar-corner,
+  .V3:where(:scope)::-webkit-scrollbar-corner {
     background: var(--gp-bg-primary) !important; border: 0 !important;
   }
-  :scope[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
-  :scope[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical { background-color: var(--gp-text-muted) !important; }
+  .Nu:where(:scope)[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  .Nr:where(:scope)[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  .ii:where(:scope)[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  .Tm:where(:scope)[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  .nH:where(:scope)[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  .V3:where(:scope)[data-gp-scroll-x]::-webkit-scrollbar-thumb:horizontal,
+  .Nu:where(:scope)[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical,
+  .Nr:where(:scope)[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical,
+  .ii:where(:scope)[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical,
+  .Tm:where(:scope)[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical,
+  .nH:where(:scope)[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical,
+  .V3:where(:scope)[data-gp-scroll-y]::-webkit-scrollbar-thumb:vertical { background-color: var(--gp-text-muted) !important; }
 }
 
 /* Toolbar search: the original form stays in its native ancestor chain. Never
