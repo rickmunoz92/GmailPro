@@ -610,46 +610,58 @@
     return JSON.stringify([message.getAttribute('data-message-id'), message.getAttribute('data-legacy-message-id')]);
   }
 
-  function recipientFields(summary) {
-    const message = summary.closest(S.threadMessage);
-    if (!message) return null;
+  function recipientFields(state) {
+    const { message, identity } = state;
     const tables = [...message.querySelectorAll(':scope > .gs > .ajA .ajB > table.ajC')].filter(ownsChrome);
+    if (!tables.length) return state.fields;
     if (tables.length !== 1) return null;
-    const identity = recipientIdentity(message), owner = recipientTables.get(tables[0]);
+    const owner = recipientTables.get(tables[0]);
     if (owner && owner !== identity) return null;
     recipientTables.set(tables[0], identity);
     const fields = [];
     for (const row of tables[0].rows) {
-      const label = row.querySelector(':scope > th[scope="row"]')?.textContent.trim().toLowerCase();
-      if (!["to:", "cc:", "bcc:"].includes(label)) continue;
-      if (fields.some(field => field.kind === label.slice(0, -1))) return null;
-      const contacts = [...row.querySelectorAll(':scope > td [email]')];
-      const addresses = contacts.map(node => contactAddress(node).toLowerCase());
-      if (!addresses.length || addresses.some(address => !address)) return null;
-      fields.push({ kind: label.slice(0, -1), addresses });
+      const kind = row.querySelector(':scope > th[scope="row"]')?.textContent.trim().toLowerCase();
+      if (!["to:", "cc:", "bcc:"].includes(kind)) continue;
+      const cell = row.querySelector(':scope > td');
+      if (!cell) return null;
+      const people = [];
+      for (const node of cell.querySelectorAll('[email], [data-hovercard-id]')) {
+        const address = contactAddress(node);
+        if (!address) return null;
+        const label = node.textContent.trim();
+        const suffix = ` <${address}>`;
+        const name = label.toLowerCase().endsWith(suffix.toLowerCase()) ? label.slice(0, -suffix.length) : label;
+        people.push({ address, name: name || address });
+      }
+      if (!people.length && !cell.textContent.trim()) continue;
+      if (!people.length || fields.some(field => field.kind === kind)) return null;
+      fields.push({ kind, people });
     }
     return fields.length ? fields : null;
   }
 
-  // Readiness is shared by the probe and renderer: a partial Details table
-  // must never suppress recovery or assign a condensed To/CC list to To.
-  function reconcileRecipients(summary) {
-    const fields = recipientFields(summary);
+  function reconcileRecipients(state) {
+    const fields = recipientFields(state);
     if (!fields) return null;
+    const addresses = new Set(fields.flatMap(field => field.people.map(person => person.address.toLowerCase())));
     const contacts = new Map();
-    for (const node of summary.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.COMMENT_NODE) continue;
-      if (!(node instanceof Element)) return null;
-      const people = node.matches('.g2') ? [node] : [...node.querySelectorAll('.g2')];
-      const person = people[0], address = person && contactAddress(person).toLowerCase();
-      if (people.length !== 1 || !address || contacts.has(address) || node.textContent.trim() !== person.textContent.trim()) return null;
-      contacts.set(address, node);
+    for (const node of state.summary.children) {
+      const people = node.matches('.g2') ? [node] : [...node.querySelectorAll('.g2')].filter(ownsChrome);
+      for (const person of people) {
+        const address = contactAddress(person).toLowerCase();
+        if (!address) continue;
+        // A partial Details table can omit known contacts. Extra recipients
+        // are expected when Gmail truncates the summary or leaves out BCC.
+        if (!addresses.has(address)) return null;
+        if (people.length === 1 && person.textContent.trim() && node.textContent.trim() === person.textContent.trim()) {
+          if (!contacts.has(address)) contacts.set(address, []);
+          contacts.get(address).push(node);
+        }
+      }
     }
-    const addresses = fields.flatMap(field => field.addresses);
-    // Unknown/truncated contacts and ambiguous field membership remain available
-    // through native Details. Never invent contacts or inspect received HTML.
-    if (contacts.size !== addresses.length || new Set(addresses).size !== addresses.length ||
-        addresses.some(address => !contacts.has(address))) return null;
+    // The native popup can be removed on close. Keep verified rows with the
+    // current header and message identity so its inline recipients survive.
+    state.fields = fields;
     return { fields, contacts };
   }
 
@@ -679,7 +691,7 @@
     if (!probe) return;
     const { state } = probe;
     const valid = recipientStateCurrent(state) && recipientControl(state.summary) === probe.control && visible(probe.control);
-    const ready = valid && reconcileRecipients(state.summary);
+    const ready = valid && reconcileRecipients(state);
     if (valid && !ready && !cancel) return;
     recipientProbe = undefined;
     clearTimeout(probe.timer);
@@ -728,49 +740,15 @@
 
   function prepareRecipientFields(state) {
     if (recipientProbe || pendingFiling || state.suppressed || state.retryTimer || state.attempts >= 2 ||
-        !recipientStateCurrent(state) || reconcileRecipients(state.summary)) return;
+        !recipientStateCurrent(state)) return false;
     const control = recipientControl(state.summary);
-    if (!visible(control) || !usable(control) || recipientBlocked()) return;
+    if (!visible(control) || !usable(control) || recipientBlocked()) return false;
     state.attempts++;
     recipientProbe = { state, control, focus: document.activeElement,
       timer: setTimeout(() => finishRecipientProbe(true), 1000) };
     nativeGesture(control, () => recipientStateCurrent(state) && recipientProbe?.state === state);
     finishRecipientProbe();
-  }
-
-  function clearRecipientStatus(state) {
-    if (state.summary.getAttribute('data-gp-recipients-unresolved') === '') state.summary.removeAttribute('data-gp-recipients-unresolved');
-    if (state.status?.contains(document.activeElement)) recipientControl(state.summary)?.focus({ preventScroll: true });
-    state.status?.remove(); state.status = undefined;
-  }
-
-  function showRecipientStatus(state) {
-    const control = recipientControl(state.summary);
-    const available = visible(control) && usable(control);
-    const loading = recipientProbe?.state === state || !!state.retryTimer ||
-      (available && state.attempts < 2 && !state.suppressed && !recipientBlocked());
-    const text = loading ? 'Loading recipients…' : available ? 'View recipient details' : 'Recipient details unavailable';
-    if (!state.status) {
-      state.status = document.createElement('span');
-      state.status.className = 'gmail-pro-recipient-status';
-      state.status.setAttribute('role', 'status'); state.status.setAttribute('aria-live', 'polite');
-    }
-    if (state.status.textContent !== text) {
-      if (!loading && available) {
-        const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
-        button.addEventListener('click', event => {
-          event.preventDefault(); event.stopPropagation();
-          const current = recipientControl(state.summary);
-          if (!recipientStateCurrent(state) || !visible(current) || !usable(current)) return;
-          interruptRecipientProbe(); state.suppressed = true;
-          nativeGesture(current, () => recipientStateCurrent(state));
-          schedule();
-        });
-        state.status.replaceChildren(button);
-      } else state.status.textContent = text;
-    }
-    if (state.status.previousSibling !== state.summary) state.summary.after(state.status);
-    if (!state.summary.hasAttribute('data-gp-recipients-unresolved')) state.summary.setAttribute('data-gp-recipients-unresolved', '');
+    return true;
   }
 
   function updateRecipientLabels(shell) {
@@ -782,21 +760,24 @@
         // fresh attempt against that stale DOM just because its URL changed.
         clearTimeout(state.retryTimer); state.retryTimer = undefined;
         retiredRecipients.set(summary, state.identity);
+        state.fields = undefined;
         state.suppressed = true; state.route = location.hash; state.page = location.pathname;
       }
       if (shell === state.shell && recipientStateCurrent(state)) continue;
       if (recipientProbe?.state === state) finishRecipientProbe(true, false);
       clearTimeout(state.retryTimer);
-      clearRecipientStatus(state); recipientStates.delete(summary);
+      recipientStates.delete(summary);
     }
     for (const [summary, change] of recipientSummaries) {
       const intact = change.after.length === summary.childNodes.length &&
         change.after.every((node, i) => summary.childNodes[i] === node);
-      const fields = shell?.contains(summary) && recipientFields(summary);
-      const signature = fields && recipientIdentity(summary.closest(S.threadMessage)) + JSON.stringify(fields);
+      const state = recipientStates.get(summary);
+      const fields = state && recipientFields(state);
+      const signature = fields && state.identity + JSON.stringify(fields);
       const addresses = [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n');
       if (intact && signature === change.signature && addresses === change.addresses && summary.textContent === change.text) continue;
       if (intact) summary.replaceChildren(...change.before);
+      else for (const contact of change.generated) if (summary.contains(contact)) contact.remove();
       recipientSummaries.delete(summary);
     }
     for (const summary of shell?.querySelectorAll(S.readingRecipients) || []) {
@@ -809,22 +790,31 @@
           page: location.pathname, attempts: 0, suppressed: retiredRecipients.get(summary) === recipientIdentity(message) };
         recipientStates.set(summary, state);
       }
-      prepareRecipientFields(state);
-      const ready = reconcileRecipients(summary);
-      if (!ready) { showRecipientStatus(state); continue; }
+      let ready = reconcileRecipients(state);
+      if (!ready && prepareRecipientFields(state) && recipientStateCurrent(state)) ready = reconcileRecipients(state);
+      if (!ready) continue;
       clearTimeout(state.retryTimer); state.retryTimer = undefined;
-      clearRecipientStatus(state);
-      const { fields, contacts } = ready, before = [...summary.childNodes], after = [];
-      for (const field of [...fields].sort((a, b) => ["to", "cc", "bcc"].indexOf(a.kind) - ["to", "cc", "bcc"].indexOf(b.kind))) {
-        after.push(document.createTextNode((after.length ? '\n' : '') + ({to:"To:",cc:"CC:",bcc:"BCC:"})[field.kind] + ' '));
-        field.addresses.forEach((address, i) => {
+      const { fields, contacts } = ready, before = [...summary.childNodes], after = [], generated = [];
+      for (const label of ["To:", "CC:", "BCC:"]) {
+        const field = fields.find(field => field.kind === label.toLowerCase());
+        if (!field) continue;
+        after.push(document.createTextNode((after.length ? '\n' : '') + label + ' '));
+        field.people.forEach(({ address, name }, i) => {
           if (i) after.push(document.createTextNode(', '));
-          after.push(contacts.get(address));
+          let contact = contacts.get(address.toLowerCase())?.shift();
+          if (!contact) {
+            contact = document.createElement('span');
+            contact.className = 'g2';
+            contact.setAttribute('email', address);
+            contact.textContent = name;
+            generated.push(contact);
+          }
+          after.push(contact);
         });
       }
       summary.replaceChildren(...after);
-      recipientSummaries.set(summary, { before, after, signature: recipientIdentity(message) + JSON.stringify(fields),
-        addresses: [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n'), text: summary.textContent });
+      recipientSummaries.set(summary, { before, after, signature: state.identity + JSON.stringify(fields),
+        addresses: [...summary.querySelectorAll('.g2')].map(contactAddress).join('\n'), text: summary.textContent, generated });
     }
   }
 
@@ -1002,8 +992,10 @@
     const watchNode = node => {
       if (!node || watched.has(node) || !ownsChrome(node)) return;
       watched.add(node);
+      const attributes = ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled"];
+      if (node.matches('.adn, [data-message-id]')) attributes.push('data-message-id', 'data-legacy-message-id');
       observer.observe(node, { childList: true, attributes: true, attributeOldValue: true,
-        attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled"] });
+        attributeFilter: attributes });
     };
     // Observe chrome and its ancestor spine, never received message documents
     // or compose editors. Toolbar subtree is small and contains only controls.
@@ -1019,7 +1011,7 @@
     }
     for (const header of shell.querySelectorAll('.gE')) if (ownsChrome(header)) {
       observer.observe(header, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true,
-        attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "email", "data-hovercard-id"] });
+        attributeFilter: ["class", "style", "hidden", "aria-hidden", "disabled", "aria-disabled", "email", "data-hovercard-id", "role", "aria-label"] });
     }
     for (const details of shell.querySelectorAll('.gs > .ajA')) if (ownsChrome(details)) {
       observer.observe(details, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true,

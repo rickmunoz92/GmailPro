@@ -5,8 +5,8 @@
   const settle = () => new Promise(resolve => setTimeout(resolve, 80));
   const css = node => getComputedStyle(node);
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-  const unresolved = summary => summary.hasAttribute('data-gp-recipients-unresolved') && css(summary).display==='none';
-  const status = summary => summary.nextElementSibling?.textContent;
+  const showingNative = (summary, text) => summary.textContent===text && summary.checkVisibility() &&
+    !summary.closest('.gE').querySelector('.gmail-pro-recipient-status');
 
   const button = key => workspace.querySelector(`[data-gp-message-action="${key}"]`);
   const settings = {appleMailModeEnabled:true,appearanceTheme:"dark",accentColor:"blue"};
@@ -183,16 +183,52 @@
     window.dispatchEvent(new Event('resize')); await settle(); assert(toggles===2,'no repeated details gestures');
     app.readingPane.stop(); assert(summary.innerHTML===before,'exact merged native markup restored');people[0].click();assert(clicks===1,'native contact listener retained');
   });
-  await test('unknown recipient mapping hides native labels and updates when matching native details arrive',async()=>{
+  await test('native recipients stay visible while waiting for matching native details',async()=>{
     const f=fixture(), summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
     const details=f.main.querySelector('.ajy');details.setAttribute('role','button');
-    const people=[...summary.querySelectorAll('.g2')], before=summary.innerHTML;
-    start();await settle();assert(unresolved(summary) && status(summary)==='Loading recipients…','no misleading recipient rows while loading');
+    const people=[...summary.querySelectorAll('.g2')], before=summary.innerHTML, nativeText=summary.textContent;
+    start();await settle();assert(showingNative(summary,nativeText),'native recipients visible while loading');
     const decoy=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[1]]},{kind:'BCC',people:[people[2]]}]);
-    f.body.append(decoy);await settle();assert(unresolved(summary),'quoted body cannot supply native field mapping');
+    f.body.append(decoy);await settle();assert(showingNative(summary,nativeText),'quoted body cannot supply native field mapping');
     f.main.querySelector('.gs').append(decoy);await settle();
     assert(summary.textContent==='To: To Person\nCC: Other Person\nBCC: BCC Person','late native details normalize the same summary');
     app.readingPane.stop();assert(summary.innerHTML===before,'original labels restored after deferred details');
+  });
+  await test('a fresh sent header renders Details-only CC and BCC and retains them when the popup is removed',async()=>{
+    const f=fixture(),summary=recipients(f),message=summary.closest('[data-message-id]');
+    f.main.querySelector('.ajA').remove();
+    const [direct,,copied,blind]=summary.querySelectorAll('.g2');
+    summary.replaceChildren(document.createTextNode('to '),direct,document.createTextNode(', …'));
+    const control=f.main.querySelector('.ajy');
+    const original=summary.textContent,writes=[];mockClipboard(async address=>writes.push(address));
+    let toggles=0,popup;
+    control.addEventListener('click',()=>{
+      if(++toggles===1) {
+        popup=nativeDetails(f,[{kind:'To',people:[direct]},{kind:'CC',people:[direct,copied]},{kind:'BCC',people:[blind]}]);
+        const [,copiedDetail,blindDetail]=popup.querySelectorAll('tr:nth-child(n+2) [email]');
+        copiedDetail.textContent='Copied Person <cc+tag@example.test>';
+        blindDetail.setAttribute('data-hovercard-id',blindDetail.getAttribute('email'));
+        blindDetail.removeAttribute('email');
+        const empty=popup.querySelector('tbody').insertRow();
+        empty.innerHTML='<th scope="row">cc:</th><td></td>';
+        popup.hidden=false;
+      } else popup.remove();
+    });
+    message.removeAttribute('data-legacy-message-id');
+    start();await settle();assert(showingNative(summary,original),'optimistic header still shows its native recipients');
+    message.setAttribute('data-legacy-message-id','delivered-message');
+    await settle();assert(toggles===0,'control is still initializing');
+    control.setAttribute('role','button');
+    await settle();assert(toggles===2 && !popup.isConnected,'complete native Details opened and closed automatically');
+    assert(summary.textContent==='To: To Person\nCC: to+tag@example.test, Copied Person\nBCC: bcc+tag@example.test','all verified fields and cross-field addresses rendered');
+    assert(summary.querySelector('.g2')===direct,'available native contact retained');
+    summary.querySelector('.g2:last-child').click();await settle();
+    assert(writes.at(-1)==='bcc+tag@example.test','Details-only contact can copy its address');
+    control.removeAttribute('role');
+    await settle();
+    message.setAttribute('data-message-id','reused-message');
+    message.setAttribute('data-legacy-message-id','legacy-reused-message');
+    await settle();assert(showingNative(summary,original),'reused header cannot inherit another message’s recipients');
   });
   for(const stop of [false,true]) await test('deferred native details close '+(stop?'during mode cleanup':'before retaining recipient fields'),async()=>{
     const f=fixture(),summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
@@ -213,13 +249,14 @@
     assert(summary.textContent==='To: To Person, Other Person\nCC: CC Person\nBCC: BCC Person','comment does not break reading-pane refresh');
     app.readingPane.stop();assert(summary.innerHTML===before && summary.firstChild===comment,'original comment identity restored');
   });
-  await test('incomplete or duplicate native field metadata cannot guess recipient assignments',async()=>{
+  await test('incomplete native field metadata leaves the native summary visible',async()=>{
     const f=fixture(), summary=recipients(f,['To','BCC']);f.main.querySelector('.ajA').remove();
     f.main.querySelector('.ajy').setAttribute('role','button');const people=[...summary.querySelectorAll('.g2')];
     const popup=nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'CC',people:[people[0]]},{kind:'BCC',people:[people[2]]}]);
-    start();await settle();assert(unresolved(summary) && summary.querySelectorAll('.g2').length===3,'ambiguous membership stays available in native Details');
+    const original=summary.textContent;
+    start();await settle();assert(showingNative(summary,original),'first partial table leaves the native summary visible');
     popup.remove();nativeDetails(f,[{kind:'To',people:[people[0]]},{kind:'BCC',people:[people[2]]}]);await settle();
-    assert(unresolved(summary),'missing contact membership stays unclassified');
+    assert(showingNative(summary,original),'missing contact membership stays unclassified');
   });
   await test('an ignored initial Details gesture retries once and resolves',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
@@ -231,7 +268,7 @@
       else if(popup)popup.hidden=true;
     });
     start();await wait(1450);
-    assert(toggles===3 && !unresolved(summary) && popup.hidden,'one retry opens and closes complete Details');
+    assert(toggles===3 && summary.textContent.startsWith('To: ') && popup.hidden,'one retry opens and closes complete Details');
     await wait(350);assert(toggles===3,'no further gestures after success');
   });
   await test('empty and partial Details stay open until all membership arrives',async()=>{
@@ -241,14 +278,15 @@
     control.addEventListener('click',()=>{
       if(++toggles===1){popup=nativeDetails(f,[]);popup.hidden=false;}else popup.hidden=true;
     });
-    start();await settle();assert(toggles===1 && !popup.hidden && unresolved(summary),'empty popup remains owned');
+    const original=summary.textContent;
+    start();await settle();assert(toggles===1 && !popup.hidden && showingNative(summary,original),'empty popup remains owned');
     const source=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);
     const rows=[...source.querySelectorAll('tr')];source.remove();
-    popup.querySelector('tbody').append(rows[0]);await settle();assert(toggles===1 && unresolved(summary),'partial table is not ready');
+    popup.querySelector('tbody').append(rows[0]);await settle();assert(toggles===1 && showingNative(summary,original),'partial table is not ready');
     popup.querySelector('tbody').append(...rows.slice(1));await settle();
-    assert(toggles===2 && popup.hidden && !unresolved(summary),'complete membership closes and renders');
+    assert(toggles===2 && popup.hidden && summary.textContent.startsWith('To: '),'complete membership closes and renders');
   });
-  await test('a timed out message releases the next header and ends at a usable Details prompt',async()=>{
+  await test('a timed out message releases the next header and keeps the native summary visible',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
     const first=f.main.querySelector('[data-message-id]'),second=first.cloneNode(true);
     second.setAttribute('data-message-id','second');second.setAttribute('data-legacy-message-id','legacy-second');first.after(second);
@@ -260,10 +298,11 @@
       if(++secondToggles===1){popup=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);second.querySelector('.gs').append(popup);popup.hidden=false;}
       else popup.hidden=true;
     });
+    const original=summary.textContent;
     start();await wait(1150);
-    assert(secondToggles===2 && !unresolved(secondSummary),'second message progresses without unrelated changes');
+    assert(secondToggles===2 && secondSummary.textContent.startsWith('To: '),'second message progresses without unrelated changes');
     await wait(1350);
-    assert(attempts===2 && status(summary)==='View recipient details','two attempts then actionable fallback');
+    assert(attempts===2 && showingNative(summary,original),'two attempts leave the original summary visible');
     let geometryReads=0;
     const toolbarBounds=f.toolbar.getBoundingClientRect.bind(f.toolbar);
     f.toolbar.getBoundingClientRect=()=>{geometryReads++;return toolbarBounds();};
@@ -272,8 +311,8 @@
     await settle();
     delete f.toolbar.getBoundingClientRect;
     assert(geometryReads===0,'exhausted recipient fallback does not refresh chrome during ordinary presses');
-    summary.nextElementSibling.querySelector('button').click();await settle();assert(attempts===3,'prompt delegates to current native Details');
-    app.readingPane.stop();assert(!summary.hasAttribute('data-gp-recipients-unresolved') && !f.main.querySelector('.gmail-pro-recipient-status'),'OFF reveals native summary and removes status');
+    controls[0].click();await settle();assert(attempts===3,'native Details still works');
+    app.readingPane.stop();assert(showingNative(summary,original),'OFF preserves native summary');
   });
   await test('composer focus and an unrelated popup defer work until both blockers clear',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
@@ -283,9 +322,10 @@
     let toggles=0,popup;control.addEventListener('click',()=>{
       if(++toggles===1){popup=nativeDetails(f,[{kind:'To',people:people.slice(0,2)},{kind:'CC',people:[people[2]]},{kind:'BCC',people:[people[3]]}]);popup.hidden=false;}else popup.hidden=true;
     });
-    start();await settle();assert(toggles===0 && status(summary)==='View recipient details','no automatic gesture while editing');
+    const original=summary.textContent;
+    start();await settle();assert(toggles===0 && showingNative(summary,original),'no automatic gesture while editing');
     input.blur();await settle();assert(toggles===0,'unrelated dialog still blocks');
-    dialog.remove();await settle();assert(toggles===2 && !unresolved(summary),'popup removal wakes deferred work');
+    dialog.remove();await settle();assert(toggles===2 && summary.textContent.startsWith('To: '),'popup removal wakes deferred work');
   });
   await test('deferred recipient blocker ignores native cursor changes but follows real body styling',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
@@ -294,6 +334,7 @@
     const before=document.body.getAttribute('style');
     let geometryReads=0;
     const toolbarBounds=f.toolbar.getBoundingClientRect.bind(f.toolbar);
+    const original=summary.textContent;
     start();await settle();
     f.toolbar.getBoundingClientRect=()=>{geometryReads++;return toolbarBounds();};
     try {
@@ -301,7 +342,7 @@
       document.body.style.removeProperty('cursor');await settle();
       assert(geometryReads===0,'native drag cursor does not wake deferred recipient layout');
       document.body.style.paddingTop='1px';await settle();
-      assert(geometryReads>0 && unresolved(summary),'other body style changes still reconcile the blocked header');
+      assert(geometryReads>0 && showingNative(summary,original),'other body style changes still reconcile the blocked header');
     } finally {
       delete f.toolbar.getBoundingClientRect;
       if(before===null)document.body.removeAttribute('style');else document.body.setAttribute('style',before);
@@ -311,11 +352,12 @@
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
     const control=f.main.querySelector('.ajy');control.setAttribute('role','button');let toggles=0,popup;
     control.addEventListener('click',()=>{if(++toggles===1){popup=nativeDetails(f,[]);popup.hidden=false;}else popup.hidden=true;});
+    const original=summary.textContent;
     start();await settle();document.dispatchEvent(new Event('pointerdown',{bubbles:true}));await wait(1400);
-    assert(toggles===1 && !popup.hidden && status(summary)==='View recipient details','no close, retry, or focus restoration after takeover');
+    assert(toggles===1 && !popup.hidden && showingNative(summary,original),'no close, retry, or focus restoration after takeover');
     app.readingPane.stop();assert(!popup.hidden,'OFF leaves user-owned popup alone');
   });
-  await test('unrelated input does not disable recovery for an already resolved header',async()=>{
+  await test('unrelated input and popup removal preserve an already resolved header',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
     const people=[...summary.querySelectorAll('.g2')],control=f.main.querySelector('.ajy');control.setAttribute('role','button');
     let toggles=0,popup;control.addEventListener('click',()=>{
@@ -323,7 +365,7 @@
       else popup.hidden=true;
     });
     start();await settle();document.dispatchEvent(new Event('pointerdown',{bubbles:true}));popup.remove();await settle();
-    assert(toggles===4 && !unresolved(summary),'completed header retains its remaining recovery attempt');
+    assert(toggles===2 && summary.textContent.startsWith('To: '),'completed header stays resolved without another gesture');
   });
   await test('message and editor popup lookalikes neither block probing nor enter chrome observation',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();
@@ -331,7 +373,8 @@
     control.addEventListener('click',()=>toggles++);
     f.body.innerHTML='<div role="dialog"><div class="ajA">Received lookalike</div></div>';
     const editor=document.createElement('div');editor.contentEditable='true';editor.innerHTML='<div role="menu">Editor lookalike</div>';f.shell.append(editor);
-    start();await settle();assert(toggles===1 && status(summary)==='Loading recipients…','only real chrome popups block');
+    const original=summary.textContent;
+    start();await settle();assert(toggles===1 && showingNative(summary,original),'only real chrome popups block');
     let changes=0;const watch=new MutationObserver(records=>changes+=records.length);
     watch.observe(f.footer,{attributes:true});watch.observe(workspace.querySelector('.gmail-pro-message-actions'),{attributes:true,subtree:true});
     f.body.querySelector('.ajA').append(document.createElement('span'));editor.querySelector('[role=menu]').append(document.createElement('span'));
@@ -346,11 +389,11 @@
     await wait(450);assert(toggles===1,'no stale retry gesture ('+toggles+')');
     if(!stop)location.hash=route;
   });
-  await test('a header without a native Details control shows unavailable and restores exactly',async()=>{
+  await test('a header without a native Details control keeps the available recipients',async()=>{
     const f=fixture(),summary=recipients(f);f.main.querySelector('.ajA').remove();f.main.querySelector('.ajy').remove();
-    const before=summary.innerHTML;start();await settle();
-    assert(unresolved(summary) && status(summary)==='Recipient details unavailable','no inert fallback button');
-    app.readingPane.stop();assert(summary.innerHTML===before && !summary.hasAttribute('data-gp-recipients-unresolved'),'native contacts restored');
+    const original=summary.textContent,before=summary.innerHTML;start();await settle();
+    assert(showingNative(summary,original),'original summary stays visible');
+    app.readingPane.stop();assert(summary.innerHTML===before,'native contacts restored');
   });
   await test('sender and each recipient name copy the exact address with feedback, without native contact actions',async()=>{
     const f=fixture(), summary=recipients(f), writes=[]; mockClipboard(async address=>writes.push(address));
