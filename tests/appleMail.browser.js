@@ -649,6 +649,25 @@
     enable(); box.click(); assert(clicks === 1 && css(node).backgroundColor === token("--gp-accent"), "checkbox selection visible");
     box.click(); assert(clicks === 2 && css(node).backgroundColor === token("--gp-bg-primary"), "uncheck restores");
   });
+  await test("Gmail's temporary drag selection takes visual priority over the open thread", () => {
+    const nodes = selectableRows(), [opened, grabbed, unselected] = nodes;
+    const box = grabbed.querySelector('[role="checkbox"]');
+    opened.classList.add("aps");
+    row().querySelector('[role="checkbox"]').setAttribute("aria-checked", "true");
+    enable();
+    const accent = token("--gp-accent");
+    assert(css(opened).backgroundColor === accent, "checked rows in a separate list leave the open thread highlighted");
+
+    box.setAttribute("aria-checked", "true"); // Gmail checks the drag source until release.
+    assert(selectedIndices(nodes) === "1" && css(grabbed).backgroundColor === accent, "only the grabbed thread is checked and highlighted");
+    assert(opened.classList.contains("aps") && css(opened).backgroundColor === css(unselected).backgroundColor, "reading pane stays open without a second highlight");
+    assert(css(opened.querySelector(".sender")).color === css(unselected.querySelector(".sender")).color, "previous thread restores its ordinary foreground");
+    assert(getComputedStyle(opened, "::after").visibility === "visible", "previous thread restores its separator");
+    assertSelectionDots(nodes);
+
+    box.setAttribute("aria-checked", "false");
+    assert(css(opened).backgroundColor === accent && css(grabbed).backgroundColor === css(unselected).backgroundColor, "release restores the open thread's highlight");
+  });
   await test("mailbox selection follows Gmail and nesting/counts survive", () => {
     enable(); const rows = document.querySelectorAll("#sidebar .TO");
     rows[0].classList.remove("nZ"); rows[1].classList.add("nZ");
@@ -743,6 +762,17 @@
     gesture(nodes[0], {shiftKey:true}); assert(selectedIndices(nodes) === "0,1", "reverse range");
     gesture(nodes[4], {metaKey:true}); gesture(nodes[3], {metaKey:true,shiftKey:true});
     assert(selectedIndices(nodes) === "0,1,3,4", "additive range preserves disjoint selection");
+    assertSelectionDots(nodes);
+  });
+  await test("modifier selections keep every checked thread highlighted for dragging", () => {
+    const nodes = selectableRows();
+    nodes[0].classList.add("aps"); enable();
+    const accent = token("--gp-accent");
+    const highlighted = () => nodes.flatMap((node, index) => css(node).backgroundColor === accent ? [index] : []).join(",");
+    gesture(nodes[1], {ctrlKey:true}); gesture(nodes[3], {metaKey:true});
+    assert(selectedIndices(nodes) === "1,3" && highlighted() === "1,3", "disjoint selections can be dragged together without the open thread");
+    gesture(nodes[0], {shiftKey:true});
+    assert(selectedIndices(nodes) === "0,1,2,3" && highlighted() === "0,1,2,3", "the open thread highlights when the range includes it");
     assertSelectionDots(nodes);
   });
   await test("Shift-click recovers safely from missing, recycled and replaced anchors", () => {
