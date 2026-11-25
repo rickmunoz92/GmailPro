@@ -587,9 +587,16 @@
     assert(f.actions.slice(beforeFiling).every(action=>action.id==='#thread-one')&&f.second.classList.contains('zE'),'automatic-read retry cancelled before filing');
     assert(f.archives()===1,'only the filed target archived');
   });
-  await test('a shortcut registered before Apple Mail Mode safely cancels filing', async () => {
-    const f=fixture({ignoreReads:Infinity}); f.click(); await wait(100); const attempts=f.reads();
-    f.main.dispatchEvent(new KeyboardEvent('keydown',{key:'R',code:'KeyR',metaKey:true,shiftKey:true,bubbles:true,cancelable:true}));
+  for (const shortcutsFirst of [true,false]) await test('shortcuts safely cancel filing when registered '+(shortcutsFirst?'before':'after')+' Apple Mail Mode', async () => {
+    const f=fixture({ignoreReads:Infinity});
+    if (!shortcutsFirst) { app.keyboardShortcuts.stop(); app.keyboardShortcuts.start(app.settings.defaults); }
+    f.click(); await wait(100); const attempts=f.reads();
+    const key = (value, modifiers) => f.main.dispatchEvent(new KeyboardEvent('keydown',{
+      key:value,bubbles:true,cancelable:true,...modifiers
+    }));
+    key('Meta',{metaKey:true});
+    key('Shift',{metaKey:true,shiftKey:true});
+    key('R',{metaKey:true,shiftKey:true});
     await wait(400); assert(!f.archives()&&f.reads()===attempts,'no queued filing after explicit shortcut');
     assert(f.box(f.first).getAttribute('aria-checked')==='true','shortcut keeps the user command target');
   });

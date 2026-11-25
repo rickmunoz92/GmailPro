@@ -393,7 +393,8 @@
       else if (event.type === "click" && event.detail <= 1) startFiling(target);
       return;
     }
-    if (pendingFiling && (event.type === "pointerdown" || event.type === "keydown")) {
+    if (pendingFiling && (event.type === "pointerdown" ||
+        (event.type === "keydown" && !["Meta", "Shift", "Control", "Alt"].includes(key)))) {
       const selectionIntent = event.target.closest('[role="checkbox"]') ||
         ((event.shiftKey || event.ctrlKey || event.metaKey) && event.target.closest('tr[role="row"]'));
       finishFiling("", !selectionIntent);
@@ -401,9 +402,8 @@
   }
 
   function cancelFiling() { heldFilingKey = undefined; finishFiling(); clearFilingNotice(); }
-  // Existing window-capture shortcuts may have been installed before the mode
-  // was enabled. Let that owner cancel filing before resolving its own action,
-  // preserving the selected target for the user's explicit keyboard command.
+  // Window-capture shortcuts hand off here, keeping the selected target for
+  // the user's explicit keyboard command.
   function cancelFilingForShortcut(clearNotice = false) {
     heldFilingKey = undefined; finishFiling("", false);
     if (clearNotice) clearFilingNotice();
@@ -1108,7 +1108,7 @@
     for (const type of ["hashchange", "popstate"]) window.removeEventListener(type, wakeRecipientFields);
     cancelFiling();
     for (const type of filingPointerEvents) document.removeEventListener(type, filingInput, true);
-    for (const type of filingKeyEvents) window.removeEventListener(type, filingInput, true);
+    for (const type of filingKeyEvents) document.removeEventListener(type, filingInput, true);
     document.removeEventListener("visibilitychange", cancelFiling);
     for (const type of ["hashchange", "popstate", "blur"]) window.removeEventListener(type, cancelFiling);
     enabled = false;
@@ -1150,7 +1150,7 @@
     readVisit = selectedReadCandidate();
     observer = new MutationObserver(observeMutations);
     for (const type of filingPointerEvents) document.addEventListener(type, filingInput, true);
-    for (const type of filingKeyEvents) window.addEventListener(type, filingInput, true);
+    for (const type of filingKeyEvents) document.addEventListener(type, filingInput, true);
     document.addEventListener("visibilitychange", cancelFiling);
     for (const type of ["hashchange", "popstate", "blur"]) window.addEventListener(type, cancelFiling);
     document.addEventListener("click", openForRead, true);

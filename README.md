@@ -436,9 +436,10 @@ in the extension popup. Use **Save preferences** to apply changes.
   menus/dialogs, and selected conversation checkboxes block the action. Each press
   resolves the native control again; missing or ambiguous controls do nothing.
 - **Z — Undo:** activates Gmail’s native Undo link for Move to menu actions,
-  drag-to-label moves, label-click filing, archives, and Undo Send. Without a link,
-  the original Z press reaches Gmail’s own Undo shortcut; enable **Keyboard shortcuts**
-  in Gmail settings for this path. Gmail owns restoration of the previous labels
+  drag-to-label moves, label-click filing, archives, and Undo Send. If Apple Mail Mode
+  is still waiting for read confirmation before archiving, Z cancels that archive.
+  Without a link, the original Z press reaches Gmail’s own Undo shortcut. Enable
+  **Keyboard shortcuts** in Gmail settings for this path. Gmail owns restoration of the previous labels
   and Inbox state and decides which action remains undoable. Inside editable fields,
   composers, menus, and dialogs, Z stays native. ⌘Z retains normal text undo.
   Gmail Pro keeps no separate action history.

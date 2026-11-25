@@ -16,6 +16,11 @@
   };
   const preferences = [...new Set(Object.values(bindings).map(([preference]) => preference))];
   const conversationPreferences = ["expandShortcutEnabled", "replyAllShortcutEnabled", "forwardShortcutEnabled"];
+  const mailboxActionNames = {
+    archive: ["Archive"],
+    delete: ["Delete"],
+    toggleRead: ["Mark as read", "Mark as unread", "Mark unread"]
+  };
   const options = { ...app.settings.defaults };
   const held = new Set();
   const events = ["keydown", "keypress", "keyup"];
@@ -37,21 +42,28 @@
       .some(node => visible(node) && !node.querySelector(S.composeForm));
   }
 
-  function mailboxToolbar(focus) {
-    if (focus.closest(S.shortcutArchiveExcluded) || overlayOpen()) return null;
-    const mains = [...document.querySelectorAll(S.main)].filter(visible);
-    const main = one(mains);
-    if (!main || (focus !== document.body && focus !== document.documentElement && !main.contains(focus))) return null;
-    return one([...main.querySelectorAll(S.primaryToolbar)].filter(visible));
+  function mailboxBlocked(event) {
+    return [document.activeElement, event.composedPath()[0]].some(node =>
+      node instanceof Element && node.closest(S.shortcutArchiveExcluded)) || overlayOpen();
   }
 
-  function mailboxButton(action, focus) {
-    const toolbar = mailboxToolbar(focus);
+  function mailboxToolbar(focus) {
+    if (!(focus instanceof Element)) return null;
+    const main = one([...document.querySelectorAll(S.main)].filter(node => visible(node) && !node.closest(S.readingExcluded)));
+    if (!main) return null;
+    if (!main.contains(focus) && !focus.contains(main)) {
+      // Gmail may leave focus on a page-level proxy after leaving a composer.
+      if (!focus.matches('div[tabindex]:not([role]):empty') ||
+          focus.closest('header, nav, aside, [role="banner"], [role="navigation"], [role="complementary"], [role="region"], [role="main"]')) return null;
+    }
+    return one([...main.querySelectorAll(S.primaryToolbar)].filter(toolbar => visible(toolbar) && !toolbar.closest(S.readingExcluded)));
+  }
+
+  function mailboxButton(action, toolbar) {
     // Gmail exposes the action appropriate to its current read state (and
     // bulk selection). Resolve it on every press; never store a second state.
     // Match only recoverable Delete, never Gmail's Delete forever action.
-    const names = action === "toggleRead" ? ["Mark as read", "Mark as unread"] : action === "delete" ? ["Delete"] : ["Archive"];
-    return toolbar && one(buttons(toolbar).filter(button => names.includes(name(button))));
+    return toolbar && one(buttons(toolbar).filter(button => mailboxActionNames[action].includes(name(button))));
   }
 
   function sendButton(focus) {
@@ -76,8 +88,7 @@
       /^(Undo|Undo link)$/.test(name(control)) && control.textContent.trim() === "Undo"));
   }
 
-  function conversationButton(action, focus) {
-    if (focus.closest(S.shortcutArchiveExcluded) || overlayOpen()) return null;
+  function conversationButton(action) {
     const thread = app.reverseThreads?.currentConversation();
     const shell = thread?.heading.closest(S.readingShell), main = shell?.closest(S.main);
     // Gmail may keep keyboard focus in its page-level proxy after closing a
@@ -119,70 +130,71 @@
   }
 
   function reset() { held.clear(); }
-  function keyboard(event) {
-    const key = event.key.toLowerCase();
-    // macOS can release Command before delivering the letter's keyup, or omit
-    // that keyup. Release latches on modifier release and loss of focus as well.
-    if (event.type === "keyup" && (key === "meta" || key === "shift")) reset();
-    const deleteKey = key === "backspace" || key === "delete";
-    const plainDelete = deleteKey && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
-    const undoKey = key === "z" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
-    const binding = undoKey ? bindings.z : deleteKey ? (plainDelete && bindings[key]) :
-      key !== "z" && event.metaKey && !event.ctrlKey && !event.altKey && bindings[(event.shiftKey ? "shift+" : "") + key];
-    if (event.type === "keydown" && !binding) held.delete(key);
-    const reserved = binding && options[binding[0]];
-    const companion = event.type !== "keydown" && held.has(key);
-    if ((!reserved && !companion) || event.isComposing || !event.cancelable) return;
-    const focus = document.activeElement;
-    // Text editing owns Delete and Z throughout a composer, menu, or
-    // dialog. Leave every event untouched, even if focus changed after keydown.
-    if ((deleteKey || key === "z") && (!(focus instanceof Element) || focus.closest(S.shortcutArchiveExcluded) || overlayOpen())) {
-      held.delete(key);
-      return;
-    }
-    // Plain Delete applies only in the mailbox, never an outside field or a
-    // received-message/editor lookalike that differs from the active element.
-    if (deleteKey && (!mailboxToolbar(focus) ||
-        (event.target instanceof Element && event.target.closest(S.shortcutArchiveExcluded)))) {
-      held.delete(key);
-      return;
-    }
-    const undoTarget = undoKey ? undoButton() : null;
-    const continuingUndo = key === "z" && held.has(key) && (event.type !== "keydown" || event.repeat);
-    // Gmail's undo history can outlive its notification. Let the original Z
-    // gesture reach Gmail when no usable link exists; never synthesize another key.
-    // A press already bridged to a link still owns its repeats and companions.
-    if (undoKey && !undoTarget && !continuingUndo) {
-      if (event.type === "keydown") {
-        held.delete(key);
-        if (!event.repeat && !event.defaultPrevented && mailboxToolbar(focus)) app.readingPane?.cancelFilingForShortcut?.(true);
-      }
-      return;
-    }
-    const prevented = event.defaultPrevented;
-    // Reserve enabled chords even without an actionable target. In particular,
-    // failed Send discovery must never fall through to Gmail's Discard shortcut.
+  function consume(event) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (event.type === "keyup") { held.delete(key); return; }
-    // Native macOS may omit every release event for a Command chord. A fresh
-    // non-repeating keydown is the next physical press, even without keyup.
-    if (event.type !== "keydown" || event.repeat) return;
+  }
+
+  function keyboard(event) {
+    const key = event.key.toLowerCase();
+    const deleteKey = key === "backspace" || key === "delete";
+    const plainKey = deleteKey || key === "z";
+    const binding = !event.ctrlKey && !event.altKey && (plainKey ?
+      !event.metaKey && !event.shiftKey && bindings[key] : event.metaKey && event.shiftKey && bindings["shift+" + key]);
+    const down = event.type === "keydown";
+    const fresh = down && !event.repeat;
+    const claimed = held.has(key);
+    // macOS can omit the letter's keyup. The next fresh down decides again.
+    if (fresh || event.type === "keyup" || (down && !binding)) held.delete(key);
+    if (event.isComposing || !event.cancelable) return;
+    if (!fresh) {
+      if (claimed && (!down || binding) && (!plainKey || !mailboxBlocked(event))) consume(event);
+      return;
+    }
+    if (!binding || !options[binding[0]]) return;
+
+    const action = binding[1];
+    const focus = document.activeElement;
+    const blocked = action !== "send" && mailboxBlocked(event);
+    const prevented = event.defaultPrevented;
+
+    if (action === "undo") {
+      if (blocked || prevented) return;
+      const canceledArchive = app.archiveRead?.cancelPendingForUndo?.();
+      const target = canceledArchive ? null : undoButton();
+      if (canceledArchive || target || mailboxToolbar(focus)) app.readingPane?.cancelFilingForShortcut?.(true);
+      // Gmail can still own Undo without a toast. Pass the entire original
+      // gesture through, even if a toast appears after keydown.
+      if (!canceledArchive && !target) return;
+      consume(event);
+      held.add(key);
+      activate(target);
+      return;
+    }
+
+    const mailboxAction = Object.hasOwn(mailboxActionNames, action);
+    const toolbar = mailboxAction && !blocked ? mailboxToolbar(focus) : null;
+    if (deleteKey && !toolbar) return;
+    // Reserve enabled chords even without an actionable target. In particular,
+    // failed Send discovery must never fall through to Gmail's Discard shortcut.
+    consume(event);
     held.add(key);
     if (prevented) return;
-    if (!(focus instanceof Element)) return;
     app.readingPane?.cancelFilingForShortcut?.();
-    const action = binding[1];
-    if (action !== "archive") app.archiveRead?.cancel();
-    const target = action === "archive" || action === "toggleRead" || action === "delete" ? mailboxButton(action, focus) : action === "send" ? sendButton(focus) :
-      action === "undo" ? undoTarget : conversationButton(action, focus);
+    let target;
+    if (!blocked && focus instanceof Element) {
+      if (mailboxAction) target = mailboxButton(action, toolbar);
+      else if (action === "send") target = sendButton(focus);
+      else target = conversationButton(action);
+    }
+    if (action !== "archive" || !target) app.archiveRead?.cancel?.();
     activate(target); // One native gesture, synchronously; no queued send or retry.
   }
 
   function stop() {
     unsubscribeConversation?.(); unsubscribeConversation = undefined;
     for (const type of events) window.removeEventListener(type, keyboard, true);
-    window.removeEventListener("blur", reset, true);
+    window.removeEventListener("blur", reset);
     reset(); running = false;
   }
   function update(patch = {}) {
@@ -195,7 +207,7 @@
     } else { unsubscribeConversation?.(); unsubscribeConversation = undefined; }
     if (running) return;
     for (const type of events) window.addEventListener(type, keyboard, listenerOptions);
-    window.addEventListener("blur", reset, true);
+    window.addEventListener("blur", reset);
     running = true;
   }
   app.keyboardShortcuts = Object.freeze({ start: update, update, stop });

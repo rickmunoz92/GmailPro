@@ -103,11 +103,13 @@
     nativeActionButton: 'button, [role="button"]',
     // Native Undo toast, verified in desktop Gmail. Send uses role=alert;
     // Archive/Move use role=link. Resolve the native ID within its structured
-    // notification boundary and let the caller check availability.
-    nativeUndo: '.b8[role="alert"] > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"]',
+    // notification boundary. Gmail can park an idle notice offscreen with
+    // its old link still attached.
+    nativeUndo: '.b8[role="alert"]:not([style*="-10000"]) > .J-J5-Ji > .vh > .aT > .bAo > [id="link_undo"]',
     nativeNotice: '.b8[role="alert"]',
     nativeNoticeMessage: ':scope > .J-J5-Ji > .vh:not(.inboxsdk__butterbar) > .aT > .bAq',
-    shortcutArchiveExcluded: 'input, textarea, select, [contenteditable], [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="region"], [role="dialog"], [role="menu"], [data-gmail-pro-label-ui]',
+    // An ordinary reading region can hold focus. A compose region owns its keys.
+    shortcutArchiveExcluded: 'input, textarea, select, [contenteditable], [role="textbox"], [role="combobox"], [role="search"], [role="searchbox"], [role="region"]:has(form input[name="composeid"]):not(:has([role="main"])), [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-gmail-pro-label-ui]',
     primaryToolbar: '[gh="tm"] [gh="mtb"]',
     // Automatic read uses the opened native split-pane row and both IDs;
     // never infer a conversation from its subject, focus, or checkbox alone.

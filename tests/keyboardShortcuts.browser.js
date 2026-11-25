@@ -110,6 +110,34 @@
     for(const selected of [0,1,3]){workspace.dataset.selected=String(selected);const original=workspace.innerHTML;press('a');assert(workspace.innerHTML===original,'selection DOM untouched');}
     assert(archived===3&&sent===0&&discarded===0,'one archive per press');
   });
+  await test('mailbox commands work when Gmail leaves focus on its page-level proxy',()=>{
+    const read=readToggle(), trash=deleteControl(), proxy=document.createElement('div');
+    proxy.tabIndex=-1;workspace.after(proxy);proxy.focus();
+    try {
+      press('a');press('u');deletePress();
+      assert(archived===1&&read.actions.join(',')==='unread'&&trash.actions===1,'native toolbar stays actionable');
+    } finally {proxy.remove();}
+  });
+  await test('a neutral reading region supports mailbox keys while a composer region owns its keys',()=>{
+    const region=document.createElement('section');region.setAttribute('role','region');region.tabIndex=-1;
+    workspace.append(region);region.focus();undoNotice();
+    press('a');undo();
+    assert(archived===1&&undone===1,'mailbox region is actionable');
+    draft({role:'region'}).querySelector('.send').focus();
+    press('a');assert(!undo().defaultPrevented&&archived===1&&undone===1,'composer controls retain their own keys');
+  });
+  await test('mailbox shortcuts respect the editing origin as well as document focus',()=>{
+    const host=workspace.appendChild(document.createElement('div'));
+    const editor=host.attachShadow({mode:'open'}).appendChild(document.createElement('textarea'));
+    editor.focus();
+    const read=readToggle();undoNotice();
+    assert(document.activeElement===host,'Chrome retargets the editor to its host');
+    const chord={metaKey:true,shiftKey:true};
+    for(const [key,modifiers] of [['A',chord],['U',chord],['Backspace',{}],['z',{}]]) {
+      editor.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,composed:true,cancelable:true,...modifiers}));
+    }
+    assert(!archived&&!undone&&!read.actions.length,'typing inside a shadow editor stays local');
+  });
   for(const value of ['Backspace','Delete']) {
     await test(value+' delegates one native Trash gesture for open and bulk conversations',()=>{
       const f=deleteControl();
@@ -236,6 +264,10 @@
     assert(f.actions.join(',')===(unread?'read,unread':'unread,read'),'fresh native state on each press');
     assert(!archived&&!sent&&!discarded,'only read status changes');
   });
+  await test('read toggle accepts Gmail’s alternate Mark unread label',()=>{
+    const f=readToggle();f.button.setAttribute('aria-label','Mark unread');press('u');
+    assert(f.actions.join(',')==='unread','native unread action fires');
+  });
   await test('read toggle suppresses native fallthrough and held-key repeats',()=>{
     const f=readToggle();let native=0;const fallback=e=>{if(e.key.toLowerCase()==='u')native++;};
     for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,fallback);
@@ -360,6 +392,25 @@
         {type:'keyup',key:'z',code:'KeyZ',which:90,charCode:0}]),'complete unmodified native keyboard gesture');
     } finally {for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,native);}
   });
+  await test('Z stays native for the whole press if the toast appears after keydown',()=>{
+    const phases=[], native=event=>{if(event.key==='z')phases.push(event.type);};
+    for(const type of ['keydown','keypress','keyup'])document.addEventListener(type,native);
+    try {
+      undoKey();undoNotice();undoKey('keydown',{repeat:true});undoKey('keypress');undoKey('keyup');
+      assert(phases.join(',')==='keydown,keydown,keypress,keyup'&&!undone,'original gesture reaches Gmail');
+      undo();assert(phases.length===4&&undone===1,'next press bridges the available button');
+    } finally {for(const type of ['keydown','keypress','keyup'])document.removeEventListener(type,native);}
+  });
+  await test('bridged Z consumes companions after Undo moves focus and a modifier is released',()=>{
+    const toast=undoNotice();
+    const next=workspace.appendChild(document.createElement('button'));next.textContent='Next conversation';
+    toast.querySelector('#link_undo').onclick=()=>{undone++;toast.remove();next.focus();};
+    undoKey();
+    assert(undoKey('keydown',{repeat:true}).defaultPrevented,'element blur preserves the press');
+    key('Shift','keyup',{key:'Shift',metaKey:false,shiftKey:false});
+    assert(undoKey('keypress').defaultPrevented&&undoKey('keyup').defaultPrevented,'modifier release preserves the gesture');
+    assert(undone===1&&!undo().defaultPrevented,'one activation and the next press reaches Gmail');
+  });
   await test('native Undo pass-through preserves editing boundaries and prefers visible links',()=>{
     const native=event=>{if(event.type==='keypress'&&event.key==='z'&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey&&!event.target.closest(app.selectors.shortcutArchiveExcluded))undone++;};
     document.addEventListener('keypress',native);
@@ -394,6 +445,12 @@
     control.setAttribute('aria-disabled','true');undo();control.removeAttribute('aria-disabled');
     const duplicate=undoNotice();undo();duplicate.remove();
     toast.remove();undo();assert(!undone,'unavailable controls untouched');
+  });
+  await test('Undo ignores Gmail’s parked notice even when its link is still in the DOM',()=>{
+    const expired=undoNotice();expired.style.cssText='position:absolute;top:-10000px';
+    expired.querySelector('#link_undo').onclick=()=>undone+=100;
+    assert(!undo().defaultPrevented&&!undone,'idle notice leaves the original key to Gmail');
+    undoNotice();assert(undo().defaultPrevented&&undone===1,'only the active notice is actionable');
   });
   await test('Undo rejects authored, third-party and unrelated lookalikes',()=>{
     for(const wrapper of ['.ii','.a3s','[contenteditable]','.inboxsdk__butterbar','[data-inboxsdk-id]']) {

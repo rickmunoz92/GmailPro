@@ -18,6 +18,10 @@
     for (const type of ['pointerdown', 'mousedown', 'mouseup', 'click']) node.dispatchEvent(new MouseEvent(type,
       { bubbles:true, cancelable:true, button:0, buttons:/down$/.test(type)?1:0, detail:1, ...modifiers }));
   }
+  function press(node, key, modifiers = {}) {
+    for (const type of ['keydown', 'keypress', 'keyup']) node.dispatchEvent(new KeyboardEvent(type,
+      { key, bubbles:true, cancelable:true, ...modifiers }));
+  }
   function fixture({ selected = [0], unread = [0], delay = 0, ignoreRead = false, enabled = true, open = false, integrated = false } = {}) {
     stop(); history.replaceState(null, '', '#inbox'); workspace.innerHTML = '<main role="main"><div gh="tm"><div gh="mtb"><button aria-label="Archive">Archive</button><button aria-label="Mark as read">Read</button><button aria-label="Mark as unread">Unread</button><button aria-label="Delete">Delete</button></div></div><div class="Nu tf"></div><div class="Nu S3"></div></main>';
     const main = workspace.querySelector('main'), list = main.querySelector('.tf');
@@ -149,8 +153,35 @@
   await test('Command Shift A uses the same read-before-archive operation',async()=>{
     if(!/mac/i.test(navigator.platform)) return;
     const f=fixture();document.body.tabIndex=-1;document.body.focus();
-    for(const type of ['keydown','keypress','keyup']) document.body.dispatchEvent(new KeyboardEvent(type,{key:'A',metaKey:true,shiftKey:true,bubbles:true,cancelable:true}));
+    press(document.body,'A',{metaKey:true,shiftKey:true});
     await wait(80);assert(f.calls.length===2 && f.calls[1].allRead,'shortcut shares pipeline');
+  });
+  await test('held and repeated Archive chords keep one pending read-first Archive',async()=>{
+    if(!/mac/i.test(navigator.platform)) return;
+    const f=fixture({delay:180}), chord={metaKey:true,shiftKey:true};
+    f.main.tabIndex=-1;f.main.focus();
+    f.main.dispatchEvent(new KeyboardEvent('keydown',{key:'A',bubbles:true,cancelable:true,...chord}));
+    f.main.dispatchEvent(new KeyboardEvent('keydown',{key:'A',repeat:true,bubbles:true,cancelable:true,...chord}));
+    f.main.dispatchEvent(new KeyboardEvent('keyup',{key:'A',bubbles:true,cancelable:true,...chord}));
+    f.main.dispatchEvent(new KeyboardEvent('keydown',{key:'Meta',metaKey:true,bubbles:true,cancelable:true}));
+    f.main.dispatchEvent(new KeyboardEvent('keydown',{key:'Shift',bubbles:true,cancelable:true,...chord}));
+    press(f.main,'A',chord);
+    assert(f.calls.length===1,'one read request while confirmation is pending');
+    await wait(250);
+    assert(f.calls.length===2&&f.calls[1].allRead,'one Archive after confirmation');
+    press(f.main,'z');assert(f.rows[0].isConnected&&f.rows[0].classList.contains('yO'),'Z restores the archived thread');
+  });
+  await test('Z during read-first Archive cancels it without undoing the previous Gmail action',async()=>{
+    if(!/mac/i.test(navigator.platform)) return;
+    const f=fixture({delay:180});
+    f.store([f.rows[1]]);
+    f.main.tabIndex=-1;f.main.focus();
+    press(f.main,'A',{metaKey:true,shiftKey:true});
+    press(f.main,'z');
+    await wait(250);
+    assert(f.rows[0].isConnected&&f.calls.length===2,'pending Archive was canceled');
+    assert(!f.rows[1].isConnected,'an older Undo was not activated');
+    press(f.main,'z');assert(f.rows[1].isConnected,'a separate press can undo the older action');
   });
   await test('keyboard activation of Archive marks read first',async()=>{
     const f=fixture();f.archive.focus();

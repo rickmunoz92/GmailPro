@@ -80,6 +80,13 @@
       (current.mode !== 'open' || current.targets[0].classList.contains('aps'));
   }
 
+  function cancelPendingForUndo() {
+    if (!pending) return false;
+    const current = valid(pending);
+    interrupt();
+    return current;
+  }
+
   function nativeGesture(target, guard) {
     forwarding = true;
     try {
@@ -154,13 +161,14 @@
       else gesture = { target, current };
       return;
     }
-    if (event.type === 'pointerdown' || event.type === 'keydown') interrupt();
+    if (event.type === 'pointerdown' ||
+        (event.type === 'keydown' && !['Meta', 'Shift', 'Control', 'Alt'].includes(event.key))) interrupt();
   }
 
   function stop() {
     enabled = false; interrupt();
     for (const type of pointerEvents) window.removeEventListener(type, input, true);
-    for (const type of keyEvents) window.removeEventListener(type, input, true);
+    for (const type of keyEvents) document.removeEventListener(type, input, true);
     for (const type of ['hashchange', 'popstate', 'blur', 'pagehide']) window.removeEventListener(type, interrupt);
     document.removeEventListener('visibilitychange', interrupt);
   }
@@ -170,9 +178,11 @@
     if (enabled) return;
     enabled = true;
     for (const type of pointerEvents) window.addEventListener(type, input, { capture: true, passive: false });
-    for (const type of keyEvents) window.addEventListener(type, input, { capture: true, passive: false });
+    // Window capture owns Gmail Pro's chords. Only native key input needs
+    // this handler, so held Archive presses cannot interrupt a pending read.
+    for (const type of keyEvents) document.addEventListener(type, input, { capture: true, passive: false });
     for (const type of ['hashchange', 'popstate', 'blur', 'pagehide']) window.addEventListener(type, interrupt);
     document.addEventListener('visibilitychange', interrupt);
   }
-  app.archiveRead = Object.freeze({ start: update, update, stop, cancel });
+  app.archiveRead = Object.freeze({ start: update, update, stop, cancel: interrupt, cancelPendingForUndo });
 })();
