@@ -20,7 +20,7 @@
   let settings = { ...app.settings.defaults };
   let discovery;
   let main;
-  let headerOwner = null;
+  let focusOwner = null;
   // Focus can precede Gmail's addressing form. These short-lived watches belong
   // to this recipient owner; they neither control nor wait for a pop-out.
   const incompleteHosts = new Map(), watchedHosts = new WeakSet();
@@ -60,12 +60,59 @@
     return [...state.form.querySelectorAll(S.bccInput)].some(input => chipAddresses(input).includes(state.address));
   }
 
+  function recipientSummary(form) {
+    const summaries = [...form.querySelectorAll(S.summary)]
+      .filter(node => visible(node) && node.querySelector(S.summaryRecipient));
+    return summaries.length === 1 ? summaries[0] : null;
+  }
+
+  function observeRemoval(state) {
+    state.observer.disconnect();
+    state.observer.observe(state.form, { childList: true, subtree: true, attributes: true,
+      attributeFilter: ["data-hovercard-id", "email"] });
+  }
+
+  function releaseHeaderLayout(state) {
+    const restore = state.restoreLayout;
+    if (!restore) return;
+    state.restoreLayout = null;
+    restore();
+    if (state.status === "inserted" && active.get(state.form) === state) observeRemoval(state);
+  }
+
+  function holdHeaderLayout(state) {
+    const { form } = state;
+    if (form.querySelector(S.editor) || inputs(form).some(visible)) return;
+    const height = getComputedStyle(form).height;
+    if (!(parseFloat(height) > 0)) return;
+
+    // Native rows remain focusable for insertion, but their extra height
+    // stays inside the compact header until Gmail collapses them again.
+    const style = form.style;
+    const properties = [["height", height], ["overflow-x", "clip"], ["overflow-y", "clip"]];
+    const previous = properties.map(([property]) => [style.getPropertyValue(property), style.getPropertyPriority(property)]);
+    for (const [property, value] of properties) style.setProperty(property, value);
+    const deadline = setTimeout(() => releaseHeaderLayout(state), 1500);
+    state.restoreLayout = () => {
+      clearTimeout(deadline);
+      for (const [index, [property, value]] of properties.entries()) {
+        if (style.getPropertyValue(property) === value && !style.getPropertyPriority(property)) {
+          style.setProperty(property, ...previous[index]);
+        }
+      }
+    };
+  }
+
+  function releaseIfCompact(state) {
+    if (!inputs(state.form).some(visible) && recipientSummary(state.form)) releaseHeaderLayout(state);
+  }
+
   function release(state) {
-    clearTimeout(state.timer);
     clearTimeout(state.deadline);
     state.observer?.disconnect();
     state.form.removeEventListener("input", state.onInput);
     active.delete(state.form);
+    releaseHeaderLayout(state);
     restoreHeaderFocus(state);
   }
 
@@ -76,13 +123,18 @@
 
   function captureFocus() {
     const previous = document.activeElement;
+    const inputSelection = previous instanceof HTMLInputElement && previous.selectionStart !== null
+      ? [previous.selectionStart, previous.selectionEnd, previous.selectionDirection]
+      : null;
     const selection = document.getSelection();
     const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
     return {
       restore() {
         if (previous?.isConnected && document.activeElement !== previous) {
           previous.focus({ preventScroll: true });
-          if (range?.startContainer.isConnected && range.endContainer.isConnected) {
+          if (inputSelection && document.activeElement === previous && previous.selectionStart !== null) {
+            previous.setSelectionRange(...inputSelection);
+          } else if (range?.startContainer.isConnected && range.endContainer.isConnected) {
             selection.removeAllRanges();
             selection.addRange(range);
           }
@@ -91,34 +143,44 @@
     };
   }
 
-  function preserveFocus(action) {
-    const focus = captureFocus();
-    try { action(); } finally { focus.restore(); }
-  }
-
   function restoreHeaderFocus(state) {
     const focus = state.headerFocus;
     state.headerFocus = null;
-    const ownedHeader = headerOwner === state;
-    if (ownedHeader) headerOwner = null;
+    const ownedFocus = focusOwner === state;
+    if (ownedFocus) focusOwner = null;
     // A reply header activates on focus, with recipient rendering deferred by
     // Gmail. Restore only while focus is still in our addressing form, and only
     // if no real keyboard/pointer interaction has superseded this saved caret.
-    if (focus && state.form.contains(document.activeElement)) focus.restore();
-    if (ownedHeader) {
-      // Two inline forms can arrive in one mutation batch. Focus-dependent
-      // expansion must finish before another header takes that focus away.
+    const focused = document.activeElement;
+    if (focus && (state.form.contains(focused) || focused === document.body)) focus.restore();
+    if (ownedFocus) {
+      // Drafts can become ready in the same mutation batch. Finish this
+      // focus handoff before another draft starts its own.
       for (const pending of active.values()) if (pending.status === "pending") schedule(pending);
+    }
+  }
+
+  function holdHeaderFocus(state) {
+    focusOwner = state;
+    const focused = document.activeElement;
+    // Gmail may finish its initial editor autofocus after we expand a reply.
+    if (!state.headerFocus || (focused?.matches(S.editor) && state.form.closest(S.region)?.contains(focused))) {
+      state.headerFocus = captureFocus();
     }
   }
 
   function onUserInteraction(event) {
     if (!event.isTrusted) return;
-    for (const state of active.values()) state.headerFocus = null;
+    const form = event.target.closest?.(S.form);
+    const state = active.get(form);
+    if (state?.restoreLayout) releaseHeaderLayout(state);
+    if (!focusOwner) return;
+    focusOwner.headerFocus = null;
+    restoreHeaderFocus(focusOwner);
   }
 
   function step(state) {
-    state.timer = null;
+    state.scheduled = false;
     if (!running || !state.form.isConnected) return finish(state, "closed");
     if (!state.identity) {
       const identity = state.form.closest(S.region)?.getAttribute("data-compose-id");
@@ -131,16 +193,13 @@
       if (!bccCommitted(state)) {
         app.debug.log("bcc-user-removal");
         finish(state, "removed");
+      } else if (state.restoreLayout) {
+        releaseIfCompact(state);
       }
       return;
     }
     if (!settings.autoBccEnabled || normalizeAddress(settings.bccAddress) !== state.address) {
       return finish(state, "cancelled");
-    }
-    // Programmatic focus in a different compose can supersede this operation
-    // too (without a trusted pointer/key event). Check before taking BCC focus.
-    if (state.headerFocus && !state.form.closest(S.region)?.contains(document.activeElement)) {
-      state.headerFocus = null;
     }
     try {
       if (state.attempted) {
@@ -148,67 +207,64 @@
           state.status = "inserted";
           remember(state);
           clearTimeout(state.deadline);
-          state.observer.disconnect();
-          state.observer.observe(state.form, { childList: true, subtree: true, attributes: true,
-            attributeFilter: ["data-hovercard-id", "email"] });
-          // Only recipient changes remain observed, solely to recognize removal.
+          if (state.restoreLayout) releaseIfCompact(state);
+          else observeRemoval(state);
         }
         return; // Never retry an attempted insertion, even if Gmail rejects it.
       }
-      if (!inputs(state.form).length) return;
+      const recipientInputs = inputs(state.form);
+      if (!recipientInputs.length) {
+        if (state.revealed) restoreHeaderFocus(state);
+        return;
+      }
       if (hasRecipient(state.form, state.address)) {
         app.debug.log("bcc-already-present");
         return finish(state, "present");
       }
+      if (focusOwner && focusOwner !== state) return;
       const bcc = [...state.form.querySelectorAll(S.bccInput)].filter(visible);
       if (bcc.length > 1) return finish(state, "ambiguous");
       if (bcc.length === 1) {
-        if (bcc[0].value.trim()) return; // Do not overwrite uncommitted user text.
+        // Do not overwrite uncommitted user text or hold focus while waiting for it.
+        if (bcc[0].value.trim()) return restoreHeaderFocus(state);
+        holdHeaderFocus(state);
         state.attempted = true; // Set BEFORE Gmail can synchronously mutate the DOM.
         remember(state);
         app.debug.log("bcc-insertion-attempted");
-        preserveFocus(() => {
-          bcc[0].focus({ preventScroll: true });
-          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-          setter.call(bcc[0], state.address);
-          bcc[0].dispatchEvent(new Event("input", { bubbles: true }));
-          for (const type of ["keydown", "keyup"]) {
-            bcc[0].dispatchEvent(new KeyboardEvent(type, {
-              key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true
-            }));
-          }
-        });
+        if (document.activeElement !== bcc[0]) bcc[0].focus({ preventScroll: true });
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+        setter.call(bcc[0], state.address);
+        bcc[0].dispatchEvent(new Event("input", { bubbles: true }));
+        for (const type of ["keydown", "keyup"]) {
+          bcc[0].dispatchEvent(new KeyboardEvent(type, {
+            key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true
+          }));
+        }
         restoreHeaderFocus(state);
         schedule(state);
         return;
       }
       const reveal = [...state.form.querySelectorAll(S.addBcc)].filter(visible);
-      if (reveal.length === 1 && !state.revealed) {
+      if (reveal.length === 1 && !state.revealed && recipientInputs.some(visible)) {
+        holdHeaderFocus(state);
         state.revealed = true;
-        if (state.headerFocus) {
-          // Gmail may finish its initial editor autofocus after we activate the
-          // header. Keep that editor as the return target, then retain BCC focus
-          // through insertion: restoring the editor between these steps hides BCC.
-          const focused = document.activeElement;
-          if (focused.matches(S.editor) && state.form.closest(S.region)?.contains(focused)) {
-            state.headerFocus = captureFocus();
-          }
-          reveal[0].click();
-        } else {
-          preserveFocus(() => reveal[0].click());
-        }
+        // Keep the same return caret through both reveal and commit.
+        reveal[0].click();
         schedule(state);
         return;
       }
-      const summaries = [...state.form.querySelectorAll(S.summary)]
-        .filter(node => visible(node) && node.querySelector(S.summaryRecipient));
-      if (summaries.length === 1 && !state.expanded) {
-        if (headerOwner && headerOwner !== state) return;
-        headerOwner = state;
+      if (state.revealed) {
+        // Gmail can render BCC later. Return focus now and let the observer
+        // resume insertion when the input arrives.
+        return restoreHeaderFocus(state);
+      }
+      const summary = !state.expanded && recipientSummary(state.form);
+      if (summary) {
+        holdHeaderFocus(state);
+        holdHeaderLayout(state);
         state.expanded = true;
-        state.headerFocus = captureFocus();
-        summaries[0].focus({ preventScroll: true });
-        summaries[0].click();
+        summary.focus({ preventScroll: true });
+        summary.click();
         schedule(state);
       }
     } catch {
@@ -218,20 +274,13 @@
   }
 
   function schedule(state) {
-    if (state.timer || !active.has(state.form)) return;
-    // Let a new compose settle before touching focus. Once we open its header,
-    // drain ready recipient work before the next paint instead of displaying
-    // each intermediate To/CC/BCC layout for another 80 ms. Gmail's deferred
-    // rendering still resumes through the form observer; this is not polling.
-    if (state.expanded || state.revealed || state.attempted) {
-      const pending = {};
-      state.timer = pending;
-      queueMicrotask(() => {
-        if (state.timer === pending && active.has(state.form)) step(state);
-      });
-    } else {
-      state.timer = setTimeout(() => step(state), 80);
-    }
+    if (state.scheduled || active.get(state.form) !== state) return;
+    // Finish ready controls before paint. The form observer resumes work if
+    // Gmail creates the recipient UI in a later task.
+    state.scheduled = true;
+    queueMicrotask(() => {
+      if (active.get(state.form) === state) step(state);
+    });
   }
 
   function discover(form) {
@@ -327,6 +376,11 @@
 
   function onFocus(event) {
     cleanupDetached();
+    if (focusOwner && !focusOwner.form.contains(event.target) &&
+        !focusOwner.form.closest(S.region)?.contains(event.target)) {
+      focusOwner.headerFocus = null;
+      restoreHeaderFocus(focusOwner);
+    }
     // Gmail may finish building its shell after document_idle. Recover the main
     // pane on the next focus event without a broad startup observer or polling.
     if (!main?.isConnected) {

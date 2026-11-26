@@ -10,13 +10,15 @@
   const result = document.getElementById("results");
   const log = [];
   const settle = () => new Promise(resolve => setTimeout(resolve, 360));
+  const bodyOffset = ({ form, editor }) => editor.getBoundingClientRect().top - form.getBoundingClientRect().top;
   function assert(condition, message) { if (!condition) throw new Error(message); }
   function element(tag, attributes = {}) {
     const node = document.createElement(tag);
     for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
     return node;
   }
-  function compose({ mode = "new", initial = {}, floating = false, delayed = false, reject = false, focus = true, identity, onExpand } = {}) {
+  function compose({ mode = "new", initial = {}, floating = false, delayed = false, deferReveal = false,
+    deferCompaction = false, reject = false, focus = true, identity, onExpand } = {}) {
     const region = element("section", { role: "region" });
     if (identity) region.setAttribute("data-compose-id", identity);
     const form = element("form");
@@ -26,6 +28,7 @@
     const fields = element("div");
     const summary = element("div", { tabindex: "1" });
     const summaryChip = element("span", { "data-hovercard-id": "sender@example.com" });
+    summaryChip.textContent = "Sender";
     summary.append(summaryChip);
     let attempts = 0;
     let reveals = 0;
@@ -57,8 +60,19 @@
     rows.BCC.hidden = !initial.BCC;
     const reveal = element("span", { role: "link", "aria-label": "Add Bcc recipients" });
     reveal.textContent = "Bcc";
+    function showBcc() {
+      rows.BCC.hidden = false;
+      reveal.hidden = true;
+    }
     reveal.addEventListener("click", () => {
-      reveals++; rows.BCC.hidden = false; reveal.hidden = true; boxes.BCC.focus();
+      reveals++;
+      if (deferReveal) {
+        reveal.tabIndex = -1;
+        reveal.focus();
+        return;
+      }
+      showBcc();
+      boxes.BCC.focus();
     });
     fields.append(reveal);
     // Live Gmail's inline header needs focus; .click() alone does nothing.
@@ -76,8 +90,12 @@
       }, 0);
     });
     const inline = mode !== "new";
+    function compactRecipients() {
+      fields.hidden = true;
+      summary.hidden = false;
+    }
     editor.addEventListener("focus", () => {
-      if (inline && !rows.BCC.hidden) { fields.hidden = true; summary.hidden = false; }
+      if (inline && !rows.BCC.hidden && !deferCompaction) compactRecipients();
     });
     fields.hidden = inline;
     summary.hidden = !inline;
@@ -85,7 +103,7 @@
     region.append(form, editor);
     document.getElementById(floating ? "floating" : "workspace").append(region);
     if (focus) (inline ? editor : boxes.To).focus();
-    return { form, region, editor, boxes, fields, addChip,
+    return { form, region, editor, boxes, fields, addChip, showBcc, compactRecipients,
       get attempts() { return attempts; }, get reveals() { return reveals; }, get expansions() { return expansions; },
       chips: () => [...rows.BCC.querySelectorAll('[role="option"]')],
       close: () => region.remove() };
@@ -111,6 +129,16 @@
       assert(document.activeElement === (mode === "new" ? draft.boxes.To : draft.editor), "focus restored");
     });
   }
+  await test("ready New Compose adds BCC before paint and returns directly to To", async () => {
+    const draft = compose({ floating: true });
+    const focusChanges = [];
+    draft.form.addEventListener("focusin", event => focusChanges.push(event.target));
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(draft.chips().length === 1, "BCC committed in the initial microtasks");
+    assert(focusChanges.length === 2 && focusChanges[0] === draft.boxes.BCC && focusChanges[1] === draft.boxes.To,
+      "one visit to BCC and one return to To");
+  });
   await test("reply recipient setup finishes before an intermediate header paints", async () => {
     const draft = compose({ mode: "reply" });
     let sampledFrames = 0;
@@ -118,7 +146,7 @@
     let frame;
     const sample = () => {
       sampledFrames++;
-      if (!draft.fields.hidden && !draft.chips().length) intermediateFrames++;
+      if (!draft.fields.hidden) intermediateFrames++;
       frame = requestAnimationFrame(sample);
     };
     frame = requestAnimationFrame(sample);
@@ -126,9 +154,51 @@
       await settle();
       assert(draft.chips().length === 1, "BCC committed");
       assert(sampledFrames > 0, "browser rendered frames during setup");
-      assert(intermediateFrames === 0, "no expanded-but-unfinished header frames");
+      assert(intermediateFrames === 0, "no expanded header frames");
       assert(draft.fields.hidden && document.activeElement === draft.editor, "compact header and editor focus restored");
     } finally { cancelAnimationFrame(frame); }
+  });
+  await test("deferred BCC reveal releases the reply caret until the native input is ready", async () => {
+    const draft = compose({ mode: "reply all", floating: true, deferReveal: true });
+    const editorTop = bodyOffset(draft);
+    const selection = document.getSelection();
+    selection.collapse(draft.editor.firstChild, 3);
+    await settle();
+    assert(draft.reveals === 1 && draft.attempts === 0, "waiting for the native BCC row");
+    assert(document.activeElement === draft.editor && selection.focusOffset === 3, "body ready for typing");
+    assert(bodyOffset(draft) === editorTop, "reply body stays put while waiting");
+    selection.collapse(draft.editor.firstChild, 7);
+    draft.showBcc();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(draft.attempts === 1 && draft.chips().length === 1, "resumes on the native row mutation");
+    assert(document.activeElement === draft.editor && selection.focusOffset === 7, "latest caret preserved");
+  });
+  await test("a committed BCC keeps the reply body still while Gmail finishes collapsing", async () => {
+    const draft = compose({ mode: "reply all", floating: true, initial: { CC: ["cc@example.com"] }, deferCompaction: true });
+    draft.form.style.setProperty("height", "auto", "important");
+    const editorTop = bodyOffset(draft);
+    await settle();
+    assert(draft.chips().length === 1 && !draft.fields.hidden, "Gmail still has expanded rows after commit");
+    assert(document.activeElement === draft.editor, "body focus ready before native collapse");
+    assert(draft.fields.getBoundingClientRect().height > draft.form.getBoundingClientRect().height &&
+      bodyOffset(draft) === editorTop, "extra rows do not move the reply body");
+
+    draft.compactRecipients();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(bodyOffset(draft) === editorTop, "native collapse does not move the body");
+    assert(draft.form.style.height === "auto" && draft.form.style.getPropertyPriority("height") === "important" &&
+      draft.form.style.overflowY === "", "original header styles restored");
+  });
+  await test("a Cc recipient added during a deferred BCC reveal prevents duplicate insertion", async () => {
+    const draft = compose({ deferReveal: true, initial: { CC: [] } });
+    await settle();
+    assert(draft.reveals === 1 && document.activeElement === draft.boxes.To, "To available while waiting");
+    draft.addChip("CC", address);
+    draft.showBcc();
+    await settle();
+    assert(draft.attempts === 0 && draft.chips().length === 0, "duplicate rechecked before commit");
   });
   for (const count of [2, 3]) await test(`${count} simultaneous compose windows`, async () => {
     const drafts = Array.from({ length: count }, () => compose({ floating: true }));
@@ -248,6 +318,7 @@
     await settle();
     assert(reply.attempts === 0, "pending insertion cancelled");
     assert(document.activeElement === reply.editor, "original caret restored");
+    assert(reply.form.style.height === "", "header styling removed on cancellation");
   });
   await test("late-built Gmail shell recovers on focus", async () => {
     app.autoBcc.stop();
